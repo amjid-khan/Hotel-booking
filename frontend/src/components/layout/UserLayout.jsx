@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Navbar from '../common/Navbar';
-import Footer from '../Footer/Footer';
+import Footer from '../frontend/Footer/Footer';
 
 function UserLayout() {
   return (
@@ -13,4 +13,4 @@ function UserLayout() {
   );
 }
 
-export default UserLayout;
+export default UserLayout

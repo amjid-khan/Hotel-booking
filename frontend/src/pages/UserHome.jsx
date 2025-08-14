@@ -12,6 +12,7 @@ import {
   FaCoffee, 
   FaUtensils 
 } from "react-icons/fa";
+
 const rooms = [
   {
     id: 1,
@@ -139,14 +140,16 @@ const UserHome = () => {
       {/* Testimonials Section */}
       <div className="testimonials-section">
         <h2>What Our Guests Say</h2>
-        <div className="testimonials-carousel">
-          {testimonials.concat(testimonials).map((testimonial, index) => (
-            <div className="testimonial-card" key={index}>
-              <img src={testimonial.image} alt={testimonial.name} />
-              <p>"{testimonial.message}"</p>
-              <h4>- {testimonial.name}</h4>
-            </div>
-          ))}
+        <div className="testimonials-carousel-wrapper">
+          <div className="testimonials-carousel">
+            {testimonials.concat(testimonials).map((testimonial, index) => (
+              <div className="testimonial-card" key={index}>
+                <img src={testimonial.image} alt={testimonial.name} />
+                <p>"{testimonial.message}"</p>
+                <h4>- {testimonial.name}</h4>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
