@@ -7,7 +7,9 @@ function UserLayout() {
   return (
     <>
       <Navbar />
-      <Outlet /> {/* renders the child route here */}
+      <div>
+        <Outlet /> {/* renders the child route here */}
+        </div>
       <Footer />
     </>
   );

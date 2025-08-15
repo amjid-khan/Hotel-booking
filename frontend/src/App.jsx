@@ -6,7 +6,6 @@ import {
   Navigate,
 } from "react-router-dom";
 import { AuthProvider, AuthContext } from "./contexts/AuthContext";
-
 import Login from "./components/auth/Login";
 import UserHome from "./pages/UserHome";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -15,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import UserLayout from "./components/layout/UserLayout";
 import AdminLayout from "./components/layout/AdminLayout";
+import Room from "./components/frontend/Room/Room";
 HomeRedirect;
 // Root redirect based on role
 function HomeRedirect() {
@@ -51,7 +51,6 @@ function App() {
     <Router>
       <AuthProvider>
         <Routes>
-          {/* Root redirect */}
           <Route path="/" element={<HomeRedirect />} />
 
           {/* Public route (blocked for logged-in users) */}
@@ -59,15 +58,16 @@ function App() {
 
           {/* User routes */}
           <Route element={<ProtectedRoute roles={["user"]} />}>
-            <Route element={<UserLayout />}>
-              <Route path="/user" element={<UserHome />} />
+            <Route path="/user" element={<UserLayout />}>
+              <Route index element={<UserHome />} /> 
+              <Route path="rooms" element={<Room />} />
             </Route>
           </Route>
           {/* Admin routes */}
           <Route element={<ProtectedRoute roles={["admin"]} />}>
             <Route element={<AdminLayout />}>
               <Route path="/admin" element={<AdminDashboard />} />
-              </Route>
+            </Route>
           </Route>
           {/* SuperAdmin routes */}
           <Route element={<ProtectedRoute roles={["superadmin"]} />}>

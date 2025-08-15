@@ -14,9 +14,9 @@ const Navbar = () => {
   const toggleMenu = () => setMenuOpen(!menuOpen);
 
   const handleLogout = () => {
-    logout(); // remove user & token
+    logout();
     setShowLogoutConfirm(false);
-    navigate('/login', { replace: true }); // redirect
+    navigate('/login', { replace: true });
   };
 
   return (
@@ -77,5 +77,4 @@ const Navbar = () => {
     </>
   );
 };
-
 export default Navbar;

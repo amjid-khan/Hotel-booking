@@ -23,7 +23,7 @@
 
 .logo-icon {
   margin-right: 0.5rem;
-  color: #e63946;
+  color: yellow;
 }
 
 /* Links */
@@ -39,15 +39,6 @@
   font-weight: 500;
   position: relative;
   transition: color 0.3s ease;
-}
-
-.navbar-links li a:hover {
-  color: #ffb703;
-}
-
-/* Active Link Underline */
-.navbar-links li a.active {
-  color: #ffb703;
 }
 
 .navbar-links li a.active::after {
@@ -85,13 +76,15 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: #ffb703;
+    color: #1d3557;
+  background-color: #8a959c;
   font-size: 1.2rem;
   transition: color 0.3s ease;
 }
 
 .logout-desktop:hover {
-  color: #e63946;
+  color: #dfe1e4;
+  background-color: #031724;
 }
 
 .menu-toggle {
@@ -101,21 +94,16 @@
   display: none;
   color: #f1faee;
 }
-
-/* Logout Popup */
-/* Logout Popup Overlay */
 .logout-popup {
   position: fixed;
-  inset: 0; /* top:0; bottom:0; left:0; right:0; */
-  background: rgba(0,0,0,0.6); /* slightly darker overlay */
+  inset: 0; 
+  background: rgba(0,0,0,0.6); 
   display: flex;
   justify-content: center;
   align-items: center;
   animation: fadeIn 0.25s ease forwards;
   z-index: 9999;
 }
-
-/* Popup Card */
 .popup-card {
   background: #f1faee;
   padding: 2.2rem 2.5rem;
@@ -129,20 +117,17 @@
   animation: slideUp 0.3s ease forwards;
 }
 
-/* Text */
 .popup-card p {
   font-size: 1.1rem;
   font-weight: 500;
   color: #1d3557;
   margin-bottom: 1.5rem;
 }
-
-/* Actions */
 .popup-actions {
   display: flex;
   justify-content: center;
   gap: 1rem;
-  flex-wrap: wrap; /* responsive for small screens */
+  flex-wrap: wrap;
 }
 
 .confirm-btn, .cancel-btn {
@@ -154,7 +139,6 @@
   transition: all 0.2s ease;
 }
 
-/* Confirm (Yes) */
 .confirm-btn {
   background-color: #e63946;
   color: #fff;
@@ -162,8 +146,6 @@
 .confirm-btn:hover {
   background-color: #d62828;
 }
-
-/* Cancel (No) */
 .cancel-btn {
   background-color: #777;
   color: #fff;
@@ -172,22 +154,6 @@
   background-color: #555;
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
 
 .popup-card {
   background: #f1faee;
@@ -233,6 +199,23 @@
   background: #777;
 }
 
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* Responsive */
 @media (max-width: 900px) {
   .navbar-links {
@@ -276,8 +259,6 @@
   .navbar-links li a {
     font-size: 1.2rem;
   }
-
-  /* Active underline for mobile menu */
   .navbar-links li a.active::after {
     bottom: -6px;
   }
