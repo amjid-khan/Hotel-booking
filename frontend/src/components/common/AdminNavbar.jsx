@@ -31,12 +31,12 @@ const AdminNavbar = () => {
 
   const links = [
     { name: 'Dashboard', path: '/admin', icon: <FaBars /> },
-    { name: 'Add Room', path: '/admin/add-room', icon: <FaPlus /> },
-    { name: 'List Room', path: '/admin/list-rooms', icon: <FaList /> },
-    { name: 'Booking Orders', path: '/admin/bookings', icon: <FaClipboardList /> },
-    { name: 'Users', path: '/admin/users', icon: <FaUserCircle /> },
-    { name: 'Settings', path: '/admin/settings', icon: <FaBars /> },
-    { name: 'Reports', path: '/admin/reports', icon: <FaBars /> },
+    { name: 'Add Room', path: '/add-room', icon: <FaPlus /> },
+    { name: 'List Room', path: '/list-rooms', icon: <FaList /> },
+    { name: 'Booking Orders', path: '/bookings', icon: <FaClipboardList /> },
+    { name: 'Users', path: '/users', icon: <FaUserCircle /> },
+    { name: 'Settings', path: '/settings', icon: <FaBars /> },
+    { name: 'Reports', path: '/reports', icon: <FaBars /> },
   ];
 
   return (
