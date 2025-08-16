@@ -16,11 +16,13 @@ const authRoutes = require('./routes/authRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const superAdminRoutes = require('./routes/superAdminRoutes');
+const hotelRoutes = require("./routes/hotelRoutes")
 
 app.use('/api/auth', authRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/superadmin', superAdminRoutes);
+app.use('/api/hotels', hotelRoutes);
 
 // 404 middleware: route nahi mila to error create karo aur next karo
 app.use((req, res, next) => {

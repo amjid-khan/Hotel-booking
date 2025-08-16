@@ -1,3 +1,4 @@
+// src/contexts/AuthContext.jsx
 import React, { createContext, useState, useEffect } from 'react';
 
 export const AuthContext = createContext();
@@ -6,6 +7,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [hotelName, setHotelName] = useState(null);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
@@ -32,8 +34,10 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('token');
   };
 
+  const updateHotelName = (name) => setHotelName(name);
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, loading, hotelName, updateHotelName }}>
       {children}
     </AuthContext.Provider>
   );

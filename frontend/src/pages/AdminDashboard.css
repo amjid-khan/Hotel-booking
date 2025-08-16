@@ -1,4 +1,44 @@
- .dashboard{
-    padding-left: 258px;
-    padding-top: 30px;
- }
+.dashboard {
+  padding-left: 258px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f5f6fa;
+  min-height: 100vh;
+}
+
+.dashboard-loading {
+  padding: 50px;
+  text-align: center;
+  font-size: 18px;
+  color: #555;
+}
+
+/* Header */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between; /* Left-Right alignment */
+  align-items: center;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  margin-bottom: 30px;
+}
+
+.dashboard-title {
+  font-size: 28px;
+  color: #2f3640;
+}
+
+.hotel-name {
+  font-size: 20px;
+  color: #718093;
+}
+
+/* Placeholder for future dashboard content */
+.dashboard-content {
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 12px;
+  min-height: 400px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
