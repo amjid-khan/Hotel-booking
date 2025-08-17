@@ -1,17 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
+import axios from "axios";
 import { FaUpload } from "react-icons/fa";
+import { AuthContext } from "../../../contexts/AuthContext";
 import "./AddRoom.css";
 
 const AddRoom = () => {
+  const { token } = useContext(AuthContext);
   const [room, setRoom] = useState({
-    name: "",
+    roomNumber: "",
     type: "",
     price: "",
     capacity: "",
     description: "",
   });
-
-  const [images, setImages] = useState([]);
+  const [image, setImage] = useState(null);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -19,19 +21,48 @@ const AddRoom = () => {
   };
 
   const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
-    const previewFiles = files.map((file) => ({
-      file,
-      preview: URL.createObjectURL(file),
-    }));
-    setImages(previewFiles);
+    setImage(e.target.files[0]);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Room Details:", room);
-    console.log("Selected Images:", images);
-    alert("Room added successfully!");
+
+    try {
+      const formData = new FormData();
+      formData.append("roomNumber", room.roomNumber);
+      formData.append("type", room.type);
+      formData.append("price", room.price);
+      formData.append("capacity", room.capacity);
+      formData.append("description", room.description);
+      if (image) {
+        formData.append("image", image); // field name must match backend
+      }
+
+      const res = await axios.post("http://localhost:5000/api/rooms/rooms", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      alert("Room added successfully!");
+      console.log(res.data);
+
+      // Reset form
+      setRoom({
+        roomNumber: "",
+        type: "",
+        price: "",
+        capacity: "",
+        description: "",
+      });
+      setImage(null);
+    } catch (error) {
+      console.error("Error adding room:", error);
+      alert(
+        error.response?.data?.message || "Failed to add room. Please try again."
+      );
+    }
   };
 
   return (
@@ -42,34 +73,34 @@ const AddRoom = () => {
           <label className="image-upload">
             <div className="upload-placeholder">
               <FaUpload size={40} />
-              <span>Click to upload images</span>
+              <span>Click to upload image</span>
             </div>
             <input
               type="file"
-              multiple
               accept="image/*"
               onChange={handleImageChange}
               style={{ display: "none" }}
             />
           </label>
-          <div className="image-preview">
-            {images.map((img, index) => (
-              <div key={index} className="preview-item">
-                <img src={img.preview} alt={`preview-${index}`} />
-              </div>
-            ))}
-          </div>
+          {image && (
+            <div className="image-preview">
+              <img
+                src={URL.createObjectURL(image)}
+                alt="preview"
+                style={{ maxWidth: "100%", height: "auto" }}
+              />
+            </div>
+          )}
         </div>
 
         <div className="form-right">
           <div className="form-group">
-            <label>Room Name</label>
+            <label>Room Number</label>
             <input
               type="text"
-              name="name"
-              value={room.name}
+              name="roomNumber"
+              value={room.roomNumber}
               onChange={handleInputChange}
-              placeholder="Enter room name"
               required
             />
           </div>
@@ -81,7 +112,6 @@ const AddRoom = () => {
               name="type"
               value={room.type}
               onChange={handleInputChange}
-              placeholder="Deluxe, Suite, etc."
               required
             />
           </div>
@@ -93,7 +123,6 @@ const AddRoom = () => {
               name="price"
               value={room.price}
               onChange={handleInputChange}
-              placeholder="Enter price"
               required
             />
           </div>
@@ -105,7 +134,6 @@ const AddRoom = () => {
               name="capacity"
               value={room.capacity}
               onChange={handleInputChange}
-              placeholder="Number of guests"
               required
             />
           </div>
@@ -116,7 +144,6 @@ const AddRoom = () => {
               name="description"
               value={room.description}
               onChange={handleInputChange}
-              placeholder="Enter room description"
               rows="4"
             />
           </div>

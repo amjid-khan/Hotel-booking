@@ -1,8 +1,10 @@
 const pool = require('../config/db');
+const path = require('path');
 
 // Add new room
 exports.addRoom = async (req, res) => {
-    const { roomNumber, type, price, image, capacity, description } = req.body;
+    const { roomNumber, type, price, capacity, description } = req.body;
+    const image = req.file ? `/uploads/${req.file.filename}` : null;
 
     // Validation
     if (!roomNumber || !type || !price || !capacity) {
@@ -18,7 +20,7 @@ exports.addRoom = async (req, res) => {
         await pool.query(
             `INSERT INTO rooms (roomNumber, type, price, image, capacity, description) 
              VALUES (?, ?, ?, ?, ?, ?)`,
-            [roomNumber, type, price, image || null, capacity, description || null]
+            [roomNumber, type, price, image, capacity, description || null]
         );
 
         res.status(201).json({ message: 'Room added successfully' });
@@ -42,13 +44,15 @@ exports.getAllRooms = async (req, res) => {
 // Update room
 exports.updateRoom = async (req, res) => {
     const { id } = req.params;
-    const { roomNumber, type, price, image, capacity, description } = req.body;
+    const { roomNumber, type, price, capacity, description } = req.body;
 
     try {
         const [existing] = await pool.query('SELECT * FROM rooms WHERE id = ?', [id]);
         if (existing.length === 0) {
             return res.status(404).json({ message: 'Room not found' });
         }
+
+        const image = req.file ? `/uploads/${req.file.filename}` : existing[0].image;
 
         await pool.query(
             `UPDATE rooms 
@@ -58,7 +62,7 @@ exports.updateRoom = async (req, res) => {
                 roomNumber || existing[0].roomNumber,
                 type || existing[0].type,
                 price || existing[0].price,
-                image || existing[0].image,
+                image,
                 capacity || existing[0].capacity,
                 description || existing[0].description,
                 id,
