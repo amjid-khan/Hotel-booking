@@ -5,7 +5,6 @@ const path = require('path');
 exports.addRoom = async (req, res) => {
     const { roomNumber, type, price, capacity, description, hotelId } = req.body;
     const image = req.file ? `/uploads/${req.file.filename}` : null;
-    console.log("File path", image)
 
     // Validation
     if (!roomNumber || !type || !price || !capacity || !hotelId) {
@@ -13,7 +12,7 @@ exports.addRoom = async (req, res) => {
     }
 
     try {
-        // Check duplicate room number for same hotel
+        // Check duplicate room number for the same hotel
         const [existing] = await pool.query(
             'SELECT * FROM rooms WHERE roomNumber = ? AND hotelId = ?',
             [roomNumber, hotelId]
@@ -62,9 +61,21 @@ exports.updateRoom = async (req, res) => {
     const { roomNumber, type, price, capacity, description, hotelId } = req.body;
 
     try {
+        // Check if room exists
         const [existing] = await pool.query('SELECT * FROM rooms WHERE id = ?', [id]);
         if (existing.length === 0) {
             return res.status(404).json({ message: 'Room not found' });
+        }
+
+        // Check duplicate roomNumber for the same hotel (excluding current room)
+        if (roomNumber && hotelId) {
+            const [duplicate] = await pool.query(
+                'SELECT * FROM rooms WHERE roomNumber = ? AND hotelId = ? AND id != ?',
+                [roomNumber, hotelId, id]
+            );
+            if (duplicate.length > 0) {
+                return res.status(400).json({ message: 'Room number already exists for this hotel' });
+            }
         }
 
         const image = req.file ? `/uploads/${req.file.filename}` : existing[0].image;

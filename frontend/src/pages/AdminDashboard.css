@@ -1,44 +1,65 @@
+/* Reset & basic */
 .dashboard {
   padding-left: 258px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f5f6fa;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-.dashboard-loading {
-  padding: 50px;
-  text-align: center;
-  font-size: 18px;
-  color: #555;
-}
-
-/* Header */
 .dashboard-header {
   display: flex;
-  justify-content: space-between; /* Left-Right alignment */
+  justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  background-color: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  margin-bottom: 30px;
+  background: linear-gradient(90deg, #4b6cb7, #182848);
+  color: white;
+  padding: 20px 40px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  flex-wrap: wrap;
 }
 
 .dashboard-title {
-  font-size: 28px;
-  color: #2f3640;
+  font-size: 1.8rem;
+  margin: 0;
 }
 
 .hotel-name {
-  font-size: 20px;
-  color: #718093;
+  font-size: 1.4rem;
+  background-color: rgba(255, 255, 255, 0.15);
+  padding: 8px 15px;
+  border-radius: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  text-align: center;
 }
 
-/* Placeholder for future dashboard content */
 .dashboard-content {
-  background-color: #ffffff;
-  padding: 20px;
-  border-radius: 12px;
-  min-height: 400px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  flex: 1;
+  padding: 30px 40px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* Loading */
+.dashboard-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 1.5rem;
+  color: #555;
+}
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .hotel-name {
+    max-width: 100%;
+  }
 }

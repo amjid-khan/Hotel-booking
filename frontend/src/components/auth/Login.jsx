@@ -46,7 +46,7 @@ function LoginRegister() {
           name,
           email,
           password,
-          role: 'user',
+          role: 'admin',
         });
         alert('Registration successful! Please login.');
         setIsRegister(false);

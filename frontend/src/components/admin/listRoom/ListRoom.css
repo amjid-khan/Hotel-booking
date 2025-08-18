@@ -1,5 +1,6 @@
+/* Room List Container */
 .roomlist-container {
-  padding-left: 258px;
+  padding-left: 258px;   /* start from sidebar */
   padding-top: 30px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
@@ -10,10 +11,12 @@
   color: #333;
 }
 
+/* Table Wrapper */
 .table-wrapper {
   overflow-x: auto;
 }
 
+/* Room Table */
 .room-table {
   width: 100%;
   border-collapse: collapse;
@@ -51,6 +54,7 @@
   text-overflow: ellipsis;
 }
 
+/* Buttons */
 .update-btn,
 .delete-btn {
   padding: 5px 10px;
@@ -80,8 +84,49 @@
   background-color: #e53935;
 }
 
+/* Edit Room Form Wrapper */
+.edit-room-wrapper {
+  max-width: 700px;              /* align left from sidebar */
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  align-self: flex-start;
+}
+
+/* Edit Room Form Layout */
+.edit-room-wrapper .room-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: flex-start;
+}
+
+.edit-room-wrapper .form-left,
+.edit-room-wrapper .form-right {
+  flex: 1;
+  min-width: 300px;
+}
+
+.edit-room-wrapper .form-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* fields left-aligned */
+}
+
+.edit-room-wrapper .submit-btn {
+  align-self: flex-start;
+  margin-top: 10px;
+}
+
 /* Responsive for smaller screens */
 @media (max-width: 768px) {
+  .roomlist-container,
+  .edit-room-wrapper {
+    padding-left: 20px;
+    margin-left: 0;       /* mobile-friendly */
+  }
+
   .room-table th,
   .room-table td {
     padding: 8px 10px;
@@ -94,5 +139,9 @@
 
   .description {
     max-width: 120px;
+  }
+
+  .edit-room-wrapper .room-form {
+    flex-direction: column;
   }
 }

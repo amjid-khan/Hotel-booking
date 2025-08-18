@@ -7,13 +7,12 @@ import ProtectedRoute from "./components/common/ProtectedRoute";
 import UserHome from "./pages/UserHome";
 import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
-import Login from "./components/auth/Login";
+import Login from "./components/auth/Login"
 import NotFound from "./pages/NotFound";
 import UserLayout from "./components/layout/UserLayout";
 import AdminLayout from "./components/layout/AdminLayout";
 import Room from "./components/frontend/Room/Room";
 import CreateHotel from "./components/admin/createhotel/CreateHotel";
-
 import useAdminHotelCheck from "./hooks/useAdminHotelCheck";
 import AddRoom from "./components/admin/addroom/AddRoom";
 import ListRoom from "./components/admin/listRoom/ListRoom";

@@ -16,13 +16,15 @@ export default function useAdminHotelCheck(token) {
             return;
         }
 
-        const check = async () => {
+        const checkHotel = async () => {
             try {
                 const res = await axios.get("http://localhost:5000/api/hotels/check", {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
-                setHasHotel(res.data.hasHotel || false);
+                const hotelExists = res.data.hasHotel || false;
+                setHasHotel(hotelExists);
+
                 if (updateHotelName) {
                     updateHotelName(res.data.hotelName || null);
                 }
@@ -34,7 +36,8 @@ export default function useAdminHotelCheck(token) {
                 setLoading(false);
             }
         };
-        check();
+
+        checkHotel();
     }, [token, updateHotelName]);
 
     return { loading, hasHotel };

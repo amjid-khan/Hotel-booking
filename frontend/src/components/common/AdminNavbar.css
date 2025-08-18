@@ -71,8 +71,8 @@
 
 .sidebar-links li a:hover,
 .sidebar-links li a.active {
-  background-color: rgba(255, 183, 3, 0.2);
-  color: #ffb703;
+  background-color: rgba(155, 154, 150, 0.904);
+  color: black;
 }
 
 /* Hide label on collapse */
@@ -189,6 +189,7 @@
 }
 .logout-link:hover{
   background-color: rgb(143, 142, 142);
+  color: black;
 }
 .logout-link .label {
   margin-left: 10px;

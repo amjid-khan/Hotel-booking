@@ -1,15 +1,26 @@
 const db = require("../config/db.js");
 
 // Create new hotel
+// Create new hotel
 exports.createHotel = async (req, res) => {
     try {
         const { name, address, description } = req.body;
         const adminId = req.user.id;
 
         const query = 'INSERT INTO hotels (admin_id, name, address, description) VALUES (?, ?, ?, ?)';
-        await db.execute(query, [adminId, name, address, description]);
+        const [result] = await db.execute(query, [adminId, name, address, description]);
 
-        res.status(201).json({ success: true, message: 'Hotel created successfully' });
+        // result.insertId me naya auto-incremented hotel ID aayega
+        res.status(201).json({
+            success: true,
+            message: 'Hotel created successfully',
+            hotel: {
+                id: result.insertId,
+                name,
+                address,
+                description
+            }
+        });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
