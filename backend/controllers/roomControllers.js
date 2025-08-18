@@ -1,9 +1,11 @@
 const pool = require('../config/db');
+const path = require('path');
 
 // Add new room
 exports.addRoom = async (req, res) => {
     const { roomNumber, type, price, capacity, description, hotelId } = req.body;
     const image = req.file ? `/uploads/${req.file.filename}` : null;
+    console.log("File path", image)
 
     // Validation
     if (!roomNumber || !type || !price || !capacity || !hotelId) {
@@ -34,7 +36,7 @@ exports.addRoom = async (req, res) => {
     }
 };
 
-// Get all rooms (optionally filter by hotelId)
+// Get all rooms (optionally filter by hotel)
 exports.getAllRooms = async (req, res) => {
     try {
         const { hotelId } = req.query;

@@ -1,10 +1,10 @@
 const express = require('express');
 const cors = require("cors")
 const app = express();
-
+const path = require('path');
 require('dotenv').config();
 
-
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use(express.json());
 app.use(cors({
