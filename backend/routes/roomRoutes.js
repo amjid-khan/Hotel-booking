@@ -8,29 +8,37 @@ const {
     getAllRooms,
     updateRoom,
     deleteRoom,
-} = require('../controllers/roomControllers');
+} = require('../controllers/roomControllers'); // Ensure correct file path
 
-router.post('/rooms',
+// Add new room (with image upload)
+router.post(
+    '/',
     authenticateToken,
     authorizeRoles('admin', 'superadmin'),
-    upload.single('image'),   // <-- Handle image upload
+    upload.single('image'),   // Handle image upload
     addRoom
 );
 
-router.get('/rooms',
+// Get all rooms (optionally filter by hotelId)
+router.get(
+    '/',
     authenticateToken,
     authorizeRoles('admin', 'superadmin'),
     getAllRooms
 );
 
-router.put('/rooms/:id',
+// Update room (with image upload)
+router.put(
+    '/:id',
     authenticateToken,
     authorizeRoles('admin', 'superadmin'),
-    upload.single('image'),   // <-- Handle image upload
+    upload.single('image'),   // Handle image upload
     updateRoom
 );
 
-router.delete('/rooms/:id',
+// Delete room
+router.delete(
+    '/:id',
     authenticateToken,
     authorizeRoles('admin', 'superadmin'),
     deleteRoom

@@ -16,6 +16,7 @@ import CreateHotel from "./components/admin/createhotel/CreateHotel";
 
 import useAdminHotelCheck from "./hooks/useAdminHotelCheck";
 import AddRoom from "./components/admin/addroom/AddRoom";
+import ListRoom from "./components/admin/listRoom/ListRoom";
 
 // --- Role-based redirect after login ---
 function HomeRedirect() {
@@ -85,6 +86,7 @@ export default function App() {
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/create-hotel" element={<CreateHotel />} />
               <Route path="/add-room" element={<AddRoom />} />
+              <Route path="/list-rooms" element={<ListRoom />} />
             </Route>
           </Route>
 

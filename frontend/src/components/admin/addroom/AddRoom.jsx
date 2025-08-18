@@ -5,7 +5,8 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import "./AddRoom.css";
 
 const AddRoom = () => {
-  const { token } = useContext(AuthContext);
+  const { token, user } = useContext(AuthContext);
+
   const [room, setRoom] = useState({
     roomNumber: "",
     type: "",
@@ -14,10 +15,11 @@ const AddRoom = () => {
     description: "",
   });
   const [image, setImage] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setRoom({ ...room, [name]: value });
+    setRoom((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleImageChange = (e) => {
@@ -27,6 +29,12 @@ const AddRoom = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!user?.hotelId) {
+      alert("Hotel ID missing! Please login as a hotel admin.");
+      return;
+    }
+
+    setLoading(true);
     try {
       const formData = new FormData();
       formData.append("roomNumber", room.roomNumber);
@@ -34,19 +42,25 @@ const AddRoom = () => {
       formData.append("price", room.price);
       formData.append("capacity", room.capacity);
       formData.append("description", room.description);
+      formData.append("hotelId", user.hotelId); // <-- hotelId send karo
+
       if (image) {
-        formData.append("image", image); // field name must match backend
+        formData.append("image", image);
       }
 
-      const res = await axios.post("http://localhost:5000/api/rooms/rooms", formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const res = await axios.post(
+        "http://localhost:5000/api/rooms",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       alert("Room added successfully!");
-      console.log(res.data);
+      console.log("Room added:", res.data);
 
       // Reset form
       setRoom({
@@ -59,9 +73,9 @@ const AddRoom = () => {
       setImage(null);
     } catch (error) {
       console.error("Error adding room:", error);
-      alert(
-        error.response?.data?.message || "Failed to add room. Please try again."
-      );
+      alert(error.response?.data?.message || "Failed to add room. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -73,7 +87,7 @@ const AddRoom = () => {
           <label className="image-upload">
             <div className="upload-placeholder">
               <FaUpload size={40} />
-              <span>Click to upload image</span>
+              <span>{image ? "Change image" : "Click to upload image"}</span>
             </div>
             <input
               type="file"
@@ -148,8 +162,8 @@ const AddRoom = () => {
             />
           </div>
 
-          <button type="submit" className="submit-btn">
-            Add Room
+          <button type="submit" className="submit-btn" disabled={loading}>
+            {loading ? "Adding..." : "Add Room"}
           </button>
         </div>
       </form>

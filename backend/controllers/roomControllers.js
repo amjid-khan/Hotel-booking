@@ -1,42 +1,55 @@
 const pool = require('../config/db');
-const path = require('path');
 
 // Add new room
 exports.addRoom = async (req, res) => {
-    const { roomNumber, type, price, capacity, description } = req.body;
+    const { roomNumber, type, price, capacity, description, hotelId } = req.body;
     const image = req.file ? `/uploads/${req.file.filename}` : null;
 
     // Validation
-    if (!roomNumber || !type || !price || !capacity) {
-        return res.status(400).json({ message: 'roomNumber, type, price, and capacity are required' });
+    if (!roomNumber || !type || !price || !capacity || !hotelId) {
+        return res.status(400).json({ message: 'roomNumber, type, price, capacity and hotelId are required' });
     }
 
     try {
-        const [existing] = await pool.query('SELECT * FROM rooms WHERE roomNumber = ?', [roomNumber]);
+        // Check duplicate room number for same hotel
+        const [existing] = await pool.query(
+            'SELECT * FROM rooms WHERE roomNumber = ? AND hotelId = ?',
+            [roomNumber, hotelId]
+        );
         if (existing.length > 0) {
-            return res.status(400).json({ message: 'Room number already exists' });
+            return res.status(400).json({ message: 'Room number already exists for this hotel' });
         }
 
+        // Insert new room
         await pool.query(
-            `INSERT INTO rooms (roomNumber, type, price, image, capacity, description) 
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [roomNumber, type, price, image, capacity, description || null]
+            `INSERT INTO rooms (roomNumber, type, price, image, capacity, description, hotelId) 
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [roomNumber, type, price, image, capacity, description || null, hotelId]
         );
 
         res.status(201).json({ message: 'Room added successfully' });
     } catch (error) {
-        console.error(error);
+        console.error('Error adding room:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
 
-// Get all rooms
+// Get all rooms (optionally filter by hotelId)
 exports.getAllRooms = async (req, res) => {
     try {
-        const [rooms] = await pool.query('SELECT * FROM rooms');
+        const { hotelId } = req.query;
+        let query = 'SELECT * FROM rooms';
+        let params = [];
+
+        if (hotelId) {
+            query += ' WHERE hotelId = ?';
+            params.push(hotelId);
+        }
+
+        const [rooms] = await pool.query(query, params);
         res.json(rooms);
     } catch (error) {
-        console.error(error);
+        console.error('Error fetching rooms:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -44,7 +57,7 @@ exports.getAllRooms = async (req, res) => {
 // Update room
 exports.updateRoom = async (req, res) => {
     const { id } = req.params;
-    const { roomNumber, type, price, capacity, description } = req.body;
+    const { roomNumber, type, price, capacity, description, hotelId } = req.body;
 
     try {
         const [existing] = await pool.query('SELECT * FROM rooms WHERE id = ?', [id]);
@@ -56,7 +69,7 @@ exports.updateRoom = async (req, res) => {
 
         await pool.query(
             `UPDATE rooms 
-             SET roomNumber = ?, type = ?, price = ?, image = ?, capacity = ?, description = ? 
+             SET roomNumber = ?, type = ?, price = ?, image = ?, capacity = ?, description = ?, hotelId = ?
              WHERE id = ?`,
             [
                 roomNumber || existing[0].roomNumber,
@@ -65,13 +78,14 @@ exports.updateRoom = async (req, res) => {
                 image,
                 capacity || existing[0].capacity,
                 description || existing[0].description,
+                hotelId || existing[0].hotelId,
                 id,
             ]
         );
 
         res.json({ message: 'Room updated successfully' });
     } catch (error) {
-        console.error(error);
+        console.error('Error updating room:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -89,7 +103,7 @@ exports.deleteRoom = async (req, res) => {
         await pool.query('DELETE FROM rooms WHERE id = ?', [id]);
         res.json({ message: 'Room deleted successfully' });
     } catch (error) {
-        console.error(error);
+        console.error('Error deleting room:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };

@@ -1,5 +1,6 @@
 // src/contexts/AuthContext.jsx
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from "react";
+import axios from "axios";
 
 export const AuthContext = createContext();
 
@@ -8,10 +9,11 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [hotelName, setHotelName] = useState(null);
+  const [rooms, setRooms] = useState([]); 
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    const savedToken = localStorage.getItem('token');
+    const savedUser = localStorage.getItem("user");
+    const savedToken = localStorage.getItem("token");
 
     if (savedUser && savedToken) {
       setUser(JSON.parse(savedUser));
@@ -20,24 +22,72 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
+  // Fetch rooms by hotelId (query param updated for new backend route)
+  const fetchRooms = useCallback(async (hotelId) => {
+    try {
+      if (!hotelId) return;
+      const response = await axios.get(
+        `http://localhost:5000/api/rooms?hotelId=${hotelId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setRooms(response.data);
+    } catch (error) {
+      console.error("Error fetching rooms:", error);
+      setRooms([]);
+    }
+  }, [token]);
+
+  // Auto fetch rooms when user or token changes
+  useEffect(() => {
+    if (token && user?.hotelId) {
+      fetchRooms(user.hotelId);
+    }
+  }, [token, user, fetchRooms]);
+
   const login = (userData, tokenData) => {
-    setUser(userData);
+    const updatedUser = {
+      id: userData.id,
+      name: userData.name,
+      email: userData.email,
+      role: userData.role,
+      hotelId: userData.hotelId || null,
+    };
+
+    setUser(updatedUser);
     setToken(tokenData);
-    localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('token', tokenData);
+
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+    localStorage.setItem("token", tokenData);
   };
 
   const logout = () => {
     setUser(null);
     setToken(null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
+    setRooms([]);
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
   };
 
   const updateHotelName = (name) => setHotelName(name);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading, hotelName, updateHotelName }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        login,
+        logout,
+        loading,
+        hotelName,
+        updateHotelName,
+        rooms,
+        fetchRooms,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

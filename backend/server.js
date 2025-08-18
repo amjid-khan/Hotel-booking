@@ -4,6 +4,8 @@ const app = express();
 
 require('dotenv').config();
 
+
+
 app.use(express.json());
 app.use(cors({
     origin: 'http://localhost:5173',  // ya '*' agar sab allow karna hai (dev mein)
