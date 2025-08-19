@@ -10,12 +10,16 @@ exports.createHotel = async (req, res) => {
         const query = 'INSERT INTO hotels (admin_id, name, address, description) VALUES (?, ?, ?, ?)';
         const [result] = await db.execute(query, [adminId, name, address, description]);
 
-        // result.insertId me naya auto-incremented hotel ID aayega
+        const hotelId = result.insertId;
+
+        // Admin user ke hotelId ko update karo
+        await db.execute('UPDATE users SET hotelId = ? WHERE id = ?', [hotelId, adminId]);
+
         res.status(201).json({
             success: true,
             message: 'Hotel created successfully',
             hotel: {
-                id: result.insertId,
+                id: hotelId,
                 name,
                 address,
                 description
@@ -25,6 +29,7 @@ exports.createHotel = async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 };
+
 
 // Get all hotels of logged-in admin
 exports.getAdminHotels = async (req, res) => {

@@ -25,7 +25,7 @@ exports.registerUser = async (req, res) => {
         // Insert user (hotelId optional hai)
         const [result] = await pool.query(
             'INSERT INTO users (name, email, password, role, hotelId) VALUES (?, ?, ?, ?, ?)',
-            [name, email, hashedPassword, role, hotelId || null]
+            [name, email, hashedPassword, role, hotelId]
         );
 
         const user = {
@@ -84,7 +84,7 @@ exports.loginUser = async (req, res) => {
 
 exports.getAllUsers = async (req, res) => {
     try {
-        const { hotelId } = req.user; // from JWT payload
+        // const { hotelId } = req.user; // from JWT payload
 
         const [users] = await pool.query(
             'SELECT id, name, email, role, hotelId FROM users WHERE role = "user" AND hotelId = ?',

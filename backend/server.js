@@ -14,7 +14,7 @@ app.use(cors({
 }));
 
 // Routes
-const authRoutes = require('./routes/authRoutes');
+const authRoutes = require("./routes/authRoutes")
 const bookingRoutes = require('./routes/bookingRoutes');
 const roomRoute = require("./routes/roomRoutes")
 const superAdminRoutes = require('./routes/superAdminRoutes');
