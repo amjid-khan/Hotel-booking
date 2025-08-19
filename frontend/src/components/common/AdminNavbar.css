@@ -209,38 +209,19 @@
   to { transform: translateY(0); opacity: 1; }
 }
 
-/* Responsive */
 @media (max-width: 900px) {
-  .sidebar {
-    position: fixed;
-    left: -100%;
-    top: 0;
-    width: 220px;
-    height: 100vh;
-    transition: left 0.3s ease;
+  .sidebar{
+    width: 50px;
   }
-
-  .sidebar.active {
-    left: 0;
-  }
-
-  .sidebar-toggle {
-    display: block;
-    color: black;
-  }
-
   .sidebar-toggle.mobile-toggle {
     display: block;
     top: 1rem;
     right: -50px;
   }
-
-  /* Only icons on mobile */
   .sidebar-links li a .label {
     display: none;
   }
-
-  .logout-btn .label {
+    .sidebar .logout-link .label {
     display: none;
   }
 }

@@ -88,9 +88,7 @@ const AdminNavbar = () => {
         </ul>
 
         {/* Mobile menu toggle */}
-        <button className="sidebar-toggle mobile-toggle" onClick={toggleMobile}>
-          {mobileActive ? <FaTimes /> : <FaBars />}
-        </button>
+    
       </aside>
 
       {/* Logout Popup */}

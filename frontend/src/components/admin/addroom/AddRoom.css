@@ -124,8 +124,11 @@
   background-color: #005bb5;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
+
+@media (max-width: 900px) {
+  .add-room-container{
+    padding-left: 100px;
+  }
   .room-form {
     flex-direction: column;
   }

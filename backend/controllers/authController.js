@@ -84,15 +84,20 @@ exports.loginUser = async (req, res) => {
 
 exports.getAllUsers = async (req, res) => {
     try {
+        const { hotelId } = req.user; // from JWT payload
+
         const [users] = await pool.query(
-            'SELECT id, name, email, role, hotelId FROM users WHERE role = "user"'
+            'SELECT id, name, email, role, hotelId FROM users WHERE role = "user" AND hotelId = ?',
+            [hotelId]
         );
+
         res.json(users);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 };
+
 
 exports.deleteUser = async (req, res) => {
     const { id } = req.params;
