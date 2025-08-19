@@ -7,7 +7,7 @@ import ProtectedRoute from "./components/common/ProtectedRoute";
 import UserHome from "./pages/UserHome";
 import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
-import Login from "./components/auth/Login"
+import Login from "./components/auth/Login";
 import NotFound from "./pages/NotFound";
 import UserLayout from "./components/layout/UserLayout";
 import AdminLayout from "./components/layout/AdminLayout";
@@ -16,6 +16,7 @@ import CreateHotel from "./components/admin/createhotel/CreateHotel";
 import useAdminHotelCheck from "./hooks/useAdminHotelCheck";
 import AddRoom from "./components/admin/addroom/AddRoom";
 import ListRoom from "./components/admin/listRoom/ListRoom";
+import User from "./components/admin/createUser/User";
 
 // --- Role-based redirect after login ---
 function HomeRedirect() {
@@ -79,13 +80,18 @@ export default function App() {
             </Route>
           </Route>
 
-          {/* Admin */}
+          {/* Admin: create hotel page OUTSIDE AdminLayout */}
+          <Route element={<ProtectedRoute roles={["admin"]} />}>
+            <Route path="/admin/create-hotel" element={<CreateHotel />} />
+          </Route>
+
+          {/* Admin: only show AdminLayout IF hotel exists */}
           <Route element={<ProtectedRoute roles={["admin"]} />}>
             <Route element={<AdminLayout />}>
               <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/create-hotel" element={<CreateHotel />} />
               <Route path="/add-room" element={<AddRoom />} />
               <Route path="/list-rooms" element={<ListRoom />} />
+              <Route path="/users" element={<User />} />
             </Route>
           </Route>
 

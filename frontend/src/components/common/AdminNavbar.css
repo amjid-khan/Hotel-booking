@@ -4,7 +4,7 @@
   top: 0;
   width: 220px;
   height: 100vh;
-  background: linear-gradient(180deg, #1d3557, #457b9d);
+  background: white;
   display: flex;
   flex-direction: column;
   justify-content: flex-start; /* changed from space-between */
@@ -13,20 +13,21 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   z-index: 1000;
   box-shadow: 2px 0 12px rgba(0,0,0,0.15);
+  color: black;
 }
 
 .admin-name {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #f1faee;
+  color: black;
   font-weight: 500;
   margin-bottom: 1.5rem;
   font-size: 0.95rem;
 }
 
 .admin-name svg {
-  color: #ffb703;
+  color: black;
 }
 
 
@@ -41,12 +42,12 @@
   gap: 0.5rem;
   font-size: 1.5rem;
   font-weight: bold;
-  color: #f1faee;
+  color: black;
   margin-bottom: 2rem;
 }
 
 .logo-icon {
-  color: #e63946;
+  color: black;
 }
 
 /* Links */
@@ -62,7 +63,7 @@
   align-items: center;
   gap: 1rem;
   text-decoration: none;
-  color: #f1faee;
+  color: black;
   font-weight: 500;
   padding: 0.6rem 1rem;
   border-radius: 8px;
@@ -83,6 +84,7 @@
 /* Logout Button */
 .sidebar-logout {
   margin-top: 1rem; /* report ke neeche gap */
+  color: black;
 }
 
 .sidebar-toggle {
@@ -92,7 +94,7 @@
   right: -35px;
   background: #457b9d;
   border: none;
-  color: #fff;
+  color: black;
   padding: 0.5rem;
   border-radius: 6px;
   cursor: pointer;
@@ -114,6 +116,7 @@
   align-items: center;
   animation: fadeIn 0.25s ease forwards;
   z-index: 9999;
+  color: black;
 }
 
 /* Popup Card */
@@ -182,7 +185,7 @@
   padding: 10px 15px;
   cursor: pointer;
   text-align: left;
-  color: white;
+  color: black;
   padding: 7px 20px;
   border-radius: 8px;
   transition: .3s ease-in-out;

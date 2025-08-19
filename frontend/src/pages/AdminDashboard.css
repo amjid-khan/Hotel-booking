@@ -10,8 +10,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(90deg, #4b6cb7, #182848);
-  color: white;
+  background: linear-gradient(90deg, white, #b7b9be);
+  color: black;
   padding: 20px 40px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   flex-wrap: wrap;
