@@ -4,9 +4,11 @@ import axios from "axios";
 import { FaUpload } from "react-icons/fa";
 import { AuthContext } from "../../../contexts/AuthContext";
 import "./AddRoom.css";
+import { useNavigate } from "react-router-dom";
 
 const AddRoom = ({ editRoom, onEditComplete }) => {
   const { token, user, fetchRooms } = useContext(AuthContext);
+  const navigate = useNavigate()
 
   const [room, setRoom] = useState({
     roomNumber: "",
@@ -76,6 +78,8 @@ const AddRoom = ({ editRoom, onEditComplete }) => {
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
         });
         alert("Room added successfully!");
+        navigate("/list-rooms")
+      
       }
 
       // Refresh room list

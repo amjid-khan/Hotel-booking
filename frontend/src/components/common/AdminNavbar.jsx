@@ -1,17 +1,17 @@
-import React, { useState, useContext } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { 
-  FaUserCircle, 
-  FaBars, 
-  FaTimes, 
-  FaSignOutAlt, 
-  FaPlus, 
-  FaList, 
-  FaClipboardList 
-} from 'react-icons/fa';
-import { GiModernCity } from 'react-icons/gi';
-import { AuthContext } from '../../contexts/AuthContext';
-import './AdminNavbar.css';
+import React, { useState, useContext } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import {
+  FaUserCircle,
+  FaBars,
+  FaTimes,
+  FaSignOutAlt,
+  FaPlus,
+  FaList,
+  FaClipboardList,
+} from "react-icons/fa";
+import { GiModernCity } from "react-icons/gi";
+import { AuthContext } from "../../contexts/AuthContext";
+import "./AdminNavbar.css";
 
 const AdminNavbar = () => {
   const { user, logout } = useContext(AuthContext);
@@ -23,25 +23,29 @@ const AdminNavbar = () => {
   const handleLogout = () => {
     logout();
     setShowLogoutConfirm(false);
-    navigate('/login', { replace: true });
+    navigate("/login", { replace: true });
   };
 
   const toggleCollapse = () => setCollapsed(!collapsed);
   const toggleMobile = () => setMobileActive(!mobileActive);
 
   const links = [
-    { name: 'Dashboard', path: '/admin', icon: <FaBars /> },
-    { name: 'Add Room', path: '/add-room', icon: <FaPlus /> },
-    { name: 'List Room', path: '/list-rooms', icon: <FaList /> },
-    { name: 'Booking Orders', path: '/bookings', icon: <FaClipboardList /> },
-    { name: 'Users', path: '/users', icon: <FaUserCircle /> },
-    { name: 'Settings', path: '/settings', icon: <FaBars /> },
-    { name: 'Reports', path: '/reports', icon: <FaBars /> },
+    { name: "Dashboard", path: "/admin", icon: <FaBars /> },
+    { name: "Add Room", path: "/add-room", icon: <FaPlus /> },
+    { name: "List Room", path: "/list-rooms", icon: <FaList /> },
+    { name: "Booking Orders", path: "/bookings", icon: <FaClipboardList /> },
+    { name: "Users", path: "/users", icon: <FaUserCircle /> },
+    { name: "Settings", path: "/settings", icon: <FaBars /> },
+    { name: "Reports", path: "/reports", icon: <FaBars /> },
   ];
 
   return (
     <>
-      <aside className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileActive ? 'active' : ''}`}>
+      <aside
+        className={`sidebar ${collapsed ? "collapsed" : ""} ${
+          mobileActive ? "active" : ""
+        }`}
+      >
         {/* Toggle Button */}
         <button className="sidebar-toggle" onClick={toggleCollapse}>
           {collapsed ? <FaBars /> : <FaTimes />}
@@ -53,20 +57,21 @@ const AdminNavbar = () => {
           {!collapsed && <span>LuxStay Admin</span>}
         </div>
 
-        {/* Admin Name */}
+        {/* Admin Name + Create Hotel */}
         {!collapsed && user && (
           <div className="admin-name">
             <FaUserCircle /> <span>{user.name || user.username}</span>
+            {/* Create Hotel Button */}
           </div>
         )}
 
         {/* Links */}
         <ul className="sidebar-links">
-          {links.map(link => (
+          {links.map((link) => (
             <li key={link.name}>
               <NavLink
                 to={link.path}
-                className={({ isActive }) => (isActive ? 'active' : '')}
+                className={({ isActive }) => (isActive ? "active" : "")}
                 onClick={() => setMobileActive(false)}
               >
                 {link.icon}
@@ -86,9 +91,6 @@ const AdminNavbar = () => {
             </button>
           </li>
         </ul>
-
-        {/* Mobile menu toggle */}
-    
       </aside>
 
       {/* Logout Popup */}
@@ -97,8 +99,15 @@ const AdminNavbar = () => {
           <div className="popup-card">
             <p>Are you sure you want to logout?</p>
             <div className="popup-actions">
-              <button className="confirm-btn" onClick={handleLogout}>Yes</button>
-              <button className="cancel-btn" onClick={() => setShowLogoutConfirm(false)}>No</button>
+              <button className="confirm-btn" onClick={handleLogout}>
+                Yes
+              </button>
+              <button
+                className="cancel-btn"
+                onClick={() => setShowLogoutConfirm(false)}
+              >
+                No
+              </button>
             </div>
           </div>
         </div>
