@@ -11,11 +11,10 @@ export function AuthProvider({ children }) {
   const [rooms, setRooms] = useState([]);
   const [users, setUsers] = useState([]);
 
-  // ------------------ Restore user + token from localStorage ------------------
+  // ------------------ Restore user + token ------------------
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     const savedToken = localStorage.getItem("token");
-
     if (savedUser && savedToken) {
       setUser(JSON.parse(savedUser));
       setToken(savedToken);
@@ -23,49 +22,26 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  // ------------------ Fetch rooms by hotelId ------------------
+  // ------------------ Fetch rooms ------------------
   const fetchRooms = useCallback(async (hotelId) => {
     try {
       if (!hotelId) return;
-      const response = await axios.get(
+      const res = await axios.get(
         `http://localhost:5000/api/rooms?hotelId=${hotelId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      setRooms(response.data);
-    } catch (error) {
-      console.error("Error fetching rooms:", error);
+      setRooms(res.data);
+    } catch (err) {
+      console.error("Error fetching rooms:", err);
       setRooms([]);
     }
   }, [token]);
 
-  // ------------------ Fetch all users with role="user" ------------------
-  const fetchUsers = useCallback(async () => {
-    try {
-      const res = await axios.get("http://localhost:5000/api/auth/users", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const list = Array.isArray(res.data)
-        ? res.data
-        : res.data.users || [];
-      const onlyUsers = list.filter((u) => u.role === "user");
-      setUsers(onlyUsers);
-    } catch (err) {
-      console.error("Error fetching users:", err);
-      setUsers([]);
-    }
-  }, [token]);
 
-  // ------------------ Auto-fetch rooms + users whenever token/user changes ------------------
+  // ------------------ Auto fetch when token/user changes ------------------
   useEffect(() => {
-    if (token && user?.hotelId) {
-      fetchRooms(user.hotelId);
-    }
-    if (token) {
-      fetchUsers();
-    }
-  }, [token, user, fetchRooms, fetchUsers]);
+    if (token && user?.hotelId) fetchRooms(user.hotelId);
+  }, [token, user]);
 
   // ------------------ Login ------------------
   const login = (userData, tokenData) => {
@@ -76,14 +52,11 @@ export function AuthProvider({ children }) {
       role: userData.role,
       hotelId: userData.hotelId || null,
     };
-
     setUser(updatedUser);
     setToken(tokenData);
-
     localStorage.setItem("user", JSON.stringify(updatedUser));
     localStorage.setItem("token", tokenData);
-
-    fetchUsers(); // Load user list after login
+    fetchUsers();
   };
 
   // ------------------ Logout ------------------
@@ -95,37 +68,6 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
   };
-
-  // ------------------ Create a new user ------------------
-  const createUser = async (newUser) => {
-    try {
-      const payload = {
-        ...newUser,
-        role: newUser.role || "user",
-        hotelId: newUser.hotelId || user?.hotelId || null
-      };
-
-      const res = await axios.post("http://localhost:5000/api/auth/register", payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUsers((prev) => [...prev, res.data.user]);
-    } catch (err) {
-      console.error("Error creating user:", err);
-      throw err;
-    }
-  };
-
-  // ------------------ Delete user ------------------
-const deleteUser = async (id) => {
-  try {
-    await axios.delete(`http://localhost:5000/api/auth/users/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    setUsers(prev => prev.filter(u => u.id !== id));
-  } catch (err) {
-    console.error("Error deleting user:", err);
-  }
-};
   const updateHotelName = (name) => setHotelName(name);
 
   return (
@@ -141,9 +83,6 @@ const deleteUser = async (id) => {
         rooms,
         fetchRooms,
         users,
-        fetchUsers,
-        createUser,
-        deleteUser,
       }}
     >
       {children}

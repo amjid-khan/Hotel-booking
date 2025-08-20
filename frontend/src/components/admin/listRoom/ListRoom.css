@@ -111,7 +111,8 @@
 .edit-room-wrapper .form-left {
   display: flex;
   flex-direction: column;
-  align-items: flex-start; /* fields left-aligned */
+  align-items: flex-start;
+  padding-left: 0px !important;
 }
 
 .edit-room-wrapper .submit-btn {
@@ -120,10 +121,16 @@
 }
 
 /* Responsive for smaller screens */
+@media (max-width: 900px) {
+    .roomlist-container,
+  .edit-room-wrapper{
+    padding-left: 100px;
+  }
+}
 @media (max-width: 768px) {
   .roomlist-container,
   .edit-room-wrapper {
-    padding-left: 20px;
+    padding-left: 100px;
     margin-left: 0;       /* mobile-friendly */
   }
 
