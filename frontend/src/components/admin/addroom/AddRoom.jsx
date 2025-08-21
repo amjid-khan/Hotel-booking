@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 const AddRoom = ({ editRoom, onEditComplete }) => {
   const { token, user, fetchRooms } = useContext(AuthContext);
   const navigate = useNavigate()
+  const BASE_URL = import.meta.env.VITE_BASE_URL;
 
   const [room, setRoom] = useState({
     roomNumber: "",
@@ -66,21 +67,20 @@ const AddRoom = ({ editRoom, onEditComplete }) => {
 
       let res;
 
-      if (editRoom) {
-        // Update existing room
-        res = await axios.put(`http://localhost:5000/api/rooms/${editRoom.id}`, formData, {
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
-        });
-        alert("Room updated successfully!");
-      } else {
-        // Add new room
-        res = await axios.post("http://localhost:5000/api/rooms", formData, {
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
-        });
-        alert("Room added successfully!");
-        navigate("/list-rooms")
-      
-      }
+    if (editRoom) {
+  // Update existing room
+  res = await axios.put(`${BASE_URL}/api/rooms/${editRoom.id}`, formData, {
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
+  });
+  alert("Room updated successfully!");
+} else {
+  // Add new room
+  res = await axios.post(`${BASE_URL}/api/rooms`, formData, {
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
+  });
+  alert("Room added successfully!");
+  navigate("/list-rooms");
+}
 
       // Refresh room list
       fetchRooms(user.hotelId);

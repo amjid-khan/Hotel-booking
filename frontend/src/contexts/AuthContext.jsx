@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useCallback } from "react";
 import axios from "axios";
 
 export const AuthContext = createContext();
+const BASE_URL = import.meta.env.VITE_BASE_URL;  // Env se le rahe hain
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -27,7 +28,7 @@ export function AuthProvider({ children }) {
     try {
       if (!hotelId) return;
       const res = await axios.get(
-        `http://localhost:5000/api/rooms?hotelId=${hotelId}`,
+        `${BASE_URL}/api/rooms?hotelId=${hotelId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setRooms(res.data);
@@ -36,7 +37,6 @@ export function AuthProvider({ children }) {
       setRooms([]);
     }
   }, [token]);
-
 
   // ------------------ Auto fetch when token/user changes ------------------
   useEffect(() => {
@@ -56,7 +56,7 @@ export function AuthProvider({ children }) {
     setToken(tokenData);
     localStorage.setItem("user", JSON.stringify(updatedUser));
     localStorage.setItem("token", tokenData);
-    fetchUsers();
+    fetchUsers();  // <-- Agar ye API call use kar rahe ho toh BASE_URL se lagana padega
   };
 
   // ------------------ Logout ------------------
@@ -68,7 +68,23 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
   };
+
   const updateHotelName = (name) => setHotelName(name);
+
+  // (OPTIONAL) fetchUsers function agar chahiye toh
+  const fetchUsers = async () => {
+    if (!user?.hotelId) return;
+    try {
+      const res = await axios.get(
+        `${BASE_URL}/api/users?hotelId=${user.hotelId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setUsers(res.data);
+    } catch (err) {
+      console.error("Error fetching users:", err);
+      setUsers([]);
+    }
+  };
 
   return (
     <AuthContext.Provider
