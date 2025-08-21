@@ -71,20 +71,7 @@ export function AuthProvider({ children }) {
 
   const updateHotelName = (name) => setHotelName(name);
 
-  // (OPTIONAL) fetchUsers function agar chahiye toh
-  const fetchUsers = async () => {
-    if (!user?.hotelId) return;
-    try {
-      const res = await axios.get(
-        `${BASE_URL}/api/users?hotelId=${user.hotelId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setUsers(res.data);
-    } catch (err) {
-      console.error("Error fetching users:", err);
-      setUsers([]);
-    }
-  };
+
 
   return (
     <AuthContext.Provider

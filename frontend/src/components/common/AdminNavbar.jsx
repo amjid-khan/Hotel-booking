@@ -32,7 +32,6 @@ const AdminNavbar = () => {
   const links = [
     { name: "Dashboard", path: "/admin", icon: <FaBars /> },
     { name: "Add Room", path: "/add-room", icon: <FaPlus /> },
-    { name: "List Room", path: "/list-rooms", icon: <FaList /> },
     { name: "Booking Orders", path: "/bookings", icon: <FaClipboardList /> },
     { name: "Users", path: "/users", icon: <FaUserCircle /> },
     { name: "Settings", path: "/settings", icon: <FaBars /> },
