@@ -480,6 +480,11 @@
     grid-column: 1;
   }
 }
+@media (max-width:900px){
+  .dashboard{
+    padding-left: 80px;
+  }
+}
 
 @media (max-width: 768px) {
   .dashboard-header {

@@ -16,9 +16,11 @@
   border-bottom: 1px solid rgb(170, 160, 160);
   padding-bottom: 10px;
 }
+
 .room-highlight {
   padding: 0 50px;
 }
+
 .room-highlight h2 {
   margin: 0;
   font-size: 30px;
@@ -72,7 +74,7 @@
 }
 
 /* =======================
-   Modal Styles (Keep same)
+   Modal Styles
 ======================= */
 .modal-overlay {
   position: fixed;
@@ -184,8 +186,8 @@
    Table / Room List
 ======================= */
 .table-wrapper {
-  overflow-x: auto;
   margin-top: 35px;
+  /* Removed overflow-x to prevent horizontal scroll */
 }
 
 .room-table {
@@ -193,9 +195,9 @@
   border-collapse: separate;
   border-spacing: 0;
   border-radius: 12px;
-  overflow: hidden;
   box-shadow: 0 6px 18px rgba(0,0,0,0.05);
   background: #fff;
+  table-layout: auto; /* now table fits container */
 }
 
 .room-table th,
@@ -205,6 +207,7 @@
   font-size: 14px;
   color: #555;
   border-bottom: 1px solid #eee;
+  word-wrap: break-word;
 }
 
 .room-table th {
@@ -231,8 +234,10 @@
 .actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   position: relative;
+  flex-wrap: nowrap; 
+  white-space: nowrap; 
 }
 
 .menu-wrapper {
@@ -249,7 +254,7 @@
 
 .dropdown-menu {
   position: absolute;
-  top: 30px;
+  top: 100%; 
   right: 0;
   background: #fff;
   border-radius: 10px;
@@ -301,6 +306,12 @@
   }
 }
 
+@media (max-width: 900px) {
+  .room-highlight {
+    padding-left: 80px;
+  }
+}
+
 @media (max-width: 768px) {
   .room-table th, .room-table td {
     padding: 12px 10px;
@@ -309,5 +320,8 @@
   .room-table-img {
     width: 60px;
     height: 45px;
+  }
+  .actions {
+    gap: 4px;
   }
 }
