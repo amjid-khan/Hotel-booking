@@ -10,6 +10,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true); // Loading state while restoring
   const [rooms, setRooms] = useState([]);       // Rooms list
   const [users, setUsers] = useState([]);       // Hotel users list
+  const [hotelName, setHotelName] = useState(""); // Hotel name
 
   // ---------------- Restore user + token from localStorage ----------------
   useEffect(() => {
@@ -22,7 +23,7 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  // ---------------- Fetch rooms for a hotel ----------------
+  // ---------------- Fetch rooms ----------------
   const fetchRooms = useCallback(async (hotelId) => {
     if (!hotelId || !token) return;
     try {
@@ -50,15 +51,42 @@ export function AuthProvider({ children }) {
     }
   }, [token]);
 
-  // ---------------- Auto fetch rooms & users when user or token changes ----------------
-  useEffect(() => {
-    if (token && user?.hotelId) {
-      fetchRooms(user.hotelId);
-      fetchUsers();
+  // ---------------- Fetch hotel name using checkHotel ----------------
+  const fetchHotelName = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await axios.get(`${BASE_URL}/api/hotels/check`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.data.success && res.data.hasHotel) {
+        setHotelName(res.data.hotelName);
+        // If backend returns hotelId, you can also update user object
+        if (user && !user.hotelId && res.data.hotelId) {
+          const updatedUser = { ...user, hotelId: res.data.hotelId };
+          setUser(updatedUser);
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+        }
+      } else {
+        setHotelName("");
+      }
+    } catch (err) {
+      console.error("Error fetching hotel name:", err);
+      setHotelName("");
     }
-  }, [token, user, fetchRooms, fetchUsers]);
+  }, [token, user]);
 
-  // ---------------- Login function ----------------
+  // ---------------- Auto fetch hotel/users/rooms ----------------
+  useEffect(() => {
+    if (token) {
+      fetchUsers();
+      fetchHotelName();
+      if (user?.hotelId) {
+        fetchRooms(user.hotelId);
+      }
+    }
+  }, [token, user, fetchRooms, fetchUsers, fetchHotelName]);
+
+  // ---------------- Login ----------------
   const login = (userData, tokenData) => {
     const updatedUser = {
       id: userData.id,
@@ -72,16 +100,18 @@ export function AuthProvider({ children }) {
     localStorage.setItem("user", JSON.stringify(updatedUser));
     localStorage.setItem("token", tokenData);
 
-    // Fetch latest users after login
     fetchUsers();
+    fetchHotelName();
+    if (updatedUser.hotelId) fetchRooms(updatedUser.hotelId);
   };
 
-  // ---------------- Logout function ----------------
+  // ---------------- Logout ----------------
   const logout = () => {
     setUser(null);
     setToken(null);
     setRooms([]);
     setUsers([]);
+    setHotelName("");
     localStorage.removeItem("user");
     localStorage.removeItem("token");
   };
@@ -98,6 +128,7 @@ export function AuthProvider({ children }) {
         fetchRooms,
         users,
         fetchUsers,
+        hotelName,
       }}
     >
       {children}

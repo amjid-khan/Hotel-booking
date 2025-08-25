@@ -1,17 +1,14 @@
-import React, { useContext, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useContext } from "react";
 import { AuthContext } from "../contexts/AuthContext";
 import useAdminHotelCheck from "../hooks/useAdminHotelCheck";
 import {
-  FaPlus,
-  FaChevronDown,
-  FaHotel,
   FaBed,
   FaUsers,
   FaDollarSign,
   FaCalendarAlt,
   FaArrowUp,
-  FaCog,
+  FaUserCheck,
+  FaUserTimes,
 } from "react-icons/fa";
 import {
   AreaChart,
@@ -32,10 +29,8 @@ import {
 import "./AdminDashboard.css";
 
 const AdminDashboard = () => {
-  const { token, hotelName, rooms } = useContext(AuthContext);
+  const { token, hotelName, rooms, users } = useContext(AuthContext);
   const { loading } = useAdminHotelCheck(token);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const navigate = useNavigate();
 
   if (loading) return <div className="dashboard-loading">Loading...</div>;
 
@@ -56,64 +51,34 @@ const AdminDashboard = () => {
   ];
 
   const roomTypeData = [
-    {
-      name: "Single",
-      value: rooms.filter((r) => r.type === "Single").length,
-      color: "#3b82f6",
-    },
-    {
-      name: "Double",
-      value: rooms.filter((r) => r.type === "Double").length,
-      color: "#10b981",
-    },
-    {
-      name: "Suite",
-      value: rooms.filter((r) => r.type === "Suite").length,
-      color: "#f59e0b",
-    },
-    {
-      name: "Deluxe",
-      value: rooms.filter((r) => r.type === "Deluxe").length,
-      color: "#ef4444",
-    },
+    { name: "Single", value: rooms.filter((r) => r.type === "Single").length, color: "#3b82f6" },
+    { name: "Double", value: rooms.filter((r) => r.type === "Double").length, color: "#10b981" },
+    { name: "Suite", value: rooms.filter((r) => r.type === "Suite").length, color: "#f59e0b" },
+    { name: "Deluxe", value: rooms.filter((r) => r.type === "Deluxe").length, color: "#ef4444" },
   ];
 
-  // --- NEW dynamic calculations ---
+  // Room stats
   const availableCount = rooms.filter((r) => r.isAvailable).length;
   const occupiedCount = rooms.length - availableCount;
+  const occupancyRate = rooms.length > 0 ? Math.round((occupiedCount / rooms.length) * 100) : 0;
 
-  const occupancyData = [
-    { day: "Mon", occupied: occupiedCount, available: availableCount },
-    { day: "Tue", occupied: occupiedCount, available: availableCount },
-    { day: "Wed", occupied: occupiedCount, available: availableCount },
-    { day: "Thu", occupied: occupiedCount, available: availableCount },
-    { day: "Fri", occupied: occupiedCount, available: availableCount },
-    { day: "Sat", occupied: occupiedCount, available: availableCount },
-    { day: "Sun", occupied: occupiedCount, available: availableCount },
-  ];
+  // User stats
+  const totalUsers = users.length;
+  const activeUsers = users.filter((u) => u.status === "active").length;
+  const inactiveUsers = totalUsers - activeUsers;
 
-  const occupancyRate =
-    rooms.length > 0 ? Math.round((occupiedCount / rooms.length) * 100) : 0;
-
-  const availableRooms = availableCount;
-
-  // Static placeholders for now (no backend yet)
+  // Static placeholders
   const totalRevenue = 0;
   const monthlyBookings = 0;
 
-  const handleCreateHotel = () => {
-    setDropdownOpen(false);
-    navigate("/admin/create-hotel");
-  };
-
-  const handleManageHotel = () => {
-    setDropdownOpen(false);
-    navigate("/admin/manage-hotel");
-  };
+  const occupancyData = Array(7).fill(null).map((_, i) => ({
+    day: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i],
+    occupied: occupiedCount,
+    available: availableCount,
+  }));
 
   return (
     <div className="dashboard">
-      {/* Header */}
       <header className="dashboard-header">
         <div className="header-left">
           <h1 className="dashboard-title">Dashboard Overview</h1>
@@ -123,119 +88,86 @@ const AdminDashboard = () => {
         </div>
 
         <div className="header-right">
-          <div className="hotel-selector">
-            <div className="current-hotel">
-              <FaHotel className="hotel-icon" />
-              <span className="hotel-name">{hotelName || "Select Hotel"}</span>
-              <button
-                className="dropdown-toggle"
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-              >
-                <FaChevronDown
-                  className={`chevron ${dropdownOpen ? "open" : ""}`}
-                />
-              </button>
-            </div>
-
-            {dropdownOpen && (
-              <div className="dropdown-menu">
-                <button onClick={handleCreateHotel} className="dropdown-item">
-                  <FaPlus /> Create New Hotel
-                </button>
-                <button onClick={handleManageHotel} className="dropdown-item">
-                  <FaCog /> Manage Current Hotel
-                </button>
-              </div>
-            )}
+          <div className="current-hotel">
+            <span className="hotel-name">{hotelName || "Hotel Name"}</span>
           </div>
         </div>
       </header>
 
       <div className="dashboard-content">
-        {/* Stats Cards */}
         <div className="stats-grid">
           <div className="stat-card revenue">
-            <div className="stat-icon">
-              <FaDollarSign />
-            </div>
+            <div className="stat-icon"><FaDollarSign size={24} /></div>
             <div className="stat-content">
               <h3>${totalRevenue.toLocaleString()}</h3>
               <p>Total Revenue</p>
-              <span className="stat-change positive">
-                <FaArrowUp /> +0%
-              </span>
+              <span className="stat-change positive"><FaArrowUp /> +0%</span>
             </div>
           </div>
 
           <div className="stat-card bookings">
-            <div className="stat-icon">
-              <FaCalendarAlt />
-            </div>
+            <div className="stat-icon"><FaCalendarAlt size={24} /></div>
             <div className="stat-content">
               <h3>{monthlyBookings}</h3>
               <p>Monthly Bookings</p>
-              <span className="stat-change positive">
-                <FaArrowUp /> +0%
-              </span>
+              <span className="stat-change positive"><FaArrowUp /> +0%</span>
             </div>
           </div>
 
           <div className="stat-card rooms">
-            <div className="stat-icon">
-              <FaBed />
-            </div>
+            <div className="stat-icon"><FaBed size={24} /></div>
             <div className="stat-content">
               <h3>{rooms.length}</h3>
               <p>Total Rooms</p>
-              <span className="stat-detail">{availableRooms} Available</span>
+              <span className="stat-detail">{availableCount} Available</span>
             </div>
           </div>
 
           <div className="stat-card occupancy">
-            <div className="stat-icon">
-              <FaUsers />
-            </div>
+            <div className="stat-icon"><FaUsers size={24} /></div>
             <div className="stat-content">
               <h3>{occupancyRate}%</h3>
               <p>Occupancy Rate</p>
-              <span className="stat-change positive">
-                <FaArrowUp /> +0%
+              <span className="stat-change positive"><FaArrowUp /> +0%</span>
+            </div>
+          </div>
+
+          <div className="stat-card users">
+            <div className="stat-icon"><FaUsers size={24} /></div>
+            <div className="stat-content">
+              <h3>{totalUsers}</h3>
+              <p>Total Users</p>
+              <span className="stat-detail">
+                <FaUserCheck /> {activeUsers} Active &nbsp;|&nbsp;
+                <FaUserTimes /> {inactiveUsers} Inactive
               </span>
             </div>
           </div>
         </div>
 
-        {/* Charts Section */}
+        {/* Charts */}
         <div className="charts-grid">
           {/* Revenue Chart */}
           <div className="chart-card large">
-            <div className="chart-header">
-              <h3>Revenue Overview</h3>
-            </div>
+            <div className="chart-header"><h3>Revenue Overview</h3></div>
             <div className="chart-container">
               <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={revenueData}>
                   <defs>
-                    <linearGradient
-                      id="colorRevenue"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="month" stroke="#64748b" />
-                  <YAxis stroke="#64748b" />
-                  <Tooltip />
-                  <Area
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#3b82f6"
-                    strokeWidth={2}
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9"/>
+                  <XAxis dataKey="month" stroke="#64748b"/>
+                  <YAxis stroke="#64748b"/>
+                  <Tooltip/>
+                  <Area 
+                    type="monotone" 
+                    dataKey="revenue" 
+                    stroke="#3b82f6" 
+                    strokeWidth={2} 
                     fill="url(#colorRevenue)"
                   />
                 </AreaChart>
@@ -243,77 +175,63 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Room Types Distribution */}
+          {/* Room Types Pie Chart */}
           <div className="chart-card">
-            <div className="chart-header">
-              <h3>Room Types</h3>
-            </div>
+            <div className="chart-header"><h3>Room Types</h3></div>
             <div className="chart-container">
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
-                  <Pie
-                    data={roomTypeData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    dataKey="value"
+                  <Pie 
+                    data={roomTypeData} 
+                    cx="50%" 
+                    cy="50%" 
+                    outerRadius={80} 
+                    dataKey="value" 
                     label={({ name, value }) => `${name}: ${value}`}
                   >
                     {roomTypeData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <Cell key={index} fill={entry.color}/>
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip/>
                 </PieChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Weekly Occupancy */}
+          {/* Weekly Occupancy Bar Chart */}
           <div className="chart-card">
-            <div className="chart-header">
-              <h3>Weekly Occupancy</h3>
-            </div>
+            <div className="chart-header"><h3>Weekly Occupancy</h3></div>
             <div className="chart-container">
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={occupancyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="day" stroke="#64748b" />
-                  <YAxis stroke="#64748b" />
-                  <Tooltip />
-                  <Bar
-                    dataKey="occupied"
-                    fill="#10b981"
-                    radius={[4, 4, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="available"
-                    fill="#f59e0b"
-                    radius={[4, 4, 0, 0]}
-                  />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9"/>
+                  <XAxis dataKey="day" stroke="#64748b"/>
+                  <YAxis stroke="#64748b"/>
+                  <Tooltip/>
+                  <Bar dataKey="occupied" fill="#10b981" radius={[4,4,0,0]}/>
+                  <Bar dataKey="available" fill="#f59e0b" radius={[4,4,0,0]}/>
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Booking Trends */}
+          {/* Booking Trends Line Chart */}
           <div className="chart-card">
-            <div className="chart-header">
-              <h3>Booking Trends</h3>
-            </div>
+            <div className="chart-header"><h3>Booking Trends</h3></div>
             <div className="chart-container">
               <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={revenueData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="month" stroke="#64748b" />
-                  <YAxis stroke="#64748b" />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="bookings"
-                    stroke="#8b5cf6"
-                    strokeWidth={3}
-                    dot={{ fill: "#8b5cf6", strokeWidth: 2, r: 4 }}
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9"/>
+                  <XAxis dataKey="month" stroke="#64748b"/>
+                  <YAxis stroke="#64748b"/>
+                  <Tooltip/>
+                  <Line 
+                    type="monotone" 
+                    dataKey="bookings" 
+                    stroke="#8b5cf6" 
+                    strokeWidth={3} 
+                    dot={{ fill:"#8b5cf6", strokeWidth:2, r:4 }}
                   />
                 </LineChart>
               </ResponsiveContainer>

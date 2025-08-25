@@ -1,6 +1,8 @@
 import React, { useState, useContext } from "react";
 import axios from "axios";
 import { AuthContext } from "../../../contexts/AuthContext";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "./User.css";
 
 const User = () => {
@@ -9,6 +11,7 @@ const User = () => {
 
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
+    id: null,
     full_name: "",
     email: "",
     phone: "",
@@ -21,7 +24,19 @@ const User = () => {
   const [actionMenuOpen, setActionMenuOpen] = useState(null);
 
   const handleOpenModal = () => setShowModal(true);
-  const handleCloseModal = () => setShowModal(false);
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setFormData({
+      id: null,
+      full_name: "",
+      email: "",
+      phone: "",
+      password: "",
+      role: "user",
+      status: "active",
+      profile_image: null,
+    });
+  };
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -34,55 +49,58 @@ const User = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!token) return alert("No token found — please log in first.");
+    if (!token) return toast.error("No token found — please log in first.");
 
     try {
       const data = new FormData();
       Object.keys(formData).forEach((key) => {
-        data.append(key, formData[key]);
+        if (formData[key] !== null) data.append(key, formData[key]);
       });
 
-      await axios.post(`${BASE_URL}/api/hotel-users`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      if (formData.id) {
+        await axios.put(`${BASE_URL}/api/hotel-users/${formData.id}`, data, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        });
+        toast.success("User updated successfully!");
+      } else {
+        await axios.post(`${BASE_URL}/api/hotel-users`, data, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        });
+        toast.success("User created successfully!");
+      }
 
       fetchUsers();
       handleCloseModal();
-      setFormData({
-        full_name: "",
-        email: "",
-        phone: "",
-        password: "",
-        role: "user",
-        status: "active",
-        profile_image: null,
-      });
     } catch (error) {
       console.error(error.response?.data || error.message);
-      alert(error.response?.data?.message || "Error creating user");
+      toast.error(error.response?.data?.message || "Error saving user");
     }
   };
 
   const handleDelete = async (id) => {
-    if (!token) return alert("No token found — please log in first.");
-    if (!window.confirm("Are you sure you want to delete this user?")) return;
+    if (!token) return toast.error("No token found — please log in first.");
 
     try {
       await axios.delete(`${BASE_URL}/api/hotel-users/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       fetchUsers();
+      toast.success("User deleted successfully!");
     } catch (error) {
       console.error(error.response?.data || error.message);
-      alert("Error deleting user");
+      toast.error("Error deleting user");
     }
   };
 
   const handleEdit = (user) => {
     setFormData({
+      id: user.id,
       full_name: user.full_name,
       email: user.email,
       phone: user.phone,
@@ -96,6 +114,7 @@ const User = () => {
 
   return (
     <div className="user">
+      <ToastContainer position="top-right" autoClose={3000} />
       <div className="top-section">
         <h3>User Overview</h3>
         <button className="create-btn" onClick={handleOpenModal}>
@@ -153,7 +172,7 @@ const User = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    placeholder="Enter password"
+                    placeholder={formData.id ? "Leave blank to keep current password" : "Enter password"}
                     required={!formData.id}
                   />
                 </label>

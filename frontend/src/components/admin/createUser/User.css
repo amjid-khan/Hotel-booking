@@ -113,8 +113,17 @@
   font-weight: 500;
   color: #374151;
 }
+.user-form input{
+  width: 94%;
+  padding: 10px 12px;
+  margin-top: 4px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border 0.2s, box-shadow 0.2s;
+}
 
-.user-form input,
+
 .user-form select {
   width: 100%;
   padding: 10px 12px;
