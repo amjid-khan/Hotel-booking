@@ -1,3 +1,4 @@
+// src/components/admin/AdminNavbar.jsx
 import React, { useState, useContext } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
@@ -6,38 +7,20 @@ import {
   FaTimes,
   FaSignOutAlt,
   FaPlus,
-  FaChartLine,
-  FaCalendarCheck,
-  FaUsers,
-  FaCog,
-  FaFileAlt,
-  FaHome,
 } from "react-icons/fa";
-import { 
-  MdDashboard, 
-  MdHotel, 
-  MdBookOnline, 
-  MdPeople, 
-  MdSettings, 
-  MdAnalytics 
-} from "react-icons/md";
-import { 
-  HiHome, 
-  HiPlus, 
-  HiClipboardList, 
-  HiUsers, 
-  HiCog, 
-  HiChartBar 
-} from "react-icons/hi";
+import { MdDashboard, MdBookOnline, MdAnalytics } from "react-icons/md";
+import { HiPlus, HiUsers, HiCog } from "react-icons/hi";
 import { GiModernCity } from "react-icons/gi";
 import { AuthContext } from "../../contexts/AuthContext";
 import "./AdminNavbar.css";
 
 const AdminNavbar = () => {
-  const { user, logout } = useContext(AuthContext);
+  const { user, logout, hotels = [], fetchHotels } = useContext(AuthContext);
   const [collapsed, setCollapsed] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [mobileActive, setMobileActive] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -48,6 +31,10 @@ const AdminNavbar = () => {
 
   const toggleCollapse = () => setCollapsed(!collapsed);
   const toggleMobile = () => setMobileActive(!mobileActive);
+
+  const handleCreateHotel = () => {
+    navigate("/admin/create-hotel?new=true");
+  };
 
   const links = [
     { name: "Dashboard", path: "/admin", icon: <MdDashboard /> },
@@ -60,31 +47,62 @@ const AdminNavbar = () => {
 
   return (
     <>
-      <aside
-        className={`sidebar ${collapsed ? "collapsed" : ""} ${
-          mobileActive ? "active" : ""
-        }`}
-      >
-        {/* Toggle Button */}
+      <aside className={`sidebar ${collapsed ? "collapsed" : ""} ${mobileActive ? "active" : ""}`}>
         <button className="sidebar-toggle" onClick={toggleCollapse}>
           {collapsed ? <FaBars /> : <FaTimes />}
         </button>
 
-        {/* Logo */}
         <div className="sidebar-logo">
           <GiModernCity className="logo-icon" />
           {!collapsed && <span>LuxStay Admin</span>}
         </div>
 
-        {/* Admin Name + Create Hotel */}
         {!collapsed && user && (
           <div className="admin-name">
-            <FaUserCircle /> <span>{user.name || user.username}</span>
-            {/* Create Hotel Button */}
+            <FaUserCircle />
+            <span>{user.name || user.username}</span>
+
+            <div className="hotel-actions">
+              {hotels.length === 0 ? (
+                <button
+                  className="create-hotel-btn"
+                  onClick={handleCreateHotel}
+                  title="Create New Hotel"
+                >
+                  <FaPlus />
+                </button>
+              ) : (
+                <div className="hotel-dropdown-wrapper">
+                  <button
+                    className="hotel-dropdown-btn"
+                    onClick={() => setShowDropdown(!showDropdown)}
+                  >
+                    Hotels <FaPlus title="Create New Hotel" />
+                  </button>
+                  {showDropdown && (
+                    <ul className="hotel-dropdown">
+                      {hotels.map((hotel) => (
+                        <li
+                          key={hotel.id}
+                          onClick={() => navigate(`/admin/hotel/${hotel.id}`)}
+                        >
+                          {hotel.name}
+                        </li>
+                      ))}
+                      <li
+                        className="create-hotel-item"
+                        onClick={handleCreateHotel}
+                      >
+                        + Create New Hotel
+                      </li>
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
-        {/* Links */}
         <ul className="sidebar-links">
           {links.map((link) => (
             <li key={link.name}>
@@ -99,7 +117,6 @@ const AdminNavbar = () => {
             </li>
           ))}
 
-          {/* Logout as link-style button */}
           <li>
             <button
               className="sidebar-link logout-link"
@@ -112,7 +129,6 @@ const AdminNavbar = () => {
         </ul>
       </aside>
 
-      {/* Logout Popup */}
       {showLogoutConfirm && (
         <div className="logout-popup">
           <div className="popup-card">

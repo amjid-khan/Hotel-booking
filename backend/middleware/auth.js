@@ -6,7 +6,7 @@ exports.protect = (req, res, next) => {
 
     // Check if Authorization header exists and starts with Bearer
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return res.status(401).json({ message: "No token provided" });
+        return res.status(401).json({ success: false, message: "No token provided" });
     }
 
     const token = authHeader.split(" ")[1];
@@ -24,14 +24,14 @@ exports.protect = (req, res, next) => {
 
         next(); // proceed to next middleware/controller
     } catch (err) {
-        return res.status(401).json({ message: "Token is invalid or expired" });
+        return res.status(401).json({ success: false, message: "Token is invalid or expired" });
     }
 };
 
 // Check if user role is admin
 exports.isAdmin = (req, res, next) => {
     if (!req.user || req.user.role !== "admin") {
-        return res.status(403).json({ message: "Access denied. Admin only." });
+        return res.status(403).json({ success: false, message: "Access denied. Admin only." });
     }
     next();
 };

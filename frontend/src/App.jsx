@@ -18,10 +18,10 @@ import AddRoom from "./components/admin/addroom/AddRoom";
 import User from "./components/admin/createUser/User";
 import Setting from "./components/admin/setting/Setting";
 
-// --- Role-based redirect after login ---
+// --- After login, redirect based on role + hotel status ---
 function HomeRedirect() {
   const { user, loading } = useContext(AuthContext);
-  const { loading: hotelLoading, hasHotel } = useAdminHotelCheck(user?.token);
+  const { loading: hotelLoading, hasHotel, hotels } = useAdminHotelCheck(user?.token);
 
   if (loading || (user?.role === "admin" && hotelLoading)) {
     return <div>Loading...</div>;
@@ -31,7 +31,12 @@ function HomeRedirect() {
 
   switch (user.role) {
     case "admin":
-      return hasHotel ? <Navigate to="/admin" replace /> : <Navigate to="/admin/create-hotel" replace />;
+      if (hasHotel) {
+        const firstHotelId = hotels?.[0]?._id;
+        return firstHotelId ? <Navigate to={`/admin/hotel/${firstHotelId}`} replace /> : <Navigate to="/admin" replace />;
+      } else {
+        return <Navigate to="/admin/create-hotel" replace />;
+      }
     case "superadmin":
       return <Navigate to="/superadmin" replace />;
     case "user":
@@ -41,10 +46,10 @@ function HomeRedirect() {
   }
 }
 
-// --- Block login page for logged-in users ---
+// --- Block login page if user already logged in ---
 function LoginRedirect() {
   const { user, loading } = useContext(AuthContext);
-  const { loading: hotelLoading, hasHotel } = useAdminHotelCheck(user?.token);
+  const { loading: hotelLoading, hasHotel, hotels } = useAdminHotelCheck(user?.token);
 
   if (loading || (user?.role === "admin" && hotelLoading)) {
     return <div>Loading...</div>;
@@ -54,7 +59,12 @@ function LoginRedirect() {
 
   switch (user.role) {
     case "admin":
-      return hasHotel ? <Navigate to="/admin" replace /> : <Navigate to="/admin/create-hotel" replace />;
+      if (hasHotel) {
+        const firstHotelId = hotels?.[0]?._id;
+        return firstHotelId ? <Navigate to={`/admin/hotel/${firstHotelId}`} replace /> : <Navigate to="/admin" replace />;
+      } else {
+        return <Navigate to="/admin/create-hotel" replace />;
+      }
     case "superadmin":
       return <Navigate to="/superadmin" replace />;
     case "user":
@@ -80,14 +90,18 @@ export default function App() {
             </Route>
           </Route>
 
-          {/* Admin: create hotel page OUTSIDE AdminLayout */}
+          {/* Admin: create hotel page (manual access allowed) */}
           <Route element={<ProtectedRoute roles={["admin"]} />}>
             <Route path="/admin/create-hotel" element={<CreateHotel />} />
           </Route>
 
-          {/* Admin: only show AdminLayout IF hotel exists */}
+          {/* Admin: main dashboard */}
           <Route element={<ProtectedRoute roles={["admin"]} />}>
             <Route element={<AdminLayout />}>
+              {/* Route for specific hotel dashboard */}
+              <Route path="/admin/hotel/:hotelId" element={<AdminDashboard />} />
+
+              {/* Default admin dashboard (redirects handled in HomeRedirect) */}
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/add-room" element={<AddRoom />} />
               <Route path="/users" element={<User />} />

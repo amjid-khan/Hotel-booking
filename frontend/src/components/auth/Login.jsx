@@ -59,10 +59,28 @@ function LoginRegister() {
         login(user, token);
 
         // Redirect based on role
-        if (user.role === 'admin') navigate('/admin', { replace: true });
-        else if (user.role === 'superadmin') navigate('/superadmin', { replace: true });
-        else if (user.role === 'user') navigate('/user', { replace: true });
-        else navigate('/', { replace: true });
+        if (user.role === 'admin') {
+          // 1. First fetch admin hotels
+          const hotelRes = await axios.get(`http://localhost:5000/api/hotels/admin/${user._id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          const hotels = hotelRes.data || [];
+
+          // 2. Navigate according to hotel count
+          if (hotels.length > 0) {
+            navigate('/admin', { replace: true });
+          } else {
+            navigate('/admin/create-hotel', { replace: true });
+          }
+
+        } else if (user.role === 'superadmin') {
+          navigate('/superadmin', { replace: true });
+        } else if (user.role === 'user') {
+          navigate('/user', { replace: true });
+        } else {
+          navigate('/', { replace: true });
+        }
       }
     } catch (err) {
       if (err.response?.data?.message) setError(err.response.data.message);

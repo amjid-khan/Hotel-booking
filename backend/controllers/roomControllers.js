@@ -1,18 +1,16 @@
 const pool = require("../config/db");
 const path = require("path");
 
-// Add new room
+// ------------------- ADD NEW ROOM -------------------
 exports.addRoom = async (req, res) => {
     const { roomNumber, type, price, capacity, description, hotelId } = req.body;
     const image = req.file ? `/uploads/${req.file.filename}` : null;
 
     // Validation
     if (!roomNumber || !type || !price || !capacity || !hotelId) {
-        return res
-            .status(400)
-            .json({
-                message: "roomNumber, type, price, capacity and hotelId are required",
-            });
+        return res.status(400).json({
+            message: "roomNumber, type, price, capacity and hotelId are required",
+        });
     }
 
     try {
@@ -30,7 +28,7 @@ exports.addRoom = async (req, res) => {
         // Insert new room
         await pool.query(
             `INSERT INTO rooms (roomNumber, type, price, image, capacity, description, hotelId, isAvailable) 
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 roomNumber,
                 type,
@@ -39,8 +37,8 @@ exports.addRoom = async (req, res) => {
                 capacity,
                 description || null,
                 hotelId,
-                1,
-            ] // set available = 1
+                1, // set available = 1
+            ]
         );
 
         res.status(201).json({ message: "Room added successfully" });
@@ -50,7 +48,7 @@ exports.addRoom = async (req, res) => {
     }
 };
 
-// Get all rooms (optionally filter by hotel)
+// ------------------- GET ALL ROOMS -------------------
 exports.getAllRooms = async (req, res) => {
     try {
         const { hotelId } = req.query;
@@ -70,16 +68,14 @@ exports.getAllRooms = async (req, res) => {
     }
 };
 
-// Update room
+// ------------------- UPDATE ROOM -------------------
 exports.updateRoom = async (req, res) => {
     const { id } = req.params;
     const { roomNumber, type, price, capacity, description, hotelId } = req.body;
 
     try {
         // Check if room exists
-        const [existing] = await pool.query("SELECT * FROM rooms WHERE id = ?", [
-            id,
-        ]);
+        const [existing] = await pool.query("SELECT * FROM rooms WHERE id = ?", [id]);
         if (existing.length === 0) {
             return res.status(404).json({ message: "Room not found" });
         }
@@ -97,9 +93,7 @@ exports.updateRoom = async (req, res) => {
             }
         }
 
-        const image = req.file
-            ? `/uploads/${req.file.filename}`
-            : existing[0].image;
+        const image = req.file ? `/uploads/${req.file.filename}` : existing[0].image;
 
         await pool.query(
             `UPDATE rooms 
@@ -124,14 +118,12 @@ exports.updateRoom = async (req, res) => {
     }
 };
 
-// Delete room
+// ------------------- DELETE ROOM -------------------
 exports.deleteRoom = async (req, res) => {
     const { id } = req.params;
 
     try {
-        const [existing] = await pool.query("SELECT * FROM rooms WHERE id = ?", [
-            id,
-        ]);
+        const [existing] = await pool.query("SELECT * FROM rooms WHERE id = ?", [id]);
         if (existing.length === 0) {
             return res.status(404).json({ message: "Room not found" });
         }

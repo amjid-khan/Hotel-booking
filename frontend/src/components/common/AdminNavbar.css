@@ -198,6 +198,87 @@
   margin-left: 10px;
 }
 
+/* Hotel Dropdown Wrapper */
+.hotel-dropdown-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* Dropdown toggle button */
+.hotel-dropdown-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #ffffff;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  min-width: 140px;
+  transition: all 0.2s ease-in-out;
+}
+
+.hotel-dropdown-btn:hover {
+  background: #f7f7f7;
+  border-color: #ccc;
+}
+
+/* Dropdown List */
+.hotel-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 180px;
+  background: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 6px 0;
+  z-index: 1000;
+  list-style: none;
+  animation: dropdownFade 0.2s ease-in-out;
+}
+
+@keyframes dropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dropdown list items */
+.hotel-dropdown li {
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #444;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+}
+
+.hotel-dropdown li:hover {
+  background: #f0f0f0;
+}
+
+/* Highlight for "Create New Hotel" item */
+.create-hotel-item {
+  font-weight: 600;
+  color: #007bff;
+}
+
+.create-hotel-item:hover {
+  background: #e9f2ff;
+  color: #0056b3;
+}
+
+
 /* Animations */
 @keyframes fadeIn {
   from { opacity: 0; }

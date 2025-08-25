@@ -1,7 +1,6 @@
 const db = require("../config/db.js");
 
-// Create new hotel
-// Create new hotel
+// ==================== CREATE NEW HOTEL (Admin only) ====================
 exports.createHotel = async (req, res) => {
     try {
         const { name, address, description } = req.body;
@@ -11,9 +10,6 @@ exports.createHotel = async (req, res) => {
         const [result] = await db.execute(query, [adminId, name, address, description]);
 
         const hotelId = result.insertId;
-
-        // Admin user ke hotelId ko update karo
-        await db.execute('UPDATE users SET hotelId = ? WHERE id = ?', [hotelId, adminId]);
 
         res.status(201).json({
             success: true,
@@ -26,51 +22,100 @@ exports.createHotel = async (req, res) => {
             }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        console.error("Error creating hotel:", err);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 };
 
-
-// Get all hotels of logged-in admin
+// ==================== GET ALL HOTELS OF LOGGED-IN ADMIN ====================
 exports.getAdminHotels = async (req, res) => {
     try {
         const adminId = req.user.id;
-        const query = 'SELECT * FROM hotels WHERE admin_id = ?';
+        const query = 'SELECT id, name, address, description FROM hotels WHERE admin_id = ?';
         const [hotels] = await db.execute(query, [adminId]);
 
         res.json({ success: true, hotels });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        console.error("Error fetching admin hotels:", err);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 };
 
-// Check if logged-in admin has at least one hotel
-// controller
+// ==================== CHECK HOTEL FOR ANY USER ====================
+// Admin: simply check if at least one hotel exists
+// Staff/User: fetch hotelId from users table and get its name
 exports.checkHotel = async (req, res) => {
     try {
-        const adminId = req.user.id;
-        const query = 'SELECT id, name FROM hotels WHERE admin_id = ? LIMIT 1';
-        const [rows] = await db.execute(query, [adminId]);
+        const { id: userId, role } = req.user;
 
-        if (rows.length > 0) {
+        if (role === "admin") {
+            // For admin -> return first hotel name if exists
+            const [rows] = await db.execute(
+                'SELECT id, name FROM hotels WHERE admin_id = ? LIMIT 1',
+                [userId]
+            );
+
+            if (rows.length > 0) {
+                return res.json({
+                    success: true,
+                    hasHotel: true,
+                    hotelId: rows[0].id,
+                    hotelName: rows[0].name
+                });
+            } else {
+                return res.json({
+                    success: true,
+                    hasHotel: false,
+                    hotelId: null,
+                    hotelName: null
+                });
+            }
+        } else {
+            // For staff/user -> get hotelId from users table
+            const [userRows] = await db.execute(
+                'SELECT hotelId FROM users WHERE id = ?',
+                [userId]
+            );
+
+            if (!userRows.length || !userRows[0].hotelId) {
+                return res.json({
+                    success: true,
+                    hasHotel: false,
+                    hotelId: null,
+                    hotelName: null
+                });
+            }
+
+            const hotelId = userRows[0].hotelId;
+
+            const [hotelRows] = await db.execute(
+                'SELECT name FROM hotels WHERE id = ?',
+                [hotelId]
+            );
+
+            if (!hotelRows.length) {
+                return res.json({
+                    success: true,
+                    hasHotel: false,
+                    hotelId: null,
+                    hotelName: null
+                });
+            }
+
             return res.json({
                 success: true,
                 hasHotel: true,
-                hotelName: rows[0].name
-            });
-        } else {
-            return res.json({
-                success: true,
-                hasHotel: false,
-                hotelName: null
+                hotelId,
+                hotelName: hotelRows[0].name
             });
         }
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        console.error("Error checking hotel:", err);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 };
 
-// Update hotel
+// ==================== UPDATE HOTEL (Admin only) ====================
 exports.updateHotel = async (req, res) => {
     try {
         const { id } = req.params;
@@ -85,11 +130,12 @@ exports.updateHotel = async (req, res) => {
 
         res.json({ success: true, message: 'Hotel updated successfully' });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        console.error("Error updating hotel:", err);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 };
 
-// Delete hotel
+// ==================== DELETE HOTEL (Admin only) ====================
 exports.deleteHotel = async (req, res) => {
     try {
         const { id } = req.params;
@@ -103,6 +149,7 @@ exports.deleteHotel = async (req, res) => {
 
         res.json({ success: true, message: 'Hotel deleted successfully' });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        console.error("Error deleting hotel:", err);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 };
