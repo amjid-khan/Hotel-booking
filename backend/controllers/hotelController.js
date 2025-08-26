@@ -153,3 +153,23 @@ exports.deleteHotel = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
+
+
+exports.getHotelById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const adminId = req.user.id;
+
+        const query = 'SELECT id, name, address, description FROM hotels WHERE id = ? AND admin_id = ?';
+        const [rows] = await db.execute(query, [id, adminId]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Hotel not found or access denied' });
+        }
+
+        res.json({ success: true, hotel: rows[0] });
+    } catch (err) {
+        console.error("Error fetching hotel by ID:", err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};

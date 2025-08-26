@@ -1,3 +1,4 @@
+// src/components/admin/rooms/AddRoom.jsx
 import React, { useState, useContext, useEffect } from "react";
 import axios from "axios";
 import { FaUpload, FaEllipsisV, FaEdit, FaTrash, FaEye } from "react-icons/fa";
@@ -7,7 +8,7 @@ import "react-toastify/dist/ReactToastify.css";
 import "./AddRoom.css";
 
 const AddRoom = () => {
-  const { token, user, fetchRooms, rooms, loading } = useContext(AuthContext);
+  const { token, selectedHotelId, fetchRooms, rooms: contextRooms, loading } = useContext(AuthContext);
   const BASE_URL = import.meta.env.VITE_BASE_URL;
 
   const [room, setRoom] = useState({
@@ -23,9 +24,12 @@ const AddRoom = () => {
   const [submitting, setSubmitting] = useState(false);
   const [menuOpen, setMenuOpen] = useState(null);
 
+  const rooms = Array.isArray(contextRooms) ? contextRooms : [];
+
+  // ---------------- Fetch rooms when hotel changes ----------------
   useEffect(() => {
-    if (user?.hotelId) fetchRooms(user.hotelId);
-  }, [user, fetchRooms]);
+    if (selectedHotelId) fetchRooms(selectedHotelId);
+  }, [selectedHotelId, fetchRooms]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -47,18 +51,17 @@ const AddRoom = () => {
     setShowModal(false);
   };
 
+  // ---------------- Create / Update Room ----------------
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!user?.hotelId) {
-      toast.error("Hotel ID missing! Please login as a hotel admin.");
-      return;
-    }
+    if (!token) return toast.error("No token found — please log in first.");
+    if (!selectedHotelId) return toast.error("Please select a hotel first!");
 
     setSubmitting(true);
     try {
       const formData = new FormData();
       Object.entries(room).forEach(([key, value]) => formData.append(key, value));
-      formData.append("hotelId", user.hotelId);
+      formData.append("hotelId", selectedHotelId); // ✅ match backend field name
       if (image) formData.append("image", image);
 
       if (editRoom) {
@@ -73,15 +76,17 @@ const AddRoom = () => {
         toast.success("Room added successfully!");
       }
 
-      fetchRooms(user.hotelId);
+      fetchRooms(selectedHotelId); // refresh rooms list
       resetForm();
     } catch (error) {
+      console.error(error.response?.data || error.message);
       toast.error(error.response?.data?.message || "Failed to save room. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
+  // ---------------- Edit Room ----------------
   const handleEdit = (room) => {
     setEditRoom(room);
     setRoom({
@@ -93,17 +98,20 @@ const AddRoom = () => {
     });
     setImage(null);
     setShowModal(true);
-    setMenuOpen(null); // close menu after click
+    setMenuOpen(null);
   };
 
+  // ---------------- Delete Room ----------------
   const handleDelete = async (roomId) => {
+    if (!selectedHotelId) return;
+
     try {
       await axios.delete(`${BASE_URL}/api/rooms/${roomId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success("Room deleted successfully!");
-      if (user?.hotelId) fetchRooms(user.hotelId);
-      setMenuOpen(null); // close menu after deletion
+      fetchRooms(selectedHotelId);
+      setMenuOpen(null);
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to delete room.");
     }
@@ -112,15 +120,14 @@ const AddRoom = () => {
   return (
     <div className="add-room-page" style={{ paddingLeft: "258px" }}>
       <ToastContainer position="top-right" autoClose={3000} />
+
       <div className="header-section modern-header">
         <div className="room-highlight">
           <h2>Manage Your Rooms</h2>
           <p>Add, edit, or remove rooms anytime. All updates appear instantly.</p>
         </div>
         <div className="room-action">
-          <button className="open-modal-btn" onClick={() => setShowModal(true)}>
-            Add Room
-          </button>
+          <button className="open-modal-btn" onClick={() => setShowModal(true)}>Add Room</button>
         </div>
       </div>
 
@@ -183,7 +190,7 @@ const AddRoom = () => {
         {loading ? (
           <p>Loading...</p>
         ) : rooms.length === 0 ? (
-          <p>No rooms available.</p>
+          <p>No rooms available for this hotel.</p>
         ) : (
           <div className="table-wrapper">
             <table className="room-table">
@@ -214,9 +221,7 @@ const AddRoom = () => {
                     <td>{room.capacity}</td>
                     <td className="description">{room.description || "-"}</td>
                     <td className="actions">
-                      <button className="view-btn" title="View Details">
-                        <FaEye />
-                      </button>
+                      <button className="view-btn" title="View Details"><FaEye /></button>
                       <div className="menu-wrapper">
                         <button
                           className="menu-btn"

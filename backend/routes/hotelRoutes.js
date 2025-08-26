@@ -6,7 +6,8 @@ const {
     getAdminHotels,
     checkHotel,
     updateHotel,
-    deleteHotel
+    deleteHotel,
+    getHotelById   // <-- add yaha
 } = require('../controllers/hotelController');
 
 // Create a new hotel
@@ -17,6 +18,9 @@ router.get('/my-hotels', protect, isAdmin, getAdminHotels);
 
 // Check if admin has at least one hotel
 router.get('/check', protect, isAdmin, checkHotel);
+
+// GET single hotel by ID  <-- add this
+router.get('/:id', protect, isAdmin, getHotelById);
 
 // Update a hotel by ID
 router.put('/:id', protect, isAdmin, updateHotel);

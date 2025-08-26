@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const fs = require("fs");
 const path = require("path");
 
 // ------------------- ADD NEW ROOM -------------------
@@ -26,7 +27,7 @@ exports.addRoom = async (req, res) => {
         }
 
         // Insert new room
-        await pool.query(
+        const [result] = await pool.query(
             `INSERT INTO rooms (roomNumber, type, price, image, capacity, description, hotelId, isAvailable) 
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             [
@@ -41,7 +42,12 @@ exports.addRoom = async (req, res) => {
             ]
         );
 
-        res.status(201).json({ message: "Room added successfully" });
+        // Fetch newly added room
+        const [newRoom] = await pool.query(
+            "SELECT * FROM rooms WHERE id = ?", [result.insertId]
+        );
+
+        res.status(201).json({ message: "Room added successfully", room: newRoom[0] });
     } catch (error) {
         console.error("Error adding room:", error);
         res.status(500).json({ message: "Server error" });
@@ -52,16 +58,13 @@ exports.addRoom = async (req, res) => {
 exports.getAllRooms = async (req, res) => {
     try {
         const { hotelId } = req.query;
-        let query = "SELECT * FROM rooms";
-        let params = [];
+        if (!hotelId) return res.status(400).json({ message: "hotelId is required" });
 
-        if (hotelId) {
-            query += " WHERE hotelId = ?";
-            params.push(hotelId);
-        }
-
-        const [rooms] = await pool.query(query, params);
-        res.json(rooms);
+        const [rooms] = await pool.query(
+            "SELECT * FROM rooms WHERE hotelId = ?",
+            [hotelId]
+        );
+        res.status(200).json({ rooms: rooms || [] });
     } catch (error) {
         console.error("Error fetching rooms:", error);
         res.status(500).json({ message: "Server error" });
@@ -80,7 +83,7 @@ exports.updateRoom = async (req, res) => {
             return res.status(404).json({ message: "Room not found" });
         }
 
-        // Check duplicate roomNumber for the same hotel (excluding current room)
+        // Prevent duplicate roomNumber in same hotel
         if (roomNumber && hotelId) {
             const [duplicate] = await pool.query(
                 "SELECT * FROM rooms WHERE roomNumber = ? AND hotelId = ? AND id != ?",
@@ -93,7 +96,16 @@ exports.updateRoom = async (req, res) => {
             }
         }
 
-        const image = req.file ? `/uploads/${req.file.filename}` : existing[0].image;
+        // Handle image update
+        let image = existing[0].image;
+        if (req.file) {
+            // Delete old image if exists
+            if (image) {
+                const oldImagePath = path.join(__dirname, "../uploads", path.basename(image));
+                if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
+            }
+            image = `/uploads/${req.file.filename}`;
+        }
 
         await pool.query(
             `UPDATE rooms 
@@ -111,7 +123,8 @@ exports.updateRoom = async (req, res) => {
             ]
         );
 
-        res.json({ message: "Room updated successfully" });
+        const [updatedRoom] = await pool.query("SELECT * FROM rooms WHERE id = ?", [id]);
+        res.status(200).json({ message: "Room updated successfully", room: updatedRoom[0] });
     } catch (error) {
         console.error("Error updating room:", error);
         res.status(500).json({ message: "Server error" });
@@ -128,8 +141,15 @@ exports.deleteRoom = async (req, res) => {
             return res.status(404).json({ message: "Room not found" });
         }
 
+        // Delete image if exists
+        const image = existing[0].image;
+        if (image) {
+            const imgPath = path.join(__dirname, "../uploads", path.basename(image));
+            if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+        }
+
         await pool.query("DELETE FROM rooms WHERE id = ?", [id]);
-        res.json({ message: "Room deleted successfully" });
+        res.status(200).json({ message: "Room deleted successfully" });
     } catch (error) {
         console.error("Error deleting room:", error);
         res.status(500).json({ message: "Server error" });

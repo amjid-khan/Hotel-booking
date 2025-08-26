@@ -15,7 +15,14 @@ import { AuthContext } from "../../contexts/AuthContext";
 import "./AdminNavbar.css";
 
 const AdminNavbar = () => {
-  const { user, logout, hotels = [], fetchHotels } = useContext(AuthContext);
+  const {
+    user,
+    logout,
+    hotels = [],
+    selectedHotelId,
+    selectHotel,
+  } = useContext(AuthContext);
+
   const [collapsed, setCollapsed] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [mobileActive, setMobileActive] = useState(false);
@@ -34,6 +41,7 @@ const AdminNavbar = () => {
 
   const handleCreateHotel = () => {
     navigate("/admin/create-hotel?new=true");
+    setShowDropdown(false);
   };
 
   const links = [
@@ -47,7 +55,11 @@ const AdminNavbar = () => {
 
   return (
     <>
-      <aside className={`sidebar ${collapsed ? "collapsed" : ""} ${mobileActive ? "active" : ""}`}>
+      <aside
+        className={`sidebar ${collapsed ? "collapsed" : ""} ${
+          mobileActive ? "active" : ""
+        }`}
+      >
         <button className="sidebar-toggle" onClick={toggleCollapse}>
           {collapsed ? <FaBars /> : <FaTimes />}
         </button>
@@ -77,22 +89,27 @@ const AdminNavbar = () => {
                     className="hotel-dropdown-btn"
                     onClick={() => setShowDropdown(!showDropdown)}
                   >
-                    Hotels <FaPlus title="Create New Hotel" />
+                    {hotels.find((h) => h.id === selectedHotelId)?.name ||
+                      "Hotels"}{" "}
+                    <FaPlus title="Create New Hotel" />
                   </button>
+
                   {showDropdown && (
                     <ul className="hotel-dropdown">
                       {hotels.map((hotel) => (
                         <li
                           key={hotel.id}
-                          onClick={() => navigate(`/admin/hotel/${hotel.id}`)}
+                          onClick={() => {
+                            selectHotel(hotel.id); // fetch hotel data
+                            setShowDropdown(false); // close dropdown
+                            navigate(`/admin/hotel/${hotel.id}`);
+                          }}
                         >
                           {hotel.name}
                         </li>
                       ))}
-                      <li
-                        className="create-hotel-item"
-                        onClick={handleCreateHotel}
-                      >
+
+                      <li className="create-hotel-item" onClick={handleCreateHotel}>
                         + Create New Hotel
                       </li>
                     </ul>
