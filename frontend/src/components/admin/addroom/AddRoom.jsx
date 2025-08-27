@@ -4,11 +4,13 @@ import axios from "axios";
 import { FaUpload, FaEdit, FaTrash, FaEye, FaTimes, FaPlus } from "react-icons/fa";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { ToastContainer, toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 import "react-toastify/dist/ReactToastify.css";
 
 const AddRoom = () => {
   const { token, selectedHotelId, fetchRooms, rooms: contextRooms, loading } = useContext(AuthContext);
   const BASE_URL = import.meta.env.VITE_BASE_URL;
+  const navigate = useNavigate();
 
   const [room, setRoom] = useState({
     roomNumber: "",
@@ -101,7 +103,6 @@ const AddRoom = () => {
   // ---------------- Delete Room ----------------
   const handleDelete = async (roomId) => {
     if (!selectedHotelId) return;
-
     if (!window.confirm("Are you sure you want to delete this room?")) return;
 
     try {
@@ -114,6 +115,8 @@ const AddRoom = () => {
       toast.error(error.response?.data?.message || "Failed to delete room.");
     }
   };
+
+  // ---------------- View Room ----------------
 
   return (
     <div className="min-h-screen bg-gray-50 pl-60">
@@ -138,17 +141,13 @@ const AddRoom = () => {
 
       {/* Modal */}
       {showModal && (
-<div className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50 p-4">
-
+        <div className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-6 border-b border-gray-200">
               <h2 className="text-2xl font-bold text-gray-900">
                 {editRoom ? "Update Room" : "Add New Room"}
               </h2>
-              <button 
-                onClick={resetForm}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
+              <button onClick={resetForm} className="text-gray-400 hover:text-gray-600 transition-colors">
                 <FaTimes size={24} />
               </button>
             </div>
@@ -166,12 +165,7 @@ const AddRoom = () => {
                       </p>
                       <p className="text-sm text-gray-500 mt-2">PNG, JPG, GIF up to 10MB</p>
                     </div>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleImageChange} 
-                      className="hidden" 
-                    />
+                    <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                   </label>
                   {(image || editRoom?.image) && (
                     <div className="mt-4">
@@ -192,9 +186,7 @@ const AddRoom = () => {
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Room Number
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Room Number</label>
                       <input
                         type="text"
                         name="roomNumber"
@@ -207,9 +199,7 @@ const AddRoom = () => {
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Room Type
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Room Type</label>
                       <input
                         type="text"
                         name="type"
@@ -224,9 +214,7 @@ const AddRoom = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Price per Night (PKR)
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Price per Night (PKR)</label>
                       <input
                         type="number"
                         name="price"
@@ -239,9 +227,7 @@ const AddRoom = () => {
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Capacity (Guests)
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Capacity (Guests)</label>
                       <input
                         type="number"
                         name="capacity"
@@ -255,9 +241,7 @@ const AddRoom = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Description
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                     <textarea
                       name="description"
                       value={room.description}
@@ -369,12 +353,15 @@ const AddRoom = () => {
                         </td>
                         <td className="py-4 px-6">
                           <div className="flex items-center justify-center gap-2">
+                            {/* View Button */}
                             <button 
+                              onClick={() => handleView(roomItem)}
                               className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
                               title="View Details"
                             >
                               <FaEye size={16} />
                             </button>
+
                             <button 
                               onClick={() => handleEdit(roomItem)}
                               className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
@@ -424,6 +411,7 @@ const AddRoom = () => {
                           )}
                         </div>
                         <div className="flex items-center gap-2 mt-4">
+                          {/* Mobile View Button */}
                           <button 
                             className="px-3 py-1 text-blue-600 border border-blue-600 rounded text-sm hover:bg-blue-50 transition-colors"
                             title="View Details"
