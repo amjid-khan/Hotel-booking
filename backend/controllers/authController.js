@@ -1,51 +1,54 @@
 const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
 const generateToken = require('../utils/generateToken');
+const fs = require('fs');
+const path = require('path');
 
 // ====================== REGISTER USER ======================
 exports.registerUser = async (req, res) => {
-    const { name, email, password, role, hotelId } = req.body;
+    const { full_name, email, password, role, hotelId, phone, status } = req.body;
+    const profile_image = req.file ? req.file.filename : null;
 
-    // Basic validation
-    if (!name || !email || !password || !role) {
-        return res.status(400).json({ message: 'name, email, password aur role required hain' });
+    // Validation
+    if (!full_name || !email || !password || !role) {
+        return res.status(400).json({ message: 'Full name, email, password, and role are required' });
     }
 
     try {
-        // Check if user already exists
+        // Check if email exists
         const [existing] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
         if (existing.length > 0) {
             return res.status(400).json({ message: 'User already exists' });
         }
 
-        // Password hash
+        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Insert user 
-        // NOTE: hotelId sirf tab pass karna hai jab role 'staff' ya non-admin ho
         let query, params;
-
         if (role === 'admin') {
-            query = 'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)';
-            params = [name, email, hashedPassword, role];
+            query = 'INSERT INTO users (name, email, password, role, phone, profile_image, status) VALUES (?, ?, ?, ?, ?, ?, ?)';
+            params = [full_name, email, hashedPassword, role, phone || null, profile_image, status || 'active'];
         } else {
-            query = 'INSERT INTO users (name, email, password, role, hotelId) VALUES (?, ?, ?, ?, ?)';
-            params = [name, email, hashedPassword, role, hotelId || null];
+            query = 'INSERT INTO users (name, email, password, role, hotelId, phone, profile_image, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+            params = [full_name, email, hashedPassword, role, hotelId || null, phone || null, profile_image, status || 'active'];
         }
 
         const [result] = await pool.query(query, params);
 
         const user = {
             id: result.insertId,
-            name,
+            full_name,
             email,
             role,
-            hotelId: role === 'admin' ? null : (hotelId || null)
+            hotelId: role === 'admin' ? null : (hotelId || null),
+            phone: phone || null,
+            profile_image,
+            status: status || 'active'
         };
 
         const token = generateToken(user);
-
         res.status(201).json({ user, token });
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
@@ -56,39 +59,110 @@ exports.registerUser = async (req, res) => {
 exports.loginUser = async (req, res) => {
     const { email, password } = req.body;
 
-    if (!email || !password)
-        return res.status(400).json({ message: 'Email aur password required hain' });
+    if (!email || !password) return res.status(400).json({ message: 'Email and password are required' });
 
     try {
         const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
         if (users.length === 0) return res.status(400).json({ message: 'Invalid credentials' });
 
         const user = users[0];
-
-        // Password check
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
-        // Remove password from response
         delete user.password;
 
-        // Token generate
         const token = generateToken(user);
 
-        // For admin → hotelId not required
-        // For staff → send hotelId if exists
         res.json({
             user: {
                 id: user.id,
-                name: user.name,
+                full_name: user.name,
                 email: user.email,
                 role: user.role,
-                hotelId: user.role === 'admin' ? null : user.hotelId
+                hotelId: user.role === 'admin' ? null : user.hotelId,
+                phone: user.phone || null,
+                profile_image: user.profile_image || null,
+                status: user.status || 'active'
             },
-            token,
+            token
         });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// ====================== UPDATE USER ======================
+exports.updateUser = async (req, res) => {
+    const { id } = req.params;
+    const { full_name, email, password, role, hotelId, phone, status } = req.body;
+    const profile_image = req.file ? req.file.filename : null;
+
+    try {
+        const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
+        if (users.length === 0) return res.status(404).json({ message: 'User not found' });
+
+        const user = users[0];
+
+        // Hash new password if provided
+        const hashedPassword = password ? await bcrypt.hash(password, 10) : user.password;
+
+        // Delete old profile image if new one uploaded
+        if (profile_image && user.profile_image) {
+            const oldImagePath = path.join(__dirname, '../uploads', user.profile_image);
+            if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
+        }
+
+        let query, params;
+        if (role === 'admin') {
+            query = 'UPDATE users SET name = ?, email = ?, password = ?, role = ?, phone = ?, profile_image = ?, status = ? WHERE id = ?';
+            params = [full_name || user.name, email || user.email, hashedPassword, role, phone || user.phone, profile_image || user.profile_image, status || user.status, id];
+        } else {
+            query = 'UPDATE users SET name = ?, email = ?, password = ?, role = ?, hotelId = ?, phone = ?, profile_image = ?, status = ? WHERE id = ?';
+            params = [full_name || user.name, email || user.email, hashedPassword, role, hotelId || user.hotelId, phone || user.phone, profile_image || user.profile_image, status || user.status, id];
+        }
+
+        await pool.query(query, params);
+        res.json({ message: 'User updated successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// ====================== DELETE USER ======================
+exports.deleteUser = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
+        if (users.length === 0) return res.status(404).json({ message: 'User not found' });
+
+        const user = users[0];
+
+        if (user.profile_image) {
+            const imagePath = path.join(__dirname, '../uploads', user.profile_image);
+            if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
+        }
+
+        await pool.query('DELETE FROM users WHERE id = ?', [id]);
+        res.json({ message: 'User deleted successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+exports.getHotelUsers = async (req, res) => {
+    const { hotelId } = req.query;
+
+    if (!hotelId) return res.status(400).json({ message: "hotelId is required" });
+
+    try {
+        const [users] = await pool.query('SELECT * FROM users WHERE hotelId = ?', [hotelId]);
+        res.json({ users });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error" });
     }
 };

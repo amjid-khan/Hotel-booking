@@ -9,7 +9,7 @@ function LoginRegister() {
   const navigate = useNavigate();
 
   const [isRegister, setIsRegister] = useState(false);
-  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const [formData, setFormData] = useState({ full_name: '', email: '', password: '', role: 'admin' }); // role default admin
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -22,12 +22,14 @@ function LoginRegister() {
     e.preventDefault();
     setError('');
 
-    const name = formData.name.trim();
+    const full_name = formData.full_name.trim();
     const email = formData.email.trim();
     const password = formData.password.trim();
+    const role = formData.role; // will always be "admin"
 
-    if (isRegister && !name) {
-      setError('Name is required');
+    // Validation
+    if (isRegister && !full_name) {
+      setError('Full name is required');
       return;
     }
     if (!email) {
@@ -42,38 +44,34 @@ function LoginRegister() {
     setLoading(true);
     try {
       if (isRegister) {
+        // Registration (role is always "admin")
         await axios.post('http://localhost:5000/api/auth/register', {
-          name,
+          full_name,
           email,
           password,
-          role: 'admin',
+          role
         });
         alert('Registration successful! Please login.');
         setIsRegister(false);
-        setFormData({ name: '', email: '', password: '' });
+        setFormData({ full_name: '', email: '', password: '', role: 'admin' });
       } else {
+        // Login
         const response = await axios.post('http://localhost:5000/api/auth/login', { email, password });
         const { user, token } = response.data;
 
         // Save to AuthContext & localStorage
         login(user, token);
 
-        // Redirect based on role
+        // Navigate based on role
         if (user.role === 'admin') {
-          // 1. First fetch admin hotels
-          const hotelRes = await axios.get(`http://localhost:5000/api/hotels/admin/${user._id}`, {
+          // Fetch admin hotels
+          const hotelRes = await axios.get(`http://localhost:5000/api/hotels/admin/${user.id}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
-
           const hotels = hotelRes.data || [];
 
-          // 2. Navigate according to hotel count
-          if (hotels.length > 0) {
-            navigate('/admin', { replace: true });
-          } else {
-            navigate('/admin/create-hotel', { replace: true });
-          }
-
+          if (hotels.length > 0) navigate('/admin', { replace: true });
+          else navigate('/admin/create-hotel', { replace: true });
         } else if (user.role === 'superadmin') {
           navigate('/superadmin', { replace: true });
         } else if (user.role === 'user') {
@@ -106,15 +104,16 @@ function LoginRegister() {
       <div className="right-side">
         <h2 className="login-title">{isRegister ? 'Create Account' : 'Welcome Back'}</h2>
         <p className="login-subtitle">Book your perfect stay with us</p>
+
         <form onSubmit={handleSubmit} noValidate>
           {isRegister && (
             <div className="form-group">
-              <label htmlFor="name">Name</label>
+              <label htmlFor="full_name">Full Name *</label>
               <input
-                id="name"
+                id="full_name"
                 type="text"
-                name="name"
-                value={formData.name}
+                name="full_name"
+                value={formData.full_name}
                 onChange={onChange}
                 placeholder="Your full name"
                 autoComplete="name"
@@ -123,7 +122,7 @@ function LoginRegister() {
           )}
 
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">Email *</label>
             <input
               id="email"
               type="email"
@@ -136,7 +135,7 @@ function LoginRegister() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">Password *</label>
             <input
               id="password"
               type="password"
@@ -162,7 +161,7 @@ function LoginRegister() {
             onClick={() => {
               setIsRegister(!isRegister);
               setError('');
-              setFormData({ name: '', email: '', password: '' });
+              setFormData({ full_name: '', email: '', password: '', role: 'admin' });
             }}
             className="toggle-link"
           >

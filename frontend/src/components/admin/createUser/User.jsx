@@ -1,14 +1,13 @@
 // src/components/admin/User.jsx
 import React, { useState, useContext, useEffect } from "react";
-import axios from "axios";
-import { FaUser, FaEdit, FaTrash, FaEye, FaTimes, FaUpload, FaUserPlus, FaSync } from "react-icons/fa";
+import { FaUser, FaEdit, FaTrash, FaTimes, FaUserPlus, FaSync } from "react-icons/fa";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const User = () => {
   const BASE_URL = import.meta.env.VITE_BASE_URL;
-  const { token, users, fetchUsers, selectedHotelId } = useContext(AuthContext);
+  const { token, users, fetchUsers, selectedHotelId, createUser, updateUser, deleteUser } = useContext(AuthContext);
 
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -20,15 +19,13 @@ const User = () => {
     role: "user",
     status: "active",
     profile_image: null,
-    profile_image_url: null, // For existing image on edit
+    profile_image_url: null,
   });
   const [submitting, setSubmitting] = useState(false);
-  const [deleteId, setDeleteId] = useState(null); // track which user is pending delete confirmation
+  const [deleteId, setDeleteId] = useState(null);
 
   useEffect(() => {
-    if (selectedHotelId) {
-      fetchUsers(selectedHotelId);
-    }
+    if (selectedHotelId) fetchUsers(selectedHotelId);
   }, [selectedHotelId, fetchUsers]);
 
   const handleOpenModal = () => setShowModal(true);
@@ -68,23 +65,13 @@ const User = () => {
 
     setSubmitting(true);
     try {
-      const data = new FormData();
-      Object.keys(formData).forEach((key) => {
-        if (key !== "profile_image_url" && formData[key] !== null && formData[key] !== "") {
-          data.append(key, formData[key]);
-        }
-      });
-      data.append("hotel_id", selectedHotelId);
+      const data = { ...formData, hotelId: selectedHotelId };
 
       if (formData.id) {
-        await axios.put(`${BASE_URL}/api/hotel-users/${formData.id}`, data, {
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
-        });
+        await updateUser(formData.id, data);
         toast.success("User updated successfully!");
       } else {
-        await axios.post(`${BASE_URL}/api/hotel-users`, data, {
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
-        });
+        await createUser(data);
         toast.success("User created successfully!");
       }
 
@@ -96,6 +83,21 @@ const User = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEdit = (user) => {
+    setFormData({
+      id: user.id,
+      full_name: user.full_name || user.name,
+      email: user.email,
+      phone: user.phone || "",
+      password: "",
+      role: user.role,
+      status: user.status,
+      profile_image: null,
+      profile_image_url: user.profile_image ? `${BASE_URL}/uploads/${user.profile_image}` : null,
+    });
+    handleOpenModal();
   };
 
   const confirmDelete = (id) => {
@@ -124,13 +126,8 @@ const User = () => {
 
   const handleDelete = async (id) => {
     if (!token) return toast.error("No token found — please log in first.");
-    if (!selectedHotelId) return toast.error("Select a hotel first!");
-
     try {
-      await axios.delete(`${BASE_URL}/api/hotel-users/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      fetchUsers(selectedHotelId);
+      await deleteUser(selectedHotelId, id);
       setDeleteId(null);
       toast.dismiss();
       toast.success("User deleted successfully!");
@@ -138,21 +135,6 @@ const User = () => {
       console.error(error.response?.data || error.message);
       toast.error("Error deleting user");
     }
-  };
-
-  const handleEdit = (user) => {
-    setFormData({
-      id: user.id,
-      full_name: user.full_name,
-      email: user.email,
-      phone: user.phone,
-      password: "",
-      role: user.role,
-      status: user.status,
-      profile_image: null,
-      profile_image_url: user.profile_image ? `${BASE_URL}/uploads/${user.profile_image}` : null,
-    });
-    handleOpenModal();
   };
 
   const getRoleColor = (role) => {
@@ -165,31 +147,25 @@ const User = () => {
     return colors[role] || "bg-gray-100 text-gray-800";
   };
 
-  const getStatusColor = (status) => {
-    return status === "active"
-      ? "bg-green-100 text-green-800"
-      : "bg-gray-100 text-gray-800";
-  };
+  const getStatusColor = (status) =>
+    status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800";
 
   return (
     <div className="min-h-screen bg-gray-50 pl-60">
       <ToastContainer position="top-right" autoClose={3000} />
 
-      {/* Header Section */}
-      <div className="bg-white shadow-sm border-b border-gray-200 px-8 py-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">User Management</h1>
-            <p className="text-gray-600">Manage hotel staff and user accounts efficiently.</p>
-          </div>
-          <button
-            onClick={handleOpenModal}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 shadow-sm"
-          >
-            <FaUserPlus className="text-sm" />
-            Create User
-          </button>
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b border-gray-200 px-8 py-6 flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">User Management</h1>
+          <p className="text-gray-600">Manage hotel staff and user accounts efficiently.</p>
         </div>
+        <button
+          onClick={handleOpenModal}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 shadow-sm"
+        >
+          <FaUserPlus className="text-sm" /> Create User
+        </button>
       </div>
 
       {/* Modal */}
@@ -200,150 +176,119 @@ const User = () => {
               <h2 className="text-2xl font-bold text-gray-900">
                 {formData.id ? "Update User" : "Create New User"}
               </h2>
-              <button
-                onClick={handleCloseModal}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
+              <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600">
                 <FaTimes size={24} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6">
-              <div className="space-y-6">
-                {/* Profile Image Upload with overlay change icon */}
-                <div className="text-center">
-                  <label className="block text-sm font-medium text-gray-700 mb-4">
-                    Profile Picture
-                  </label>
-                  <div className="flex flex-col items-center">
-                    <div className="relative w-24 h-24 rounded-full overflow-hidden shadow-md border-2 border-gray-200">
-                      {formData.profile_image_url ? (
-                        <img
-                          src={formData.profile_image_url}
-                          alt="Preview"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                          <FaUser className="text-gray-400" size={40} />
-                        </div>
-                      )}
-                      <label className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full cursor-pointer hover:bg-blue-700">
-                        <FaSync className="text-white" size={14} />
-                        <input
-                          type="file"
-                          name="profile_image"
-                          accept="image/*"
-                          onChange={handleChange}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Form Fields */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Full Name */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Full Name *
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              {/* Profile Image */}
+              <div className="text-center">
+                <label className="block text-sm font-medium text-gray-700 mb-4">Profile Picture</label>
+                <div className="flex flex-col items-center">
+                  <div className="relative w-24 h-24 rounded-full overflow-hidden shadow-md border-2 border-gray-200">
+                    {formData.profile_image_url ? (
+                      <img
+                        src={formData.profile_image_url}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                        <FaUser className="text-gray-400" size={40} />
+                      </div>
+                    )}
+                    <label className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full cursor-pointer hover:bg-blue-700">
+                      <FaSync className="text-white" size={14} />
+                      <input
+                        type="file"
+                        name="profile_image"
+                        accept="image/*"
+                        onChange={handleChange}
+                        className="hidden"
+                      />
                     </label>
-                    <input
-                      type="text"
-                      name="full_name"
-                      value={formData.full_name}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Enter full name"
-                    />
-                  </div>
-
-                  {/* Email */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email Address *
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Enter email address"
-                    />
-                  </div>
-
-                  {/* Phone */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone Number
-                    </label>
-                    <input
-                      type="text"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Enter phone number"
-                    />
-                  </div>
-
-                  {/* Password */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Password {!formData.id && "*"}
-                    </label>
-                    <input
-                      type="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      required={!formData.id}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder={formData.id ? "Leave blank to keep current password" : "Enter password"}
-                    />
-                  </div>
-
-                  {/* Role */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Role *
-                    </label>
-                    <select
-                      name="role"
-                      value={formData.role}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="admin">Admin</option>
-                      <option value="manager">Manager</option>
-                      <option value="staff">Staff</option>
-                      <option value="user">User</option>
-                    </select>
-                  </div>
-
-                  {/* Status */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Status *
-                    </label>
-                    <select
-                      name="status"
-                      value={formData.status}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
                   </div>
                 </div>
               </div>
 
-              {/* Form Actions */}
+              {/* Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+                  <input
+                    type="text"
+                    name="full_name"
+                    value={formData.full_name}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                  <input
+                    type="text"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Password {!formData.id && "*"}
+                  </label>
+                  <input
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required={!formData.id}
+                    placeholder={formData.id ? "Leave blank to keep current password" : "Enter password"}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Role *</label>
+                  <select
+                    name="role"
+                    value={formData.role}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="admin">Admin</option>
+                    <option value="manager">Manager</option>
+                    <option value="staff">Staff</option>
+                    <option value="user">User</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Status *</label>
+                  <select
+                    name="status"
+                    value={formData.status}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Buttons */}
               <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-gray-200">
                 <button
                   type="button"
@@ -367,135 +312,70 @@ const User = () => {
         </div>
       )}
 
-      {/* User List */}
+      {/* Users Table */}
       <div className="p-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {Array.isArray(users) && users.length > 0 ? (
-            <>
-              <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  All Users ({users.length})
-                </h3>
-              </div>
-
-              <div className="hidden lg:block overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="text-left py-4 px-6 font-semibold text-gray-900">Profile</th>
-                      <th className="text-left py-4 px-6 font-semibold text-gray-900">Full Name</th>
-                      <th className="text-left py-4 px-6 font-semibold text-gray-900">Email</th>
-                      <th className="text-left py-4 px-6 font-semibold text-gray-900">Phone</th>
-                      <th className="text-left py-4 px-6 font-semibold text-gray-900">Role</th>
-                      <th className="text-left py-4 px-6 font-semibold text-gray-900">Status</th>
-                      <th className="text-center py-4 px-6 font-semibold text-gray-900">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {users.map((user) => (
-                      <tr key={user.id} className="hover:bg-gray-50">
-                        <td className="py-4 px-6">
-                          <div className="w-12 h-12 rounded-full overflow-hidden shadow-sm">
-                            {user.profile_image ? (
-                              <img
-                                src={`${BASE_URL}/uploads/${user.profile_image}`}
-                                alt={user.full_name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                                <FaUser className="text-gray-500" size={20} />
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 font-semibold text-gray-900">{user.full_name}</td>
-                        <td className="py-4 px-6 text-gray-600">{user.email}</td>
-                        <td className="py-4 px-6 text-gray-600">{user.phone || "-"}</td>
-                        <td className="py-4 px-6">
-                          <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(user.role)}`}>
-                            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6">
-                          <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(user.status)}`}>
-                            {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6">
-                          <div className="flex items-center justify-center gap-2">
-                            <button className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg" title="View Details">
-                              <FaEye size={16} />
-                            </button>
-                            <button onClick={() => handleEdit(user)} className="p-2 text-green-600 hover:bg-green-100 rounded-lg" title="Edit User">
-                              <FaEdit size={16} />
-                            </button>
-                            <button onClick={() => confirmDelete(user.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg" title="Delete User">
-                              <FaTrash size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile Cards */}
-              <div className="lg:hidden divide-y divide-gray-200">
+            <table className="w-full hidden lg:table">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="py-4 px-6">Profile</th>
+                  <th className="py-4 px-6">Full Name</th>
+                  <th className="py-4 px-6">Email</th>
+                  <th className="py-4 px-6">Phone</th>
+                  <th className="py-4 px-6">Role</th>
+                  <th className="py-4 px-6">Status</th>
+                  <th className="py-4 px-6 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
                 {users.map((user) => (
-                  <div key={user.id} className="p-6">
-                    <div className="flex items-start gap-4">
-                      <div className="w-16 h-16 rounded-full overflow-hidden shadow-sm">
+                  <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="py-4 px-6">
+                      <div className="w-12 h-12 rounded-full overflow-hidden shadow-sm">
                         {user.profile_image ? (
                           <img
                             src={`${BASE_URL}/uploads/${user.profile_image}`}
-                            alt={user.full_name}
+                            alt={user.full_name || user.name}
                             className="w-full h-full object-cover"
                           />
                         ) : (
                           <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                            <FaUser className="text-gray-500" size={24} />
+                            <FaUser className="text-gray-500" size={20} />
                           </div>
                         )}
                       </div>
-                      <div className="flex-grow min-w-0">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-semibold text-gray-900">{user.full_name}</h4>
-                          <div className="flex gap-2">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${getRoleColor(user.role)}`}>{user.role}</span>
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(user.status)}`}>{user.status}</span>
-                          </div>
-                        </div>
-                        <div className="text-sm text-gray-600 space-y-1">
-                          <p><span className="font-medium">Email:</span> {user.email}</p>
-                          {user.phone && <p><span className="font-medium">Phone:</span> {user.phone}</p>}
-                        </div>
-                        <div className="flex items-center gap-2 mt-4">
-                          <button className="px-3 py-1 text-blue-600 border border-blue-600 rounded text-sm hover:bg-blue-50">
-                            <FaEye className="inline mr-1" size={12} /> View
-                          </button>
-                          <button onClick={() => handleEdit(user)} className="px-3 py-1 text-green-600 border border-green-600 rounded text-sm hover:bg-green-50">
-                            <FaEdit className="inline mr-1" size={12} /> Edit
-                          </button>
-                          <button onClick={() => confirmDelete(user.id)} className="px-3 py-1 text-red-600 border border-red-600 rounded text-sm hover:bg-red-50">
-                            <FaTrash className="inline mr-1" size={12} /> Delete
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    </td>
+                    <td className="py-4 px-6 font-semibold">{user.full_name || user.name}</td>
+                    <td className="py-4 px-6 text-gray-600">{user.email}</td>
+                    <td className="py-4 px-6 text-gray-600">{user.phone || "-"}</td>
+                    <td className="py-4 px-6">
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(user.role)}`}>
+                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(user.status)}`}>
+                        {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 text-center flex justify-center gap-2">
+                      <button onClick={() => handleEdit(user)} className="p-2 text-green-600 hover:bg-green-100 rounded-lg">
+                        <FaEdit size={16} />
+                      </button>
+                      <button onClick={() => confirmDelete(user.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg">
+                        <FaTrash size={16} />
+                      </button>
+                    </td>
+                  </tr>
                 ))}
-              </div>
-            </>
+              </tbody>
+            </table>
           ) : (
             <div className="text-center py-16">
-              <div className="text-gray-400 mb-4">
-                <FaUserPlus size={48} className="mx-auto opacity-50" />
-              </div>
+              <FaUserPlus size={48} className="mx-auto opacity-50 mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No users found</h3>
-              <p className="text-gray-600 mb-6">Start by creating your first user for this hotel.</p>
-        
+              <p className="text-gray-600">Start by creating your first user for this hotel.</p>
             </div>
           )}
         </div>
