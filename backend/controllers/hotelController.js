@@ -3,11 +3,22 @@ const db = require("../config/db.js");
 // ==================== CREATE NEW HOTEL (Admin only) ====================
 exports.createHotel = async (req, res) => {
     try {
-        const { name, address, description } = req.body;
+        const {
+            name, address, description,
+            email, city, state, country, zip, phone, starRating
+        } = req.body;
+
         const adminId = req.user.id;
 
-        const query = 'INSERT INTO hotels (admin_id, name, address, description) VALUES (?, ?, ?, ?)';
-        const [result] = await db.execute(query, [adminId, name, address, description]);
+        const query = `
+            INSERT INTO hotels 
+            (admin_id, name, address, description, email, city, state, country, zip, phone, starRating) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+        const [result] = await db.execute(query, [
+            adminId, name, address, description,
+            email, city, state, country, zip, phone, starRating
+        ]);
 
         const hotelId = result.insertId;
 
@@ -18,7 +29,14 @@ exports.createHotel = async (req, res) => {
                 id: hotelId,
                 name,
                 address,
-                description
+                description,
+                email,
+                city,
+                state,
+                country,
+                zip,
+                phone,
+                starRating
             }
         });
     } catch (err) {
@@ -31,7 +49,10 @@ exports.createHotel = async (req, res) => {
 exports.getAdminHotels = async (req, res) => {
     try {
         const adminId = req.user.id;
-        const query = 'SELECT id, name, address, description FROM hotels WHERE admin_id = ?';
+        const query = `
+            SELECT id, name, address, description, email, city, state, country, zip, phone, starRating 
+            FROM hotels WHERE admin_id = ?
+        `;
         const [hotels] = await db.execute(query, [adminId]);
 
         res.json({ success: true, hotels });
@@ -42,14 +63,11 @@ exports.getAdminHotels = async (req, res) => {
 };
 
 // ==================== CHECK HOTEL FOR ANY USER ====================
-// Admin: simply check if at least one hotel exists
-// Staff/User: fetch hotelId from users table and get its name
 exports.checkHotel = async (req, res) => {
     try {
         const { id: userId, role } = req.user;
 
         if (role === "admin") {
-            // For admin -> return first hotel name if exists
             const [rows] = await db.execute(
                 'SELECT id, name FROM hotels WHERE admin_id = ? LIMIT 1',
                 [userId]
@@ -71,7 +89,6 @@ exports.checkHotel = async (req, res) => {
                 });
             }
         } else {
-            // For staff/user -> get hotelId from users table
             const [userRows] = await db.execute(
                 'SELECT hotelId FROM users WHERE id = ?',
                 [userId]
@@ -119,11 +136,23 @@ exports.checkHotel = async (req, res) => {
 exports.updateHotel = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, address, description } = req.body;
+        const {
+            name, address, description,
+            email, city, state, country, zip, phone, starRating
+        } = req.body;
         const adminId = req.user.id;
 
-        const query = 'UPDATE hotels SET name = ?, address = ?, description = ? WHERE id = ? AND admin_id = ?';
-        const [result] = await db.execute(query, [name, address, description, id, adminId]);
+        const query = `
+            UPDATE hotels 
+            SET name = ?, address = ?, description = ?, 
+                email = ?, city = ?, state = ?, country = ?, zip = ?, phone = ?, starRating = ?
+            WHERE id = ? AND admin_id = ?
+        `;
+        const [result] = await db.execute(query, [
+            name, address, description,
+            email, city, state, country, zip, phone, starRating,
+            id, adminId
+        ]);
 
         if (result.affectedRows === 0)
             return res.status(404).json({ success: false, message: 'Hotel not found or access denied' });
@@ -154,13 +183,16 @@ exports.deleteHotel = async (req, res) => {
     }
 };
 
-
+// ==================== GET HOTEL BY ID ====================
 exports.getHotelById = async (req, res) => {
     try {
         const { id } = req.params;
         const adminId = req.user.id;
 
-        const query = 'SELECT id, name, address, description FROM hotels WHERE id = ? AND admin_id = ?';
+        const query = `
+            SELECT id, name, address, description, email, city, state, country, zip, phone, starRating 
+            FROM hotels WHERE id = ? AND admin_id = ?
+        `;
         const [rows] = await db.execute(query, [id, adminId]);
 
         if (rows.length === 0) {
