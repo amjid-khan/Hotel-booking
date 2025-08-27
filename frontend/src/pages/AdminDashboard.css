@@ -482,7 +482,7 @@
 }
 @media (max-width:900px){
   .dashboard{
-    padding-left: 80px;
+    padding-left: 0px;
   }
 }
 

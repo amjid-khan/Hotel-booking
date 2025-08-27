@@ -39,6 +39,12 @@ const AdminDashboard = () => {
     { month: "Apr", revenue: totalRevenue ? totalRevenue / 6 : 0, bookings: monthlyBookings ? monthlyBookings / 6 : 0 },
     { month: "May", revenue: totalRevenue ? totalRevenue / 6 : 0, bookings: monthlyBookings ? monthlyBookings / 6 : 0 },
     { month: "Jun", revenue: totalRevenue ? totalRevenue / 6 : 0, bookings: monthlyBookings ? monthlyBookings / 6 : 0 },
+    { month: "Jul", revenue: totalRevenue ? totalRevenue / 6 : 0, bookings: monthlyBookings ? monthlyBookings / 6 : 0 },
+    { month: "Aug", revenue: totalRevenue ? totalRevenue / 6 : 0, bookings: monthlyBookings ? monthlyBookings / 6 : 0 },
+    { month: "Sep", revenue: totalRevenue ? totalRevenue / 6 : 0, bookings: monthlyBookings ? monthlyBookings / 6 : 0 },
+    { month: "Oct", revenue: totalRevenue ? totalRevenue / 6 : 0, bookings: monthlyBookings ? monthlyBookings / 6 : 0 },
+    { month: "Nov", revenue: totalRevenue ? totalRevenue / 6 : 0, bookings: monthlyBookings ? monthlyBookings / 6 : 0 },
+    { month: "Dec", revenue: totalRevenue ? totalRevenue / 6 : 0, bookings: monthlyBookings ? monthlyBookings / 6 : 0 },
   ];
 
   // Room type distribution with safe defaults
