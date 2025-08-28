@@ -1,7 +1,6 @@
-// src/App.jsx
 import React, { useContext } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, AuthContext } from "./contexts/AuthContext";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { AuthContext } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 
 import UserHome from "./pages/UserHome";
@@ -17,7 +16,7 @@ import useAdminHotelCheck from "./hooks/useAdminHotelCheck";
 import AddRoom from "./components/admin/addroom/AddRoom";
 import User from "./components/admin/createUser/User";
 import Setting from "./components/admin/setting/Setting";
-import RoomView from "./components/admin/RoomViewPage/RoomView";
+import Reports from "./components/admin/report/Report";
 
 // --- After login, redirect based on role + hotel status ---
 function HomeRedirect() {
@@ -34,7 +33,9 @@ function HomeRedirect() {
     case "admin":
       if (hasHotel) {
         const firstHotelId = hotels?.[0]?._id;
-        return firstHotelId ? <Navigate to={`/admin/hotel/${firstHotelId}`} replace /> : <Navigate to="/admin" replace />;
+        return firstHotelId
+          ? <Navigate to={`/admin/hotel/${firstHotelId}`} replace />
+          : <Navigate to="/admin" replace />;
       } else {
         return <Navigate to="/admin/create-hotel" replace />;
       }
@@ -62,7 +63,9 @@ function LoginRedirect() {
     case "admin":
       if (hasHotel) {
         const firstHotelId = hotels?.[0]?._id;
-        return firstHotelId ? <Navigate to={`/admin/hotel/${firstHotelId}`} replace /> : <Navigate to="/admin" replace />;
+        return firstHotelId
+          ? <Navigate to={`/admin/hotel/${firstHotelId}`} replace />
+          : <Navigate to="/admin" replace />;
       } else {
         return <Navigate to="/admin/create-hotel" replace />;
       }
@@ -77,48 +80,44 @@ function LoginRedirect() {
 
 export default function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <Routes>
-          <Route path="/" element={<HomeRedirect />} />
-          <Route path="/login" element={<LoginRedirect />} />
+    <Routes>
+      {/* Home / Redirect */}
+      <Route path="/" element={<HomeRedirect />} />
 
-          {/* User */}
-          <Route element={<ProtectedRoute roles={["user"]} />}>
-            <Route path="/user" element={<UserLayout />}>
-              <Route index element={<UserHome />} />
-              <Route path="/user/rooms" element={<Room />} />
-            </Route>
-          </Route>
+      {/* Login */}
+      <Route path="/login" element={<LoginRedirect />} />
 
-          {/* Admin: create hotel page (manual access allowed) */}
-          <Route element={<ProtectedRoute roles={["admin"]} />}>
-            <Route path="/admin/create-hotel" element={<CreateHotel />} />
-          </Route>
+      {/* User Routes */}
+      <Route element={<ProtectedRoute roles={["user"]} />}>
+        <Route path="/user" element={<UserLayout />}>
+          <Route index element={<UserHome />} />
+          <Route path="/user/rooms" element={<Room />} />
+        </Route>
+      </Route>
 
-          {/* Admin: main dashboard */}
-          <Route element={<ProtectedRoute roles={["admin"]} />}>
-            <Route element={<AdminLayout />}>
-              {/* Route for specific hotel dashboard */}
-              <Route path="/admin/hotel/:hotelId" element={<AdminDashboard />} />
+      {/* Admin Routes */}
+      <Route element={<ProtectedRoute roles={["admin"]} />}>
+        <Route path="/admin/create-hotel" element={<CreateHotel />} />
+      </Route>
 
-              {/* Default admin dashboard (redirects handled in HomeRedirect) */}
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/add-room" element={<AddRoom />} />
-              <Route path="/users" element={<User />} />
-              <Route path="/settings" element={<Setting />} />
-              <Route path="/roomviewpage" element={<RoomView />} /> 
-            </Route>
-          </Route>
+      <Route element={<ProtectedRoute roles={["admin"]} />}>
+        <Route element={<AdminLayout />}>
+          <Route path="/admin/hotel/:hotelId" element={<AdminDashboard />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/add-room" element={<AddRoom />} />
+          <Route path="/users" element={<User />} />
+          <Route path="/settings" element={<Setting />} />
+          <Route path="/reports" element={<Reports />} />
+        </Route>
+      </Route>
 
-          {/* SuperAdmin */}
-          <Route element={<ProtectedRoute roles={["superadmin"]} />}>
-            <Route path="/superadmin" element={<SuperAdminDashboard />} />
-          </Route>
+      {/* SuperAdmin Routes */}
+      <Route element={<ProtectedRoute roles={["superadmin"]} />}>
+        <Route path="/superadmin" element={<SuperAdminDashboard />} />
+      </Route>
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </AuthProvider>
-    </Router>
+      {/* 404 Not Found */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }

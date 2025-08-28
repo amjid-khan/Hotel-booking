@@ -1,11 +1,14 @@
 // src/contexts/AuthContext.jsx
 import React, { createContext, useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 export const AuthContext = createContext();
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 export function AuthProvider({ children }) {
+  const navigate = useNavigate();
+
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -20,8 +23,10 @@ export function AuthProvider({ children }) {
     const savedUser = localStorage.getItem("user");
     const savedToken = localStorage.getItem("token");
     if (savedUser && savedToken) {
-      setUser(JSON.parse(savedUser));
+      const parsedUser = JSON.parse(savedUser);
+      setUser(parsedUser);
       setToken(savedToken);
+      if (parsedUser.hotelId) selectHotel(parsedUser.hotelId);
     }
     setLoading(false);
   }, []);
@@ -72,7 +77,6 @@ export function AuthProvider({ children }) {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
       });
 
-      // Instant update: Add new user to local state
       if (res.data.user && userData.hotelId === selectedHotelId) {
         setUsers(prev => [...prev, res.data.user]);
       }
@@ -102,7 +106,6 @@ export function AuthProvider({ children }) {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
       });
 
-      // Instant update: Update user in local state
       if (res.data.user && userData.hotelId === selectedHotelId) {
         setUsers(prev => prev.map(u => u.id === userId ? res.data.user : u));
       }
@@ -122,7 +125,6 @@ export function AuthProvider({ children }) {
         headers: { Authorization: `Bearer ${token}` },
       });
       
-      // Instant update: Remove user from local state
       if (hotelId === selectedHotelId) {
         setUsers(prev => prev.filter(u => u.id !== userId));
       }
@@ -142,7 +144,6 @@ export function AuthProvider({ children }) {
       const hotelData = res.data.hotel;
       if (hotelData) {
         setHotelName(hotelData.name || "");
-        // Update hotels array with fresh data
         setHotels(prev => prev.map(h => h.id === hotelId ? { ...h, ...hotelData } : h));
       }
     } catch (err) {
@@ -172,14 +173,13 @@ export function AuthProvider({ children }) {
 
   // ---------------- Select hotel ----------------
   const selectHotel = (hotelId) => {
+    if (!hotelId) return;
     setSelectedHotelId(hotelId);
     const selectedHotel = hotels.find(h => h.id === hotelId);
-    if (selectedHotel) {
-      setHotelName(selectedHotel.name || "");
-    }
+    if (selectedHotel) setHotelName(selectedHotel.name || "");
     fetchRooms(hotelId);
     fetchUsers(hotelId);
-    fetchHotelName(hotelId); // This will ensure latest data
+    fetchHotelName(hotelId);
   };
 
   // ---------------- Update hotel ----------------
@@ -192,16 +192,8 @@ export function AuthProvider({ children }) {
       
       if (res.data?.hotel) {
         const updatedHotel = res.data.hotel;
-        
-        // Instant update: Update hotels array
-        setHotels(prev =>
-          prev.map(h => (h.id === hotelId ? { ...h, ...updatedHotel } : h))
-        );
-        
-        // Instant update: Update hotelName if current hotel
-        if (hotelId === selectedHotelId) {
-          setHotelName(updatedHotel.name || "");
-        }
+        setHotels(prev => prev.map(h => (h.id === hotelId ? { ...h, ...updatedHotel } : h)));
+        if (hotelId === selectedHotelId) setHotelName(updatedHotel.name || "");
       }
       
       return res.data;
@@ -211,38 +203,42 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // ---------------- Delete hotel ----------------
-  const deleteHotel = async (hotelId) => {
-    if (!token || !hotelId) return;
-    try {
-      await axios.delete(`${BASE_URL}/api/hotels/${hotelId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+// ---------------- Delete hotel ----------------
+const deleteHotel = async (hotelId) => {
+  if (!token || !hotelId) return;
 
-      // Instant update: Remove hotel from local state
-      const remainingHotels = hotels.filter(h => h.id !== hotelId);
-      setHotels(remainingHotels);
+  // Ensure only raw ID is sent
+  const id = hotelId.toString().split("/").pop();
 
-      if (selectedHotelId === hotelId) {
-        // Automatically select another hotel if available
-        if (remainingHotels.length > 0) {
-          const nextHotel = remainingHotels[0];
-          setSelectedHotelId(nextHotel.id);
-          setHotelName(nextHotel.name || "");
-          fetchRooms(nextHotel.id);
-          fetchUsers(nextHotel.id);
-        } else {
-          setSelectedHotelId(null);
-          setHotelName("");
-          setRooms([]);
-          setUsers([]);
-        }
-      }
-    } catch (err) {
-      console.error("Error deleting hotel:", err);
-      throw err;
+  try {
+    // Delete hotel from backend
+    await axios.delete(`${BASE_URL}/api/hotels/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    // Remove deleted hotel from state
+    const remainingHotels = hotels.filter(h => h.id !== id);
+
+    // If last hotel was deleted, logout
+    if (remainingHotels.length === 0) {
+      logout();
+      navigate("/login", { replace: true });
+      return;
     }
-  };
+
+    setHotels(remainingHotels);
+
+    // If deleted hotel was selected, switch to next available hotel
+    if (selectedHotelId === id) {
+      const nextHotel = remainingHotels[0];
+      selectHotel(nextHotel.id);
+      navigate(`/admin/hotel/${nextHotel.id}`, { replace: true });
+    }
+  } catch (err) {
+    console.error("Error deleting hotel:", err);
+    throw err;
+  }
+};
 
   // ---------------- Add room ----------------
   const addRoom = async (roomData) => {
@@ -254,12 +250,7 @@ export function AuthProvider({ children }) {
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         }
       );
-      
-      // Instant update: Add room to local state
-      if (res.data.room) {
-        setRooms(prev => [...prev, res.data.room]);
-      }
-      
+      if (res.data.room) setRooms(prev => [...prev, res.data.room]);
       return res.data;
     } catch (err) {
       console.error("Error adding room:", err);
@@ -274,12 +265,7 @@ export function AuthProvider({ children }) {
       const res = await axios.put(`${BASE_URL}/api/rooms/${roomId}`, roomData, {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
-      
-      // Instant update: Update room in local state
-      if (res.data.room) {
-        setRooms(prev => prev.map(r => r.id === roomId ? res.data.room : r));
-      }
-      
+      if (res.data.room) setRooms(prev => prev.map(r => r.id === roomId ? res.data.room : r));
       return res.data;
     } catch (err) {
       console.error("Error updating room:", err);
@@ -294,8 +280,6 @@ export function AuthProvider({ children }) {
       await axios.delete(`${BASE_URL}/api/rooms/${roomId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
-      // Instant update: Remove room from local state
       setRooms(prev => prev.filter(r => r.id !== roomId));
     } catch (err) {
       console.error("Error deleting room:", err);
@@ -309,11 +293,10 @@ export function AuthProvider({ children }) {
   }, [token, fetchHotels]);
 
   useEffect(() => {
-    if (selectedHotelId) {
-      fetchRooms(selectedHotelId);
-      fetchUsers(selectedHotelId);
-      fetchHotelName(selectedHotelId);
-    }
+    if (!selectedHotelId) return; // skip fetch if no hotel
+    fetchRooms(selectedHotelId);
+    fetchUsers(selectedHotelId);
+    fetchHotelName(selectedHotelId);
   }, [selectedHotelId, fetchRooms, fetchUsers, fetchHotelName]);
 
   // ---------------- Login ----------------
@@ -331,7 +314,14 @@ export function AuthProvider({ children }) {
     localStorage.setItem("token", tokenData);
 
     fetchHotels();
-    if (updatedUser.hotelId) selectHotel(updatedUser.hotelId);
+    if (updatedUser.hotelId) {
+      selectHotel(updatedUser.hotelId);
+
+      // ---------------- Redirect user to their hotel ----------------
+      if (updatedUser.role === "user") {
+        navigate(`/hotel/${updatedUser.hotelId}`);
+      }
+    }
   };
 
   // ---------------- Logout ----------------
