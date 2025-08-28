@@ -17,7 +17,6 @@ const AdminDashboard = () => {
 
   if (loading) return <div className="dashboard-loading">Loading...</div>;
 
-  // ----- Dynamic calculations with safe defaults
   const totalRooms = rooms.length;
   const availableRooms = rooms.filter(r => r.isAvailable).length;
   const occupiedRooms = totalRooms - availableRooms;
@@ -27,35 +26,31 @@ const AdminDashboard = () => {
   const activeUsers = users.filter(u => u.status === "active").length;
   const inactiveUsers = totalUsers - activeUsers;
 
-  // Revenue & bookings (default to 0 if rooms are empty)
-  const totalRevenue = 0
+  const totalRevenue = 0;
   const monthlyBookings = rooms.reduce((sum, r) => sum + (r.bookingsCount || 0), 0) || 0;
 
-  // Revenue data for charts (default values 0 if no rooms)
   const revenueData = [
-    { month: "Jan", revenue: totalRevenue ? totalRevenue / 6 : 0, bookings: monthlyBookings ? monthlyBookings / 6 : 0 },
-    { month: "Feb", revenue: totalRevenue ? totalRevenue / 6 : 0, bookings: monthlyBookings ? monthlyBookings / 6 : 0 },
-    { month: "Mar", revenue: totalRevenue ? totalRevenue / 6 : 0, bookings: monthlyBookings ? monthlyBookings / 6 : 0 },
-    { month: "Apr", revenue: totalRevenue ? totalRevenue / 6 : 0, bookings: monthlyBookings ? monthlyBookings / 6 : 0 },
-    { month: "May", revenue: totalRevenue ? totalRevenue / 6 : 0, bookings: monthlyBookings ? monthlyBookings / 6 : 0 },
-    { month: "Jun", revenue: totalRevenue ? totalRevenue / 6 : 0, bookings: monthlyBookings ? monthlyBookings / 6 : 0 },
-    { month: "Jul", revenue: totalRevenue ? totalRevenue / 6 : 0, bookings: monthlyBookings ? monthlyBookings / 6 : 0 },
-    { month: "Aug", revenue: totalRevenue ? totalRevenue / 6 : 0, bookings: monthlyBookings ? monthlyBookings / 6 : 0 },
-    { month: "Sep", revenue: totalRevenue ? totalRevenue / 6 : 0, bookings: monthlyBookings ? monthlyBookings / 6 : 0 },
-    { month: "Oct", revenue: totalRevenue ? totalRevenue / 6 : 0, bookings: monthlyBookings ? monthlyBookings / 6 : 0 },
-    { month: "Nov", revenue: totalRevenue ? totalRevenue / 6 : 0, bookings: monthlyBookings ? monthlyBookings / 6 : 0 },
-    { month: "Dec", revenue: totalRevenue ? totalRevenue / 6 : 0, bookings: monthlyBookings ? monthlyBookings / 6 : 0 },
+    { month: "Jan", revenue: 0, bookings: 0 },
+    { month: "Feb", revenue: 0, bookings: 0 },
+    { month: "Mar", revenue: 0, bookings: 0 },
+    { month: "Apr", revenue: 0, bookings: 0 },
+    { month: "May", revenue: 0, bookings: 0 },
+    { month: "Jun", revenue: 0, bookings: 0 },
+    { month: "Jul", revenue: 0, bookings: 0 },
+    { month: "Aug", revenue: 0, bookings: 0 },
+    { month: "Sep", revenue: 0, bookings: 0 },
+    { month: "Oct", revenue: 0, bookings: 0 },
+    { month: "Nov", revenue: 0, bookings: 0 },
+    { month: "Dec", revenue: 0, bookings: 0 },
   ];
 
-  // Room type distribution with safe defaults
   const roomTypeData = [
     { name: "Single", value: rooms.filter(r => r.type === "Single").length, color: "#3b82f6" },
     { name: "Double", value: rooms.filter(r => r.type === "Double").length, color: "#10b981" },
     { name: "Suite", value: rooms.filter(r => r.type === "Suite").length, color: "#f59e0b" },
     { name: "Deluxe", value: rooms.filter(r => r.type === "Deluxe").length, color: "#ef4444" },
-  ].filter(r => r.value > 0); // remove types with 0
+  ].filter(r => r.value > 0);
 
-  // Weekly occupancy (dummy example)
   const occupancyData = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(day => ({
     day,
     occupied: occupiedRooms,
@@ -64,7 +59,6 @@ const AdminDashboard = () => {
 
   return (
     <div className="dashboard">
-      {/* Header */}
       <header className="dashboard-header">
         <div className="header-left">
           <h1 className="dashboard-title">Dashboard Overview</h1>
@@ -79,7 +73,6 @@ const AdminDashboard = () => {
         </div>
       </header>
 
-      {/* Stats Cards */}
       <div className="dashboard-content">
         <div className="stats-grid">
           <div className="stat-card revenue">
@@ -131,9 +124,7 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Charts */}
         <div className="charts-grid">
-          {/* Revenue Chart */}
           <div className="chart-card large">
             <div className="chart-header"><h3>Revenue Overview</h3></div>
             <div className="chart-container">
@@ -155,7 +146,6 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Room Types Pie Chart */}
           <div className="chart-card">
             <div className="chart-header"><h3>Room Types</h3></div>
             <div className="chart-container">
@@ -170,7 +160,6 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Weekly Occupancy */}
           <div className="chart-card">
             <div className="chart-header"><h3>Weekly Occupancy</h3></div>
             <div className="chart-container">
@@ -187,7 +176,6 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Booking Trends */}
           <div className="chart-card">
             <div className="chart-header"><h3>Booking Trends</h3></div>
             <div className="chart-container">

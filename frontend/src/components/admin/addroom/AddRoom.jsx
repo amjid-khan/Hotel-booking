@@ -26,7 +26,6 @@ const AddRoom = () => {
 
   const rooms = Array.isArray(contextRooms) ? contextRooms : [];
 
-  // ---------------- Fetch rooms when hotel changes ----------------
   useEffect(() => {
     if (selectedHotelId) fetchRooms(selectedHotelId);
   }, [selectedHotelId, fetchRooms]);
@@ -51,7 +50,6 @@ const AddRoom = () => {
     setShowModal(false);
   };
 
-  // ---------------- Create / Update Room ----------------
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!token) return toast.error("No token found — please log in first.");
@@ -86,7 +84,6 @@ const AddRoom = () => {
     }
   };
 
-  // ---------------- Edit Room ----------------
   const handleEdit = (room) => {
     setEditRoom(room);
     setRoom({
@@ -100,7 +97,6 @@ const AddRoom = () => {
     setShowModal(true);
   };
 
-  // ---------------- Delete Room ----------------
   const handleDelete = async (roomId) => {
     if (!selectedHotelId) return;
     if (!window.confirm("Are you sure you want to delete this room?")) return;
@@ -116,7 +112,9 @@ const AddRoom = () => {
     }
   };
 
-  // ---------------- View Room ----------------
+  const handleView = (roomItem) => {
+    toast.info(`Viewing room ${roomItem.roomNumber}`); // Placeholder
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 pl-60">
@@ -141,8 +139,8 @@ const AddRoom = () => {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full overflow-hidden">
             <div className="flex justify-between items-center p-6 border-b border-gray-200">
               <h2 className="text-2xl font-bold text-gray-900">
                 {editRoom ? "Update Room" : "Add New Room"}
@@ -353,7 +351,6 @@ const AddRoom = () => {
                         </td>
                         <td className="py-4 px-6">
                           <div className="flex items-center justify-center gap-2">
-                            {/* View Button */}
                             <button 
                               onClick={() => handleView(roomItem)}
                               className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
@@ -411,7 +408,6 @@ const AddRoom = () => {
                           )}
                         </div>
                         <div className="flex items-center gap-2 mt-4">
-                          {/* Mobile View Button */}
                           <button 
                             className="px-3 py-1 text-blue-600 border border-blue-600 rounded text-sm hover:bg-blue-50 transition-colors"
                             title="View Details"

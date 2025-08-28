@@ -72,7 +72,11 @@ export function AuthProvider({ children }) {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
       });
 
-      if (userData.hotelId) fetchUsers(userData.hotelId);
+      // Instant update: Add new user to local state
+      if (res.data.user && userData.hotelId === selectedHotelId) {
+        setUsers(prev => [...prev, res.data.user]);
+      }
+      
       return res.data;
     } catch (err) {
       console.error("Error creating user:", err);
@@ -98,7 +102,11 @@ export function AuthProvider({ children }) {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
       });
 
-      if (userData.hotelId) fetchUsers(userData.hotelId);
+      // Instant update: Update user in local state
+      if (res.data.user && userData.hotelId === selectedHotelId) {
+        setUsers(prev => prev.map(u => u.id === userId ? res.data.user : u));
+      }
+      
       return res.data;
     } catch (err) {
       console.error("Error updating user:", err);
@@ -113,7 +121,11 @@ export function AuthProvider({ children }) {
       await axios.delete(`${BASE_URL}/api/auth/hotel-users/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      fetchUsers(hotelId);
+      
+      // Instant update: Remove user from local state
+      if (hotelId === selectedHotelId) {
+        setUsers(prev => prev.filter(u => u.id !== userId));
+      }
     } catch (err) {
       console.error("Error deleting user:", err);
       throw err;
@@ -127,7 +139,12 @@ export function AuthProvider({ children }) {
       const res = await axios.get(`${BASE_URL}/api/hotels/${hotelId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setHotelName(res.data.hotel?.name || "");
+      const hotelData = res.data.hotel;
+      if (hotelData) {
+        setHotelName(hotelData.name || "");
+        // Update hotels array with fresh data
+        setHotels(prev => prev.map(h => h.id === hotelId ? { ...h, ...hotelData } : h));
+      }
     } catch (err) {
       console.error("Error fetching hotel name:", err);
       setHotelName("");
@@ -143,7 +160,10 @@ export function AuthProvider({ children }) {
       });
       const list = res.data.hotels || [];
       setHotels(list);
-      if (list.length > 0 && !selectedHotelId) setSelectedHotelId(list[0].id);
+      if (list.length > 0 && !selectedHotelId) {
+        setSelectedHotelId(list[0].id);
+        setHotelName(list[0].name || "");
+      }
     } catch (err) {
       console.error("Error fetching hotels:", err);
       setHotels([]);
@@ -153,9 +173,134 @@ export function AuthProvider({ children }) {
   // ---------------- Select hotel ----------------
   const selectHotel = (hotelId) => {
     setSelectedHotelId(hotelId);
+    const selectedHotel = hotels.find(h => h.id === hotelId);
+    if (selectedHotel) {
+      setHotelName(selectedHotel.name || "");
+    }
     fetchRooms(hotelId);
     fetchUsers(hotelId);
-    fetchHotelName(hotelId);
+    fetchHotelName(hotelId); // This will ensure latest data
+  };
+
+  // ---------------- Update hotel ----------------
+  const updateHotel = async (hotelId, hotelData) => {
+    if (!token || !hotelId) return;
+    try {
+      const res = await axios.put(`${BASE_URL}/api/hotels/${hotelId}`, hotelData, {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      
+      if (res.data?.hotel) {
+        const updatedHotel = res.data.hotel;
+        
+        // Instant update: Update hotels array
+        setHotels(prev =>
+          prev.map(h => (h.id === hotelId ? { ...h, ...updatedHotel } : h))
+        );
+        
+        // Instant update: Update hotelName if current hotel
+        if (hotelId === selectedHotelId) {
+          setHotelName(updatedHotel.name || "");
+        }
+      }
+      
+      return res.data;
+    } catch (err) {
+      console.error("Error updating hotel:", err);
+      throw err;
+    }
+  };
+
+  // ---------------- Delete hotel ----------------
+  const deleteHotel = async (hotelId) => {
+    if (!token || !hotelId) return;
+    try {
+      await axios.delete(`${BASE_URL}/api/hotels/${hotelId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // Instant update: Remove hotel from local state
+      const remainingHotels = hotels.filter(h => h.id !== hotelId);
+      setHotels(remainingHotels);
+
+      if (selectedHotelId === hotelId) {
+        // Automatically select another hotel if available
+        if (remainingHotels.length > 0) {
+          const nextHotel = remainingHotels[0];
+          setSelectedHotelId(nextHotel.id);
+          setHotelName(nextHotel.name || "");
+          fetchRooms(nextHotel.id);
+          fetchUsers(nextHotel.id);
+        } else {
+          setSelectedHotelId(null);
+          setHotelName("");
+          setRooms([]);
+          setUsers([]);
+        }
+      }
+    } catch (err) {
+      console.error("Error deleting hotel:", err);
+      throw err;
+    }
+  };
+
+  // ---------------- Add room ----------------
+  const addRoom = async (roomData) => {
+    if (!token || !selectedHotelId) return;
+    try {
+      const res = await axios.post(`${BASE_URL}/api/rooms`, 
+        { ...roomData, hotelId: selectedHotelId }, 
+        {
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        }
+      );
+      
+      // Instant update: Add room to local state
+      if (res.data.room) {
+        setRooms(prev => [...prev, res.data.room]);
+      }
+      
+      return res.data;
+    } catch (err) {
+      console.error("Error adding room:", err);
+      throw err;
+    }
+  };
+
+  // ---------------- Update room ----------------
+  const updateRoom = async (roomId, roomData) => {
+    if (!token || !roomId) return;
+    try {
+      const res = await axios.put(`${BASE_URL}/api/rooms/${roomId}`, roomData, {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      
+      // Instant update: Update room in local state
+      if (res.data.room) {
+        setRooms(prev => prev.map(r => r.id === roomId ? res.data.room : r));
+      }
+      
+      return res.data;
+    } catch (err) {
+      console.error("Error updating room:", err);
+      throw err;
+    }
+  };
+
+  // ---------------- Delete room ----------------
+  const deleteRoom = async (roomId) => {
+    if (!token || !roomId) return;
+    try {
+      await axios.delete(`${BASE_URL}/api/rooms/${roomId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      // Instant update: Remove room from local state
+      setRooms(prev => prev.filter(r => r.id !== roomId));
+    } catch (err) {
+      console.error("Error deleting room:", err);
+      throw err;
+    }
   };
 
   // ---------------- Auto fetch on login / token ----------------
@@ -212,6 +357,9 @@ export function AuthProvider({ children }) {
         loading,
         rooms,
         fetchRooms,
+        addRoom,
+        updateRoom,
+        deleteRoom,
         users,
         fetchUsers,
         createUser,
@@ -219,8 +367,11 @@ export function AuthProvider({ children }) {
         deleteUser,
         hotelName,
         hotels,
+        setHotels,
         selectedHotelId,
         selectHotel,
+        updateHotel,
+        deleteHotel
       }}
     >
       {children}

@@ -12,10 +12,10 @@ const AdminNavbar = () => {
   const [mobileActive, setMobileActive] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [loadingHotel, setLoadingHotel] = useState(false); 
-  const [progressWidth, setProgressWidth] = useState(0); 
-  const [switchingHotel, setSwitchingHotel] = useState(null); // unique hotel loader
+  const [loadingHotel, setLoadingHotel] = useState(false);
+  const [switchingHotelName, setSwitchingHotelName] = useState("");
   const dropdownRef = useRef(null);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,9 +24,11 @@ const AdminNavbar = () => {
         setShowDropdown(false);
       }
     };
+
     if (showDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
     }
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
@@ -44,29 +46,15 @@ const AdminNavbar = () => {
   };
 
   const handleSwitchHotel = async (hotel) => {
+    setSwitchingHotelName(hotel.name);
     setLoadingHotel(true);
-    setSwitchingHotel(hotel); // show unique loader
-    setProgressWidth(0);
-
-    const interval = setInterval(() => {
-      setProgressWidth(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        return prev + 2;
-      });
-    }, 15);
-
-    await new Promise(resolve => setTimeout(resolve, 800));
-
     selectHotel(hotel.id);
     setShowDropdown(false);
+
+    // Show loader for 2 seconds
+    await new Promise((resolve) => setTimeout(resolve, 2000));
     navigate(`/admin/hotel/${hotel.id}`);
-    
-    setProgressWidth(0);
     setLoadingHotel(false);
-    setSwitchingHotel(null); // hide unique loader
   };
 
   const links = [
@@ -80,32 +68,22 @@ const AdminNavbar = () => {
 
   return (
     <>
-      {/* Top progress loader */}
+      {/* Fullscreen Hotel Switching Loader */}
       {loadingHotel && (
-        <div className="fixed top-0 left-0 w-full h-1 z-50 bg-gray-200">
-          <div
-            className="h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-150 ease-out"
-            style={{ width: `${progressWidth}%` }}
-          ></div>
-        </div>
-      )}
-
-      {/* Unique Hotel Switching Loader */}
-      {switchingHotel && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="animate-spin p-4 bg-white rounded-full shadow-lg border-4 border-t-4 border-blue-500 border-t-transparent">
-            <GiModernCity className="text-4xl text-blue-600" />
+        <div className="fixed inset-0 flex flex-col items-center justify-center z-50 backdrop-blur-sm bg-white/10">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl blur opacity-20"></div>
+              <div className="relative bg-gradient-to-r from-blue-600 to-indigo-600 p-3 rounded-xl shadow-lg">
+                <GiModernCity className="text-3xl text-white" />
+              </div>
+            </div>
+            <span className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+              LuxStay
+            </span>
           </div>
-          <span className="mt-4 text-white font-semibold text-lg animate-pulse">
-            Switching to {switchingHotel.name}...
-          </span>
-        </div>
-      )}
-
-      {/* Full-screen loader overlay */}
-      {loadingHotel && !switchingHotel && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-          <div className="w-20 h-20 border-4 border-t-4 border-indigo-500 border-t-transparent rounded-full animate-spin shadow-lg"></div>
+          <div className="text-gray-700 mb-4 text-lg font-semibold">Switching to: {switchingHotelName}</div>
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
       )}
 
@@ -161,7 +139,7 @@ const AdminNavbar = () => {
               </div>
               <div className="flex flex-col">
                 <span className="font-semibold text-gray-800 text-sm">
-                  {user.name || user.username}
+                  {user.full_name || "Administrator"}
                 </span>
                 <span className="text-gray-500 text-xs">Administrator</span>
               </div>
@@ -169,10 +147,12 @@ const AdminNavbar = () => {
 
             {/* Hotel Management Section */}
             <div className="space-y-3">
+              {/* Create Hotel Button */}
               <button
                 className="group w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 px-4 rounded-xl font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl hover:shadow-blue-500/25 relative overflow-hidden"
                 onClick={handleCreateHotel}
               >
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                 <HiPlus className="text-base relative z-10" />
                 <span className="text-sm relative z-10">Create Hotel</span>
               </button>
@@ -184,6 +164,7 @@ const AdminNavbar = () => {
                     className="group w-full flex justify-between items-center px-4 py-3 bg-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 border border-gray-200 hover:border-blue-300 rounded-xl text-gray-700 transition-all duration-200 shadow-sm hover:shadow-lg relative overflow-hidden"
                     onClick={() => setShowDropdown(!showDropdown)}
                   >
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                     <span className="text-sm font-medium truncate relative z-10">
                       {selectedHotelId
                         ? hotels.find((h) => h.id === selectedHotelId)?.name
@@ -279,78 +260,81 @@ const AdminNavbar = () => {
           </nav>
         </div>
 
-        {/* Logout Section */}
+        {/* Logout Button */}
         <div className="p-4 border-t border-gray-100 bg-gradient-to-r from-gray-50/30 to-red-50/20 mt-auto">
           <button
             onClick={() => setShowLogoutConfirm(true)}
             className="group w-full flex items-center justify-center gap-2 bg-gradient-to-r from-red-50 to-red-100 hover:from-red-100 hover:to-red-200 border border-red-200 hover:border-red-300 text-red-600 hover:text-red-700 py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-105 font-medium shadow-sm hover:shadow-lg hover:shadow-red-500/10 relative overflow-hidden"
           >
+            <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-red-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
             <FaSignOutAlt className="text-base group-hover:rotate-12 transition-transform duration-200 relative z-10" />
             <span className="text-sm relative z-10">Sign Out</span>
           </button>
         </div>
+      </aside>
 
-        {/* Mobile Hamburger */}
-        <button
-          className="group fixed top-4 left-4 z-50 md:hidden bg-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 text-gray-700 hover:text-gray-800 p-3 rounded-xl shadow-lg hover:shadow-xl border border-gray-200 hover:border-blue-300 transition-all duration-300 transform hover:scale-110"
-          onClick={() => setMobileActive(!mobileActive)}
-        >
-          <div className="relative w-5 h-5">
-            <FaBars 
-              className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-base transition-all duration-300 ${
-                mobileActive ? "opacity-0 rotate-90 scale-75" : "opacity-100 rotate-0 scale-100"
-              }`} 
-            />
-            <FaTimes 
-              className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-base transition-all duration-300 ${
-                mobileActive ? "opacity-100 rotate-0 scale-100" : "opacity-0 rotate-90 scale-75"
-              }`} 
-            />
-          </div>
-        </button>
+      {/* Mobile Hamburger */}
+      <button
+        className="group fixed top-4 left-4 z-50 md:hidden bg-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 text-gray-700 hover:text-gray-800 p-3 rounded-xl shadow-lg hover:shadow-xl border border-gray-200 hover:border-blue-300 transition-all duration-300 transform hover:scale-110"
+        onClick={() => setMobileActive(!mobileActive)}
+      >
+        <div className="relative w-5 h-5">
+          <FaBars 
+            className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-base transition-all duration-300 ${
+              mobileActive ? "opacity-0 rotate-90 scale-75" : "opacity-100 rotate-0 scale-100"
+            }`} 
+          />
+          <FaTimes 
+            className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-base transition-all duration-300 ${
+              mobileActive ? "opacity-100 rotate-0 scale-100" : "opacity-0 rotate-90 scale-75"
+            }`} 
+          />
+        </div>
+      </button>
 
-        {/* Logout Confirmation */}
-        {showLogoutConfirm && (
-          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-            <div 
-              className="fixed inset-0 bg-black/15 backdrop-blur-[1px]" 
-              onClick={() => setShowLogoutConfirm(false)}
-            ></div>
-            <div className="relative bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl border border-gray-100 transform transition-all duration-300 scale-100">
-              <div className="flex flex-col items-center text-center space-y-6">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-red-600 rounded-full blur opacity-20"></div>
-                  <div className="relative bg-gradient-to-r from-red-50 to-red-100 p-4 rounded-full border-2 border-red-200 shadow-lg">
-                    <FaSignOutAlt className="text-3xl text-red-500" />
-                  </div>
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+          <div 
+            className="fixed inset-0 bg-black/15 backdrop-blur-[1px]" 
+            onClick={() => setShowLogoutConfirm(false)}
+          ></div>
+          <div className="relative bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl border border-gray-100 transform transition-all duration-300 scale-100">
+            <div className="flex flex-col items-center text-center space-y-6">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-red-600 rounded-full blur opacity-20"></div>
+                <div className="relative bg-gradient-to-r from-red-50 to-red-100 p-4 rounded-full border-2 border-red-200 shadow-lg">
+                  <FaSignOutAlt className="text-3xl text-red-500" />
                 </div>
-                
-                <div className="space-y-3">
-                  <h3 className="text-xl font-bold text-gray-800">Confirm Sign Out</h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">
-                    Are you sure you want to sign out? You'll need to authenticate again to access the admin panel.
-                  </p>
-                </div>
-                
-                <div className="flex gap-3 w-full pt-2">
-                  <button
-                    className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 px-6 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-red-500/25 relative overflow-hidden group"
-                    onClick={handleLogout}
-                  >
-                    <span className="relative z-10">Yes, Sign Out</span>
-                  </button>
-                  <button
-                    className="flex-1 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 hover:text-gray-800 py-3 px-6 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-lg relative overflow-hidden group"
-                    onClick={() => setShowLogoutConfirm(false)}
-                  >
-                    <span className="relative z-10">Cancel</span>
-                  </button>
-                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <h3 className="text-xl font-bold text-gray-800">Confirm Sign Out</h3>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  Are you sure you want to sign out? You'll need to authenticate again to access the admin panel.
+                </p>
+              </div>
+              
+              <div className="flex gap-3 w-full pt-2">
+                <button
+                  className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 px-6 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-red-500/25 relative overflow-hidden group"
+                  onClick={handleLogout}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                  <span className="relative z-10">Yes, Sign Out</span>
+                </button>
+                <button
+                  className="flex-1 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 hover:text-gray-800 py-3 px-6 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-lg relative overflow-hidden group"
+                  onClick={() => setShowLogoutConfirm(false)}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-gray-300/0 via-gray-300/10 to-gray-300/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                  <span className="relative z-10">Cancel</span>
+                </button>
               </div>
             </div>
           </div>
-        )}
-      </aside>
+        </div>
+      )}
     </>
   );
 };
