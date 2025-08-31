@@ -2,26 +2,29 @@ import React, { useContext } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthContext } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/common/ProtectedRoute";
-
-import UserHome from "./pages/UserHome";
 import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import Login from "./components/auth/Login";
 import NotFound from "./pages/NotFound";
 import UserLayout from "./components/layout/UserLayout";
 import AdminLayout from "./components/layout/AdminLayout";
-import Room from "./components/frontend/Room/Room";
 import CreateHotel from "./components/admin/createhotel/CreateHotel";
 import useAdminHotelCheck from "./hooks/useAdminHotelCheck";
 import AddRoom from "./components/admin/addroom/AddRoom";
 import User from "./components/admin/createUser/User";
 import Setting from "./components/admin/setting/Setting";
 import Reports from "./components/admin/report/Report";
+import SuperAdminLayout from "./components/layout/SuperAdminLayout";
+import SuperAdminHotel from "./components/SuperAdmin/SuperAdminHotel";
 
 // --- After login, redirect based on role + hotel status ---
 function HomeRedirect() {
   const { user, loading } = useContext(AuthContext);
-  const { loading: hotelLoading, hasHotel, hotels } = useAdminHotelCheck(user?.token);
+  const {
+    loading: hotelLoading,
+    hasHotel,
+    hotels,
+  } = useAdminHotelCheck(user?.token);
 
   if (loading || (user?.role === "admin" && hotelLoading)) {
     return <div>Loading...</div>;
@@ -33,9 +36,11 @@ function HomeRedirect() {
     case "admin":
       if (hasHotel) {
         const firstHotelId = hotels?.[0]?._id;
-        return firstHotelId
-          ? <Navigate to={`/admin/hotel/${firstHotelId}`} replace />
-          : <Navigate to="/admin" replace />;
+        return firstHotelId ? (
+          <Navigate to={`/admin/hotel/${firstHotelId}`} replace />
+        ) : (
+          <Navigate to="/admin" replace />
+        );
       } else {
         return <Navigate to="/admin/create-hotel" replace />;
       }
@@ -51,7 +56,11 @@ function HomeRedirect() {
 // --- Block login page if user already logged in ---
 function LoginRedirect() {
   const { user, loading } = useContext(AuthContext);
-  const { loading: hotelLoading, hasHotel, hotels } = useAdminHotelCheck(user?.token);
+  const {
+    loading: hotelLoading,
+    hasHotel,
+    hotels,
+  } = useAdminHotelCheck(user?.token);
 
   if (loading || (user?.role === "admin" && hotelLoading)) {
     return <div>Loading...</div>;
@@ -63,9 +72,11 @@ function LoginRedirect() {
     case "admin":
       if (hasHotel) {
         const firstHotelId = hotels?.[0]?._id;
-        return firstHotelId
-          ? <Navigate to={`/admin/hotel/${firstHotelId}`} replace />
-          : <Navigate to="/admin" replace />;
+        return firstHotelId ? (
+          <Navigate to={`/admin/hotel/${firstHotelId}`} replace />
+        ) : (
+          <Navigate to="/admin" replace />
+        );
       } else {
         return <Navigate to="/admin/create-hotel" replace />;
       }
@@ -89,10 +100,7 @@ export default function App() {
 
       {/* User Routes */}
       <Route element={<ProtectedRoute roles={["user"]} />}>
-        <Route path="/user" element={<UserLayout />}>
-          <Route index element={<UserHome />} />
-          <Route path="/user/rooms" element={<Room />} />
-        </Route>
+        <Route path="/user" element={<UserLayout />}></Route>
       </Route>
 
       {/* Admin Routes */}
@@ -113,7 +121,13 @@ export default function App() {
 
       {/* SuperAdmin Routes */}
       <Route element={<ProtectedRoute roles={["superadmin"]} />}>
-        <Route path="/superadmin" element={<SuperAdminDashboard />} />
+        {/* Layout wrapper */}
+        <Route element={<SuperAdminLayout/>}>
+          {/* Nested route for dashboard */}
+          <Route path="/superadmin" element={<SuperAdminDashboard />} />
+          <Route path="/Hotels" element={<SuperAdminHotel />} />
+        </Route>
+
       </Route>
 
       {/* 404 Not Found */}

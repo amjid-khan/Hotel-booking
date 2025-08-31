@@ -4,7 +4,6 @@ const jwt = require("jsonwebtoken");
 exports.protect = (req, res, next) => {
     const authHeader = req.headers.authorization;
 
-    // Check if Authorization header exists and starts with Bearer
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
         return res.status(401).json({ success: false, message: "No token provided" });
     }
@@ -12,26 +11,30 @@ exports.protect = (req, res, next) => {
     const token = authHeader.split(" ")[1];
 
     try {
-        // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        // Attach user payload (id, email, role) to req.user
+        // Attach full payload including hotelId
         req.user = {
             id: decoded.id,
             email: decoded.email,
             role: decoded.role,
+            hotelId: decoded.hotelId || null,
         };
 
-        next(); // proceed to next middleware/controller
+        next();
     } catch (err) {
         return res.status(401).json({ success: false, message: "Token is invalid or expired" });
     }
 };
 
 // Check if user role is admin
+// middleware/auth.js
 exports.isAdmin = (req, res, next) => {
-    if (!req.user || req.user.role !== "admin") {
-        return res.status(403).json({ success: false, message: "Access denied. Admin only." });
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+        return res.status(403).json({
+            success: false,
+            message: 'Access denied. Admin or Super Admin only.'
+        });
     }
     next();
 };

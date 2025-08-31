@@ -9,7 +9,6 @@ exports.registerUser = async (req, res) => {
     const { full_name, email, password, role, hotelId, phone, status } = req.body;
     const profile_image = req.file ? req.file.filename : null;
 
-    // Validation
     if (!full_name || !email || !password || !role) {
         return res.status(400).json({ message: 'Full name, email, password, and role are required' });
     }
@@ -59,7 +58,9 @@ exports.registerUser = async (req, res) => {
 exports.loginUser = async (req, res) => {
     const { email, password } = req.body;
 
-    if (!email || !password) return res.status(400).json({ message: 'Email and password are required' });
+    if (!email || !password) {
+        return res.status(400).json({ message: 'Email and password are required' });
+    }
 
     try {
         const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
@@ -71,7 +72,15 @@ exports.loginUser = async (req, res) => {
 
         delete user.password;
 
-        const token = generateToken(user);
+        // Build payload for token (including hotelId)
+        const tokenPayload = {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            hotelId: user.role === 'admin' ? null : user.hotelId
+        };
+
+        const token = generateToken(tokenPayload);
 
         res.json({
             user: {
@@ -103,11 +112,8 @@ exports.updateUser = async (req, res) => {
         if (users.length === 0) return res.status(404).json({ message: 'User not found' });
 
         const user = users[0];
-
-        // Hash new password if provided
         const hashedPassword = password ? await bcrypt.hash(password, 10) : user.password;
 
-        // Delete old profile image if new one uploaded
         if (profile_image && user.profile_image) {
             const oldImagePath = path.join(__dirname, '../uploads', user.profile_image);
             if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
@@ -153,6 +159,7 @@ exports.deleteUser = async (req, res) => {
     }
 };
 
+// ====================== GET USERS FOR HOTEL ======================
 exports.getHotelUsers = async (req, res) => {
     const { hotelId } = req.query;
 

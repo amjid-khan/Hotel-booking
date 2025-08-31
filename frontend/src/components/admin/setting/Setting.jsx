@@ -25,7 +25,20 @@ const Setting = () => {
     }
   }, [selectedHotelId, hotels]);
 
-  if (!hotel) return <div className="p-8 text-gray-600">No hotel selected or available.</div>;
+  if (!hotel) {
+    return (
+      <div className="min-h-screen bg-gray-50 pl-0 md:pl-64">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <Building className="w-8 h-8 text-gray-400" />
+            </div>
+            <p className="text-gray-600 font-medium">No hotel selected or available</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const fieldGroups = [
     {
@@ -185,20 +198,29 @@ const Setting = () => {
 
     return (
       <div key={field.key} className={field.type === "textarea" ? "col-span-full" : ""}>
-        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-          <IconComponent className="w-4 h-4 text-gray-500" />
-          {field.label}{field.required && <span className="text-red-500">*</span>}
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="flex items-center gap-2">
+            <IconComponent className="w-4 h-4 text-gray-500" />
+            {field.label}
+            {field.required && <span className="text-red-500">*</span>}
+          </div>
         </label>
 
         {field.key === "starRating" ? (
-          <div className="p-3 border rounded-xl bg-gray-50">{renderStarRating(value, isEditing)}</div>
+          <div className="px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50">
+            {renderStarRating(value, isEditing)}
+          </div>
         ) : field.type === "textarea" ? (
           <textarea
             value={value || ""}
             onChange={(e) => handleInputChange(field.key, e.target.value)}
             readOnly={!isEditing}
             rows={4}
-            className={`w-full border rounded-xl p-4 transition-all ${isEditing ? "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white" : "border-gray-200 bg-gray-50 cursor-not-allowed"}`}
+            className={`w-full px-3 py-2.5 border rounded-lg transition-colors resize-none ${
+              isEditing 
+                ? "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white" 
+                : "border-gray-300 bg-gray-50 cursor-not-allowed"
+            }`}
           />
         ) : (
           <input
@@ -206,7 +228,11 @@ const Setting = () => {
             value={value || ""}
             onChange={(e) => handleInputChange(field.key, e.target.value)}
             readOnly={!isEditing}
-            className={`w-full border rounded-xl p-4 transition-all ${isEditing ? "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white" : "border-gray-200 bg-gray-50 cursor-not-allowed"}`}
+            className={`w-full px-3 py-2.5 border rounded-lg transition-colors ${
+              isEditing 
+                ? "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white" 
+                : "border-gray-300 bg-gray-50 cursor-not-allowed"
+            }`}
           />
         )}
 
@@ -221,98 +247,99 @@ const Setting = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 relative">
-      {/* Main Content with Blur Effect */}
-      <div className={`p-4 sm:p-6 lg:p-8 lg:pl-64 transition-all duration-300 ${isLoading || showDeleteConfirm ? 'blur-sm' : ''}`} 
-           style={{ filter: isLoading || showDeleteConfirm ? 'blur(2px)' : 'none' }}>
-        {/* Header */}
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-4 sm:gap-0">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="ml-7 w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl sm:rounded-2xl flex items-center justify-center">
-              <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Hotel Settings</h1>
-              <p className="text-gray-600 mt-1 text-sm sm:text-base">Manage your hotel information and preferences</p>
-            </div>
-          </div>
-          <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
-            {!isEditing ? (
-              <>
-                <button 
-                  onClick={handleEdit} 
-                  className="flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg sm:rounded-xl transition-colors text-sm sm:text-base font-medium"
-                >
-                  <Edit className="w-4 h-4 inline mr-2" />
-                  Edit
-                </button>
-                <button 
-                  onClick={() => setShowDeleteConfirm(true)} 
-                  className="flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg sm:rounded-xl transition-colors text-sm sm:text-base font-medium"
-                >
-                  <Trash2 className="w-4 h-4 inline mr-2" />
-                  Delete
-                </button>
-              </>
-            ) : (
-              <>
-                <button 
-                  onClick={handleSave} 
-                  disabled={isLoading} 
-                  className="flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg sm:rounded-xl transition-colors text-sm sm:text-base font-medium"
-                >
-                  <Save className="w-4 h-4 inline mr-2" />
-                  Save
-                </button>
-                <button 
-                  onClick={handleCancel} 
-                  className="flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg sm:rounded-xl transition-colors text-sm sm:text-base font-medium"
-                >
-                  Cancel
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Form */}
-        <div className="space-y-6 sm:space-y-8 max-w-6xl mx-auto">
-          {fieldGroups.map((group, i) => {
-            const GroupIcon = group.icon;
-            return (
-              <div key={i} className="bg-white rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl border border-gray-200">
-                <div className="bg-gray-50 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b border-gray-200 flex items-center gap-3">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg sm:rounded-xl flex items-center justify-center">
-                    <GroupIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                  </div>
-                  <h2 className="text-lg sm:text-xl font-bold text-gray-800">{group.title}</h2>
+    <div className="min-h-screen bg-gray-50">
+      {/* Main Content */}
+      <div className="pl-0 md:pl-64 p-6">
+        <div className="max-w-5xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <Settings className="w-6 h-6 text-white" />
                 </div>
-                <div className="p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                  {group.fields.map(renderField)}
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Hotel Settings</h1>
+                  <p className="text-gray-600 mt-1">Manage your hotel information and preferences</p>
                 </div>
               </div>
-            );
-          })}
+              
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                {!isEditing ? (
+                  <>
+                    <button 
+                      onClick={handleEdit} 
+                      className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                      <Edit className="w-4 h-4" />
+                      Edit Hotel
+                    </button>
+                    <button 
+                      onClick={() => setShowDeleteConfirm(true)} 
+                      className="flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button 
+                      onClick={handleSave} 
+                      disabled={isLoading} 
+                      className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors disabled:cursor-not-allowed"
+                    >
+                      <Save className="w-4 h-4" />
+                      Save Changes
+                    </button>
+                    <button 
+                      onClick={handleCancel} 
+                      className="flex items-center gap-2 px-4 py-2.5 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Form Sections */}
+          <div className="space-y-6">
+            {fieldGroups.map((group, i) => {
+              const GroupIcon = group.icon;
+              return (
+                <div key={i} className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                  <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <GroupIcon className="w-4 h-4 text-white" />
+                      </div>
+                      <h2 className="text-lg font-semibold text-gray-900">{group.title}</h2>
+                    </div>
+                  </div>
+                  <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {group.fields.map(renderField)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* Professional Loading Overlay */}
+      {/* Loading Overlay */}
       {isLoading && (
-        <div className="fixed inset-0 flex flex-col items-center justify-center z-50">
-          <div className="bg-white rounded-3xl shadow-2xl p-8 mx-4 max-w-sm w-full text-center border border-gray-100">
-            {/* Modern Animated Loader */}
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl">
             <div className="relative w-20 h-20 mx-auto mb-6">
-              {/* Outer Ring */}
               <div className="absolute inset-0 rounded-full border-4 border-gray-100"></div>
-              {/* Main Spinning Ring */}
               <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-blue-600 border-r-blue-600 animate-spin"></div>
-              {/* Inner Ring */}
               <div className="absolute inset-2 rounded-full border-3 border-transparent border-t-purple-500 animate-spin-slow"></div>
-              {/* Center Dot */}
               <div className="absolute inset-6 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 animate-pulse"></div>
             </div>
             
-            {/* Dynamic Loading Text */}
             <div className="space-y-3">
               <h3 className="text-xl font-bold text-gray-800">
                 {showDeleteConfirm ? 'Deleting Hotel...' : 'Updating Hotel Information'}
@@ -325,7 +352,6 @@ const Setting = () => {
               </p>
             </div>
             
-            {/* Progress Indicator */}
             <div className="mt-6">
               <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
                 <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 h-full rounded-full animate-progress"></div>
@@ -338,33 +364,31 @@ const Setting = () => {
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && !isLoading && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-md w-full border border-gray-100">
-            <div className="text-center mb-8">
-              {/* Warning Icon with Animation */}
-              <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 relative">
-                <div className="absolute inset-0 bg-red-100 rounded-full animate-ping opacity-75"></div>
-                <AlertTriangle className="w-10 h-10 text-red-600 relative z-10" />
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-8 max-w-md w-full shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 relative">
+                <div className="absolute inset-0 bg-red-200 rounded-full animate-ping opacity-75"></div>
+                <AlertTriangle className="w-8 h-8 text-red-600 relative z-10" />
               </div>
               
-              <h2 className="text-2xl font-bold text-gray-800 mb-3">Delete Hotel?</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Delete Hotel</h2>
               <p className="text-gray-600 leading-relaxed">
-                Are you absolutely sure you want to delete "<span className="font-semibold text-gray-800">{hotel.name}</span>"? 
-                This action cannot be undone and all hotel data will be permanently removed.
+                Are you sure you want to delete "<span className="font-semibold text-gray-900">{hotel.name}</span>"? 
+                This action cannot be undone.
               </p>
             </div>
             
-            {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3">
               <button 
                 onClick={() => setShowDeleteConfirm(false)} 
-                className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-all font-medium"
+                className="flex-1 px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium transition-colors"
               >
                 Cancel
               </button>
               <button 
                 onClick={handleDelete} 
-                className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all font-medium flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
               >
                 <Trash2 className="w-4 h-4" />
                 Delete Hotel

@@ -7,7 +7,8 @@ const {
     checkHotel,
     updateHotel,
     deleteHotel,
-    getHotelById   // <-- add yaha
+    getHotelById,
+    getPublicHotels
 } = require('../controllers/hotelController');
 
 // Create a new hotel
@@ -25,7 +26,11 @@ router.get('/:id', protect, isAdmin, getHotelById);
 // Update a hotel by ID
 router.put('/:id', protect, isAdmin, updateHotel);
 
+router.get('/admin/:id', protect, isAdmin, getHotelById);
+
 // Delete a hotel by ID
 router.delete('/:id', protect, isAdmin, deleteHotel);
+
+router.get('/public/all', getPublicHotels);   //http://localhost:5000/api/hotels/public/all
 
 module.exports = router;

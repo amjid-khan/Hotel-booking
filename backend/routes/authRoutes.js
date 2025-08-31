@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { registerUser, loginUser, updateUser, deleteUser, getHotelUsers } = require('../controllers/authController');
+const { registerUser, loginUser, updateUser, deleteUser, getHotelUsers, getPublicHotelUsers } = require('../controllers/authController');
 const upload = require('../middleware/upload'); // Multer setup
 
 router.post('/register', upload.single('profile_image'), registerUser);

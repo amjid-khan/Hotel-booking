@@ -52,9 +52,9 @@ const Reports = () => {
 
   const fetchRevenueData = async () => {
     try {
-      const response = await axios.get(`${BASE_URL}/api/analytics/revenue?hotelId=${selectedHotelId}&range=${dateRange}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // const response = await axios.get(`${BASE_URL}/api/analytics/revenue?hotelId=${selectedHotelId}&range=${dateRange}`, {
+      //   headers: { Authorization: `Bearer ${token}` }
+      // });
       setRevenueData(response.data);
     } catch (error) {
       console.error('Error fetching revenue:', error);
@@ -64,9 +64,9 @@ const Reports = () => {
 
   const fetchGuestData = async () => {
     try {
-      const response = await axios.get(`${BASE_URL}/api/guests?hotelId=${selectedHotelId}&range=${dateRange}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // const response = await axios.get(`${BASE_URL}/api/guests?hotelId=${selectedHotelId}&range=${dateRange}`, {
+      //   headers: { Authorization: `Bearer ${token}` }
+      // });
       setGuestData(response.data.guests || []);
     } catch (error) {
       console.error('Error fetching guests:', error);

@@ -26,6 +26,7 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/rooms', roomRoute);
 app.use('/api/superadmin', superAdminRoutes);
 app.use('/api/hotels', hotelRoutes);
+
 // app.use("/api/hotel-users", hotelUserRoutes)
 
 // 404 middleware: route nahi mila to error create karo aur next karo

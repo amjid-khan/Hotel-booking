@@ -205,3 +205,31 @@ exports.getHotelById = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
+
+
+
+// ==================== GET ALL HOTELS (Super Admin - no middleware) ====================
+// GET ALL HOTELS (Superadmin)
+// ==================== GET ALL HOTELS (Public - No Auth) ====================
+exports.getPublicHotels = async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                id, admin_id, name, address, description, 
+                email, city, state, country, zip, phone, starRating 
+            FROM hotels
+        `;
+        const [hotels] = await db.execute(query);
+
+        res.json({
+            success: true,
+            hotels
+        });
+    } catch (err) {
+        console.error("Error fetching public hotels:", err);
+        res.status(500).json({
+            success: false,
+            message: 'Server error'
+        });
+    }
+};
