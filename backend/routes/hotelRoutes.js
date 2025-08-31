@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { verifyToken } = require("../utils/generateToken")
 const { protect, isAdmin, isSuperAdmin } = require('../middleware/auth');
 const {
     createHotel,
@@ -32,4 +33,7 @@ router.get('/admin/:id', protect, isAdmin, getHotelById);
 router.delete('/:id', protect, isAdmin, deleteHotel);
 
 router.get('/superadmin/all', protect, isSuperAdmin, getAllHotelsSuperAdmin); // http://localhost:5000/api/hotels/superadmin/all
+
+
+
 module.exports = router;

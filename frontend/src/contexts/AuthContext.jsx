@@ -261,6 +261,9 @@ const deleteUser = async (id) => {
     }
   }, [user, token]);
 
+  //super Admin
+
+
   return (
     <AuthContext.Provider
       value={{
@@ -292,7 +295,7 @@ const deleteUser = async (id) => {
         allUsers,
         fetchAllHotels,
         fetchAllUsers,
-        setUser
+        setUser,
       }}
     >
       {children}

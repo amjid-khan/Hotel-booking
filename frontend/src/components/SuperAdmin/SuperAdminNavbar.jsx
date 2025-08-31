@@ -23,7 +23,7 @@ const SuperAdminNavbar = () => {
   const links = [
     { name: "Dashboard", path: "/superadmin", icon: <MdDashboard /> },
     { name: "Hotels", path: "/hotels", icon: <HiOfficeBuilding /> },
-    { name: "Users", path: "/superadmin/users", icon: <HiUsers /> },
+    { name: "Users", path: "/superadminusers", icon: <HiUsers /> },
     { name: "Admins", path: "/superadmin/admins", icon: <FaUserShield /> },
     { name: "Bookings", path: "/superadmin/bookings", icon: <FaCalendarAlt /> },
     { name: "Revenue", path: "/superadmin/revenue", icon: <HiCurrencyDollar /> },

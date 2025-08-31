@@ -16,6 +16,7 @@ import Setting from "./components/admin/setting/Setting";
 import Reports from "./components/admin/report/Report";
 import SuperAdminLayout from "./components/layout/SuperAdminLayout";
 import SuperAdminHotel from "./components/SuperAdmin/SuperAdminHotel";
+import UserList from "./components/SuperAdmin/UserList";
 
 // --- After login, redirect based on role + hotel status ---
 function HomeRedirect() {
@@ -126,6 +127,7 @@ export default function App() {
           {/* Nested route for dashboard */}
           <Route path="/superadmin" element={<SuperAdminDashboard />} />
           <Route path="/Hotels" element={<SuperAdminHotel />} />
+          <Route path="/superadminusers" element={<UserList />} />
         </Route>
 
       </Route>
