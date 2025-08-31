@@ -132,7 +132,7 @@ exports.checkHotel = async (req, res) => {
     }
 };
 
-// ==================== UPDATE HOTEL (Admin only) ====================
+// ==================== UPDATE HOTEL (Admin + Superadmin) ====================
 exports.updateHotel = async (req, res) => {
     try {
         const { id } = req.params;
@@ -140,19 +140,28 @@ exports.updateHotel = async (req, res) => {
             name, address, description,
             email, city, state, country, zip, phone, starRating
         } = req.body;
-        const adminId = req.user.id;
+        const { id: userId, role } = req.user;
 
-        const query = `
-            UPDATE hotels 
-            SET name = ?, address = ?, description = ?, 
-                email = ?, city = ?, state = ?, country = ?, zip = ?, phone = ?, starRating = ?
-            WHERE id = ? AND admin_id = ?
-        `;
-        const [result] = await db.execute(query, [
-            name, address, description,
-            email, city, state, country, zip, phone, starRating,
-            id, adminId
-        ]);
+        let query, params;
+        if (role === 'superadmin') {
+            query = `
+                UPDATE hotels 
+                SET name = ?, address = ?, description = ?, 
+                    email = ?, city = ?, state = ?, country = ?, zip = ?, phone = ?, starRating = ?
+                WHERE id = ?
+            `;
+            params = [name, address, description, email, city, state, country, zip, phone, starRating, id];
+        } else {
+            query = `
+                UPDATE hotels 
+                SET name = ?, address = ?, description = ?, 
+                    email = ?, city = ?, state = ?, country = ?, zip = ?, phone = ?, starRating = ?
+                WHERE id = ? AND admin_id = ?
+            `;
+            params = [name, address, description, email, city, state, country, zip, phone, starRating, id, userId];
+        }
+
+        const [result] = await db.execute(query, params);
 
         if (result.affectedRows === 0)
             return res.status(404).json({ success: false, message: 'Hotel not found or access denied' });
@@ -164,14 +173,22 @@ exports.updateHotel = async (req, res) => {
     }
 };
 
-// ==================== DELETE HOTEL (Admin only) ====================
+// ==================== DELETE HOTEL (Admin + Superadmin) ====================
 exports.deleteHotel = async (req, res) => {
     try {
         const { id } = req.params;
-        const adminId = req.user.id;
+        const { id: userId, role } = req.user;
 
-        const query = 'DELETE FROM hotels WHERE id = ? AND admin_id = ?';
-        const [result] = await db.execute(query, [id, adminId]);
+        let query, params;
+        if (role === 'superadmin') {
+            query = 'DELETE FROM hotels WHERE id = ?';
+            params = [id];
+        } else {
+            query = 'DELETE FROM hotels WHERE id = ? AND admin_id = ?';
+            params = [id, userId];
+        }
+
+        const [result] = await db.execute(query, params);
 
         if (result.affectedRows === 0)
             return res.status(404).json({ success: false, message: 'Hotel not found or access denied' });
@@ -183,17 +200,32 @@ exports.deleteHotel = async (req, res) => {
     }
 };
 
-// ==================== GET HOTEL BY ID ====================
+// ==================== GET HOTEL BY ID (Admin + Superadmin) ====================
 exports.getHotelById = async (req, res) => {
     try {
         const { id } = req.params;
-        const adminId = req.user.id;
+        const { id: userId, role } = req.user;
 
-        const query = `
-            SELECT id, name, address, description, email, city, state, country, zip, phone, starRating 
-            FROM hotels WHERE id = ? AND admin_id = ?
-        `;
-        const [rows] = await db.execute(query, [id, adminId]);
+        let query, params;
+        if (role === 'superadmin') {
+            query = `
+                SELECT h.id, h.name, h.address, h.description, h.email, 
+                       h.city, h.state, h.country, h.zip, h.phone, h.starRating,
+                       u.name AS adminName, u.email AS adminEmail
+                FROM hotels h
+                LEFT JOIN users u ON h.admin_id = u.id
+                WHERE h.id = ?
+            `;
+            params = [id];
+        } else {
+            query = `
+                SELECT id, name, address, description, email, city, state, country, zip, phone, starRating 
+                FROM hotels WHERE id = ? AND admin_id = ?
+            `;
+            params = [id, userId];
+        }
+
+        const [rows] = await db.execute(query, params);
 
         if (rows.length === 0) {
             return res.status(404).json({ success: false, message: 'Hotel not found or access denied' });
@@ -206,30 +238,49 @@ exports.getHotelById = async (req, res) => {
     }
 };
 
-
-
-// ==================== GET ALL HOTELS (Super Admin - no middleware) ====================
-// GET ALL HOTELS (Superadmin)
-// ==================== GET ALL HOTELS (Public - No Auth) ====================
-exports.getPublicHotels = async (req, res) => {
+// ==================== GET ALL HOTELS (SUPERADMIN ONLY) ====================
+// ==================== GET ALL HOTELS (SuperAdmin only) ====================
+exports.getAllHotelsSuperAdmin = async (req, res) => {
     try {
+        const { role } = req.user;
+
+        // Sirf superadmin ko allow karo
+        if (role !== "superadmin") {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied. Super Admin only."
+            });
+        }
+
         const query = `
             SELECT 
-                id, admin_id, name, address, description, 
-                email, city, state, country, zip, phone, starRating 
-            FROM hotels
+                h.id, 
+                h.name, 
+                h.address, 
+                h.description, 
+                h.email, 
+                h.city, 
+                h.state, 
+                h.country, 
+                h.zip, 
+                h.phone, 
+                h.starRating,
+                u.id AS adminId,
+                u.name AS adminName, 
+                u.email AS adminEmail,
+                COUNT(r.id) AS totalRooms
+            FROM hotels h
+            LEFT JOIN users u ON h.admin_id = u.id
+            LEFT JOIN rooms r ON h.id = r.hotelId
+            GROUP BY h.id
+            ORDER BY h.id DESC
         `;
+
         const [hotels] = await db.execute(query);
 
-        res.json({
-            success: true,
-            hotels
-        });
+        res.json({ success: true, hotels });
     } catch (err) {
-        console.error("Error fetching public hotels:", err);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
+        console.error("Error fetching all hotels (superadmin):", err);
+        res.status(500).json({ success: false, message: "Server error" });
     }
 };

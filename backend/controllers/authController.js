@@ -173,3 +173,15 @@ exports.getHotelUsers = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
+
+
+// ====================== GET ALL USERS (SUPERADMIN ONLY) ======================
+exports.getAllUsers = async (req, res) => {
+    try {
+        const [users] = await pool.query('SELECT * FROM users');
+        res.json({ success: true, users });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};

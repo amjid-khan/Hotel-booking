@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect, isAdmin } = require('../middleware/auth');
+const { protect, isAdmin, isSuperAdmin } = require('../middleware/auth');
 const {
     createHotel,
     getAdminHotels,
@@ -8,7 +8,7 @@ const {
     updateHotel,
     deleteHotel,
     getHotelById,
-    getPublicHotels
+    getAllHotelsSuperAdmin
 } = require('../controllers/hotelController');
 
 // Create a new hotel
@@ -31,6 +31,5 @@ router.get('/admin/:id', protect, isAdmin, getHotelById);
 // Delete a hotel by ID
 router.delete('/:id', protect, isAdmin, deleteHotel);
 
-router.get('/public/all', getPublicHotels);   //http://localhost:5000/api/hotels/public/all
-
+router.get('/superadmin/all', protect, isSuperAdmin, getAllHotelsSuperAdmin); // http://localhost:5000/api/hotels/superadmin/all
 module.exports = router;

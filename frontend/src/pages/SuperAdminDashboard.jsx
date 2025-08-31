@@ -2,38 +2,23 @@ import React, { useContext, useState } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 import { 
   FaHotel, FaUsers, FaCalendarAlt, FaDollarSign, FaArrowUp, FaArrowDown,
-  FaMapMarkerAlt, FaStar 
+  FaMapMarkerAlt, FaStar, FaPhone, FaEnvelope
 } from 'react-icons/fa';
 
 const SuperAdminDashboard = () => {
-  const { user } = useContext(AuthContext);
-
+  const { user, allHotels, allUsers } = useContext(AuthContext);
   const [selectedPeriod, setSelectedPeriod] = useState('This Month');
 
-  // ----- Dummy Data -----
-  const hotels = [
-    { id: 1, name: 'Hotel Sunrise', location: 'New York', rooms: 120, rating: 4.5, status: 'Active', revenue: '$12,000' },
-    { id: 2, name: 'Grand Palace', location: 'Los Angeles', rooms: 90, rating: 4.2, status: 'Pending', revenue: '$8,400' },
-    { id: 3, name: 'Sea View Resort', location: 'Miami', rooms: 75, rating: 4.7, status: 'Confirmed', revenue: '$10,200' },
-  ];
-
-  const users = [
-    { id: 1, name: 'John Doe' },
-    { id: 2, name: 'Jane Smith' },
-    { id: 3, name: 'David Johnson' },
-  ];
-
-  const bookings = [
-    { id: 1, hotelName: 'Hotel Sunrise', customerName: 'John Doe', checkIn: '2025-08-01', checkOut: '2025-08-05', amount: 1200, status: 'Confirmed' },
-    { id: 2, hotelName: 'Grand Palace', customerName: 'Jane Smith', checkIn: '2025-08-10', checkOut: '2025-08-12', amount: 800, status: 'Pending' },
-    { id: 3, hotelName: 'Sea View Resort', customerName: 'David Johnson', checkIn: '2025-08-15', checkOut: '2025-08-20', amount: 1500, status: 'Active' },
-  ];
+  // ----- Use real data from context -----
+  const hotels = allHotels || [];
+  const users = allUsers || [];
+  const bookings = []; // This will come from API later
 
   // ----- Derived stats -----
   const totalHotels = hotels.length;
   const totalUsers = users.length;
   const totalBookings = bookings.length;
-  const totalRevenue = bookings.reduce((sum, b) => sum + (b.amount || 0), 0);
+  const totalRevenue = 0; // This will be calculated from bookings
 
   const dashboardStats = [
     {
@@ -89,7 +74,20 @@ const SuperAdminDashboard = () => {
       case 'Active': return 'bg-green-100 text-green-800 border-green-200';
       case 'Pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'Confirmed': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'admin': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'user': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'manager': return 'bg-orange-100 text-orange-800 border-orange-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getRoleDisplayName = (role) => {
+    switch (role) {
+      case 'superadmin': return 'Super Admin';
+      case 'admin': return 'Admin';
+      case 'manager': return 'Manager';
+      case 'user': return 'User';
+      default: return role || 'N/A';
     }
   };
 
@@ -105,7 +103,9 @@ const SuperAdminDashboard = () => {
               Super Admin Dashboard
             </h1>
             <p className="text-gray-600">
-              Welcome back, <span className="font-medium text-purple-600">{user?.full_name || user?.name || 'Super Administrator'}</span>
+              Welcome back, <span className="font-medium text-purple-600">
+                {user?.full_name || user?.name || 'Super Administrator'}
+              </span>
             </p>
           </div>
           
@@ -157,46 +157,64 @@ const SuperAdminDashboard = () => {
           })}
         </div>
 
-        {/* ---- Recent Hotels ---- */}
+        {/* ---- All Hotels ---- */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
           <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">Recent Hotels</h3>
+            <h3 className="text-lg font-semibold text-gray-900">All Hotels</h3>
+            <p className="text-sm text-gray-500 mt-1">Manage all registered hotels in the system</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hotel</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hotel Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rooms</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {hotels.length === 0 ? (
-                  <tr><td colSpan="6" className="text-center py-4 text-gray-500">No hotels available</td></tr>
+                  <tr>
+                    <td colSpan="6" className="text-center py-8 text-gray-500">
+                      <FaHotel className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p>No hotels registered yet</p>
+                    </td>
+                  </tr>
                 ) : hotels.map((hotel) => (
                   <tr key={hotel.id} className="hover:bg-gray-50/50">
-                    <td className="px-6 py-4 font-medium text-gray-900">{hotel.name}</td>
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-gray-900">{hotel.name || 'N/A'}</div>
+                      <div className="text-sm text-gray-500">ID: {hotel.id}</div>
+                    </td>
                     <td className="px-6 py-4 text-gray-600">
                       <div className="flex items-center">
-                        <FaMapMarkerAlt className="w-3 h-3 mr-1" />{hotel.location}
+                        <FaMapMarkerAlt className="w-3 h-3 mr-1 text-gray-400" />
+                        {hotel.location || hotel.address || 'N/A'}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-gray-900">{hotel.rooms}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-gray-600">
                       <div className="flex items-center">
-                        <FaStar className="w-4 h-4 text-yellow-400 mr-1" />{hotel.rating}
+                        <FaPhone className="w-3 h-3 mr-1 text-gray-400" />
+                        {hotel.phone || 'N/A'}
                       </div>
                     </td>
+                    <td className="px-6 py-4 text-gray-600">
+                      <div className="flex items-center">
+                        <FaEnvelope className="w-3 h-3 mr-1 text-gray-400" />
+                        {hotel.email || 'N/A'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-gray-600">
+                      {hotel.createdAt ? new Date(hotel.createdAt).toLocaleDateString() : 'N/A'}
+                    </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium border rounded-full ${getStatusColor(hotel.status)}`}>
-                        {hotel.status}
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium border rounded-full ${getStatusColor('Active')}`}>
+                        Active
                       </span>
                     </td>
-                    <td className="px-6 py-4 font-medium text-gray-900">{hotel.revenue}</td>
                   </tr>
                 ))}
               </tbody>
@@ -204,36 +222,60 @@ const SuperAdminDashboard = () => {
           </div>
         </div>
 
-        {/* ---- Recent Bookings ---- */}
+        {/* ---- All Users ---- */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">Recent Bookings</h3>
+            <h3 className="text-lg font-semibold text-gray-900">All Users</h3>
+            <p className="text-sm text-gray-500 mt-1">Manage all registered users across all hotels</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hotel</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-in</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-out</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hotel ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registered</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {bookings.length === 0 ? (
-                  <tr><td colSpan="6" className="text-center py-4 text-gray-500">No bookings available</td></tr>
-                ) : bookings.map((b) => (
-                  <tr key={b.id} className="hover:bg-gray-50/50">
-                    <td className="px-6 py-4 font-medium text-gray-900">{b.hotelName}</td>
-                    <td className="px-6 py-4 text-gray-900">{b.customerName}</td>
-                    <td className="px-6 py-4 text-gray-600">{b.checkIn}</td>
-                    <td className="px-6 py-4 text-gray-600">{b.checkOut}</td>
-                    <td className="px-6 py-4 font-medium text-gray-900">${b.amount}</td>
+                {users.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="text-center py-8 text-gray-500">
+                      <FaUsers className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p>No users registered yet</p>
+                    </td>
+                  </tr>
+                ) : users.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50/50">
                     <td className="px-6 py-4">
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium border rounded-full ${getStatusColor(b.status)}`}>
-                        {b.status}
+                      <div className="font-medium text-gray-900">
+                        {user.full_name || user.name || 'N/A'}
+                      </div>
+                      <div className="text-sm text-gray-500">ID: {user.id}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center text-gray-600">
+                        <FaEnvelope className="w-3 h-3 mr-1 text-gray-400" />
+                        {user.email || 'N/A'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium border rounded-full ${getStatusColor(user.role)}`}>
+                        {getRoleDisplayName(user.role)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-gray-600">
+                      {user.hotelId || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 text-gray-600">
+                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium border rounded-full ${getStatusColor('Active')}`}>
+                        Active
                       </span>
                     </td>
                   </tr>
@@ -242,7 +284,6 @@ const SuperAdminDashboard = () => {
             </table>
           </div>
         </div>
-
       </div>
     </div>
   );

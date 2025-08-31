@@ -13,17 +13,16 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Per-hotel scoped
+  // Per-hotel scoped states
   const [rooms, setRooms] = useState([]);
   const [users, setUsers] = useState([]);
-  const [hotelName, setHotelName] = useState("");
   const [hotels, setHotels] = useState([]);
+  const [hotelName, setHotelName] = useState("");
   const [selectedHotelId, setSelectedHotelId] = useState(null);
 
-  // Super-admin global
+  // Superadmin scoped states
   const [allHotels, setAllHotels] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
-  const [allRooms, setAllRooms] = useState([]);
 
   // ---------------- Restore saved session ----------------
   useEffect(() => {
@@ -116,13 +115,41 @@ export function AuthProvider({ children }) {
   const selectHotel = (hotelId) => {
     if (!hotelId) return;
     setSelectedHotelId(hotelId);
-    localStorage.setItem("selectedHotelId", hotelId); 
+    localStorage.setItem("selectedHotelId", hotelId);
     const selectedHotel = hotels.find(h => h.id === hotelId);
     if (selectedHotel) setHotelName(selectedHotel.name || "");
     fetchRooms(hotelId);
     fetchUsers(hotelId);
     fetchHotelName(hotelId);
   };
+
+  // ---------------- Superadmin data ----------------
+  const fetchAllHotels = async () => {
+    if (!token) return;
+    try {
+      const res = await axios.get(`${BASE_URL}/api/hotels/superadmin/all`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setAllHotels(res.data.hotels || []);
+    } catch (err) {
+      console.error("Error fetching all hotels (superadmin):", err);
+      setAllHotels([]);
+    }
+  };
+
+const fetchAllUsers = async () => {
+  if (!token) return;
+  try {
+    const res = await axios.get(`${BASE_URL}/api/auth/all-users`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setAllUsers(res.data.users || []);
+  } catch (err) {
+    console.error("Error fetching all users (superadmin):", err);
+    setAllUsers([]);
+  }
+};
+
 
   // ---------------- Authentication ----------------
   const login = (userData, tokenData) => {
@@ -145,6 +172,11 @@ export function AuthProvider({ children }) {
         navigate(`/hotel/${lastHotel}`);
       }
     });
+
+    if (updatedUser.role === "superadmin") {
+      fetchAllHotels();
+      fetchAllUsers();
+    }
   };
 
   const logout = () => {
@@ -153,58 +185,62 @@ export function AuthProvider({ children }) {
     setRooms([]);
     setUsers([]);
     setHotels([]);
-    setAllHotels([]);
-    setAllUsers([]);
-    setAllRooms([]);
     setSelectedHotelId(null);
     setHotelName("");
+    setAllHotels([]);
+    setAllUsers([]);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     localStorage.removeItem("selectedHotelId");
   };
 
-  // ---------------- Super-admin global fetches ----------------
-  // const fetchAllHotels = useCallback(async () => {
-  //   if (!token) return;
-  //   try {
-  //     const res = await axios.get(`${BASE_URL}/api/hotels`, {
-  //       headers: { Authorization: `Bearer ${token}` },
-  //     });
-  //     const data = Array.isArray(res.data) ? res.data : res.data.hotels || [];
-  //     setAllHotels(data);
-  //   } catch (err) {
-  //     console.error("Error fetching all hotels:", err);
-  //     setAllHotels([]);
-  //   }
-  // }, [token]);
+  // ---------------- User management (per-hotel) ----------------
+  const createUser = async (formData) => {
+    try {
+      await axios.post(`${BASE_URL}/api/auth/register`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      if (selectedHotelId) fetchUsers(selectedHotelId);
+    } catch (err) {
+      console.error("Error creating user:", err);
+      throw err;
+    }
+  };
 
-  // const fetchAllUsers = useCallback(async () => {
-  //   if (!token) return;
-  //   try {
-  //     const res = await axios.get(`${BASE_URL}/api/auth/users`, {
-  //       headers: { Authorization: `Bearer ${token}` },
-  //     });
-  //     const data = Array.isArray(res.data) ? res.data : res.data.users || [];
-  //     setAllUsers(data);
-  //   } catch (err) {
-  //     console.error("Error fetching all users:", err);
-  //     setAllUsers([]);
-  //   }
-  // }, [token]);
+  const updateUser = async (id, formData) => {
+    try {
+      await axios.put(`${BASE_URL}/api/auth/hotel-users/${id}`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      if (selectedHotelId) fetchUsers(selectedHotelId);
+    } catch (err) {
+      console.error("Error updating user:", err);
+      throw err;
+    }
+  };
 
-  // const fetchAllRooms = useCallback(async () => {
-  //   if (!token) return;
-  //   try {
-  //     const res = await axios.get(`${BASE_URL}/api/rooms`, {
-  //       headers: { Authorization: `Bearer ${token}` },
-  //     });
-  //     const data = Array.isArray(res.data) ? res.data : res.data.rooms || [];
-  //     setAllRooms(data);
-  //   } catch (err) {
-  //     console.error("Error fetching all rooms:", err);
-  //     setAllRooms([]);
-  //   }
-  // }, [token]);
+const deleteUser = async (id) => {
+  try {
+    // Use the correct endpoint that matches your API structure
+    await axios.delete(`${BASE_URL}/api/auth/hotel-users/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    
+    // Refresh the users list for the currently selected hotel
+    if (selectedHotelId) {
+      fetchUsers(selectedHotelId);
+    }
+  } catch (err) {
+    console.error("Error deleting user:", err);
+    throw err;
+  }
+};
 
   // ---------------- Auto fetch on login ----------------
   useEffect(() => {
@@ -219,10 +255,9 @@ export function AuthProvider({ children }) {
   }, [selectedHotelId, fetchRooms, fetchUsers, fetchHotelName]);
 
   useEffect(() => {
-    if (user?.role === "super-admin" && token) {
+    if (user?.role === "superadmin") {
       fetchAllHotels();
       fetchAllUsers();
-      fetchAllRooms();
     }
   }, [user, token]);
 
@@ -235,7 +270,7 @@ export function AuthProvider({ children }) {
         logout,
         loading,
 
-        // per-hotel
+        // per-hotel data
         rooms,
         users,
         hotels,
@@ -246,6 +281,18 @@ export function AuthProvider({ children }) {
         fetchUsers,
         fetchHotels,
         fetchHotelName,
+
+        // user management actions
+        createUser,
+        updateUser,
+        deleteUser,
+
+        // superadmin data
+        allHotels,
+        allUsers,
+        fetchAllHotels,
+        fetchAllUsers,
+        setUser
       }}
     >
       {children}

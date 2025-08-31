@@ -124,18 +124,20 @@ const User = () => {
     );
   };
 
-  const handleDelete = async (id) => {
-    if (!token) return toast.error("No token found — please log in first.");
-    try {
-      await deleteUser(selectedHotelId, id);
-      setDeleteId(null);
-      toast.dismiss();
-      toast.success("User deleted successfully!");
-    } catch (error) {
-      console.error(error.response?.data || error.message);
-      toast.error("Error deleting user");
-    }
-  };
+const handleDelete = async (id) => {
+  if (!token) return toast.error("No token found — please log in first.");
+  
+  try {
+    // Call deleteUser with just the id parameter
+    await deleteUser(id);
+    setDeleteId(null);
+    toast.dismiss();
+    toast.success("User deleted successfully!");
+  } catch (error) {
+    console.error(error.response?.data || error.message);
+    toast.error(error.response?.data?.message || "Error deleting user");
+  }
+};
 
   const getRoleColor = (role) => {
     const colors = {

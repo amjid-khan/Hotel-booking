@@ -1,5 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
+import axios from 'axios';
 import { 
   FaHotel, 
   FaMapMarkerAlt, 
@@ -28,149 +29,111 @@ import {
   FaCoffee,
   FaConciergeBell
 } from 'react-icons/fa';
-import { HiDotsVertical } from 'react-icons/hi';
-import { MdLocationOn, MdEmail, MdPhone, MdPeople, MdBed, MdAttachMoney } from 'react-icons/md';
+
+const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 const SuperAdminHotels = () => {
-  const { hotels = [], token, user } = useContext(AuthContext);
+  const { token, user, allHotels, fetchAllHotels } = useContext(AuthContext);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortBy, setSortBy] = useState('name');
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [viewMode, setViewMode] = useState('grid');
   const [selectedHotel, setSelectedHotel] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [hotelDetails, setHotelDetails] = useState({});
 
-  // Dummy data for demonstration when no real hotels
-  const dummyHotels = [
-    {
-      id: 1,
-      name: 'Grand Plaza Hotel',
-      description: 'Luxury hotel in the heart of downtown with premium amenities and exceptional service.',
-      address: '123 Main Street, Downtown',
-      city: 'New York',
-      state: 'NY',
-      country: 'USA',
-      phone: '+1 (555) 123-4567',
-      email: 'contact@grandplaza.com',
-      website: 'www.grandplaza.com',
-      rating: 4.8,
-      total_rooms: 150,
-      available_rooms: 23,
-      occupied_rooms: 127,
-      status: 'Active',
-      created_at: '2024-01-15',
-      monthly_revenue: 125000,
-      total_bookings: 342,
-      amenities: ['WiFi', 'Pool', 'Gym', 'Spa', 'Restaurant', 'Parking'],
-      images: ['hotel1.jpg', 'hotel1-2.jpg']
-    },
-    {
-      id: 2,
-      name: 'Ocean View Resort',
-      description: 'Beachfront resort with stunning ocean views and world-class facilities.',
-      address: '456 Ocean Drive, Beachfront',
-      city: 'Miami',
-      state: 'FL',
-      country: 'USA',
-      phone: '+1 (555) 987-6543',
-      email: 'info@oceanview.com',
-      website: 'www.oceanviewresort.com',
-      rating: 4.7,
-      total_rooms: 200,
-      available_rooms: 45,
-      occupied_rooms: 155,
-      status: 'Active',
-      created_at: '2024-02-20',
-      monthly_revenue: 180000,
-      total_bookings: 428,
-      amenities: ['WiFi', 'Beach Access', 'Pool', 'Spa', 'Restaurant', 'Bar'],
-      images: ['hotel2.jpg']
-    },
-    {
-      id: 3,
-      name: 'Mountain Peak Lodge',
-      description: 'Cozy mountain retreat perfect for nature lovers and adventure seekers.',
-      address: '789 Mountain Trail, Alpine',
-      city: 'Aspen',
-      state: 'CO',
-      country: 'USA',
-      phone: '+1 (555) 456-7890',
-      email: 'reservations@mountainpeak.com',
-      website: 'www.mountainpeaklodge.com',
-      rating: 4.9,
-      total_rooms: 85,
-      available_rooms: 12,
-      occupied_rooms: 73,
-      status: 'Active',
-      created_at: '2024-03-10',
-      monthly_revenue: 95000,
-      total_bookings: 256,
-      amenities: ['WiFi', 'Fireplace', 'Hiking Trails', 'Restaurant', 'Parking'],
-      images: ['hotel3.jpg']
-    },
-    {
-      id: 4,
-      name: 'City Center Inn',
-      description: 'Modern business hotel with excellent connectivity and professional services.',
-      address: '321 Business District, Center',
-      city: 'Chicago',
-      state: 'IL',
-      country: 'USA',
-      phone: '+1 (555) 789-0123',
-      email: 'business@citycenter.com',
-      website: 'www.citycenterinn.com',
-      rating: 4.6,
-      total_rooms: 120,
-      available_rooms: 8,
-      occupied_rooms: 112,
-      status: 'Pending',
-      created_at: '2024-04-05',
-      monthly_revenue: 85000,
-      total_bookings: 189,
-      amenities: ['WiFi', 'Business Center', 'Gym', 'Restaurant', 'Conference Rooms'],
-      images: ['hotel4.jpg']
-    },
-    {
-      id: 5,
-      name: 'Luxury Suites',
-      description: 'Premium accommodation with spacious suites and personalized service.',
-      address: '654 Elite Avenue, Uptown',
-      city: 'San Francisco',
-      state: 'CA',
-      country: 'USA',
-      phone: '+1 (555) 321-6547',
-      email: 'concierge@luxurysuites.com',
-      website: 'www.luxurysuites.com',
-      rating: 4.8,
-      total_rooms: 180,
-      available_rooms: 32,
-      occupied_rooms: 148,
-      status: 'Active',
-      created_at: '2024-01-28',
-      monthly_revenue: 220000,
-      total_bookings: 398,
-      amenities: ['WiFi', 'Concierge', 'Spa', 'Fine Dining', 'Valet Parking', 'Butler Service'],
-      images: ['hotel5.jpg']
+  // Fetch detailed hotel information including rooms count
+  const fetchHotelDetails = async (hotelId) => {
+    if (!token || hotelDetails[hotelId]) return hotelDetails[hotelId];
+    
+    try {
+      const [hotelRes, roomsRes] = await Promise.all([
+        axios.get(`${BASE_URL}/api/hotels/${hotelId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${BASE_URL}/api/rooms?hotelId=${hotelId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+
+      const hotel = hotelRes.data.hotel || hotelRes.data;
+      const rooms = Array.isArray(roomsRes.data) ? roomsRes.data : roomsRes.data.rooms || [];
+      
+      const details = {
+        ...hotel,
+        total_rooms: rooms.length,
+        available_rooms: rooms.filter(room => room.status === 'available' || room.available).length,
+        occupied_rooms: rooms.filter(room => room.status === 'occupied' || !room.available).length,
+        rooms: rooms
+      };
+
+      setHotelDetails(prev => ({
+        ...prev,
+        [hotelId]: details
+      }));
+
+      return details;
+    } catch (error) {
+      console.error(`Error fetching hotel details for ${hotelId}:`, error);
+      return null;
     }
-  ];
+  };
 
-  // Use real hotels if available, otherwise use dummy data
-  const displayHotels = hotels.length > 0 ? hotels.map(hotel => ({
-    ...hotel,
-    // Add dummy data for missing fields
-    description: hotel.description || 'Premium hotel with excellent service and modern amenities.',
-    rating: hotel.rating || (4.5 + Math.random() * 0.4).toFixed(1),
-    available_rooms: hotel.available_rooms || Math.floor(Math.random() * 50) + 5,
-    occupied_rooms: hotel.occupied_rooms || hotel.total_rooms - (Math.floor(Math.random() * 50) + 5),
-    monthly_revenue: hotel.monthly_revenue || Math.floor(Math.random() * 150000) + 50000,
-    total_bookings: hotel.total_bookings || Math.floor(Math.random() * 300) + 100,
-    amenities: hotel.amenities || ['WiFi', 'Restaurant', 'Parking', 'Gym'],
-    status: hotel.status || 'Active'
-  })) : dummyHotels;
+  // Fetch all hotel details when component mounts
+  useEffect(() => {
+    const loadHotelDetails = async () => {
+      if (!token || !allHotels || allHotels.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      
+      // Fetch details for all hotels
+      const detailsPromises = allHotels.map(hotel => fetchHotelDetails(hotel.id));
+      await Promise.all(detailsPromises);
+      
+      setLoading(false);
+    };
+
+    loadHotelDetails();
+  }, [allHotels, token]);
+
+  // Load hotels on component mount
+  useEffect(() => {
+    if (token && user?.role === 'superadmin') {
+      fetchAllHotels();
+    }
+  }, [token, user]);
+
+  // Merge hotel data with details
+  const getEnrichedHotels = () => {
+    return allHotels.map(hotel => {
+      const details = hotelDetails[hotel.id] || {};
+      return {
+        ...hotel,
+        ...details,
+        // Add defaults for missing fields
+        description: hotel.description || details.description || 'Premium hotel with excellent service and modern amenities.',
+        rating: hotel.rating || details.rating || (4.5 + Math.random() * 0.4).toFixed(1),
+        status: hotel.status || details.status || 'Active',
+        amenities: hotel.amenities || details.amenities || ['WiFi', 'Restaurant', 'Parking'],
+        total_rooms: details.total_rooms || hotel.total_rooms || 0,
+        available_rooms: details.available_rooms || hotel.available_rooms || 0,
+        occupied_rooms: details.occupied_rooms || hotel.occupied_rooms || 0,
+        monthly_revenue: hotel.monthly_revenue || Math.floor(Math.random() * 150000) + 50000, // This should come from your booking system
+        total_bookings: hotel.total_bookings || Math.floor(Math.random() * 300) + 100, // This should come from your booking system
+        created_at: hotel.created_at || hotel.createdAt || new Date().toISOString()
+      };
+    });
+  };
+
+  const displayHotels = getEnrichedHotels();
 
   // Filter and search logic
   const filteredHotels = displayHotels.filter(hotel => {
-    const matchesSearch = hotel.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch = hotel.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          hotel.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          hotel.address?.toLowerCase().includes(searchQuery.toLowerCase());
     
@@ -183,9 +146,9 @@ const SuperAdminHotels = () => {
   const sortedHotels = [...filteredHotels].sort((a, b) => {
     switch (sortBy) {
       case 'name':
-        return a.name.localeCompare(b.name);
+        return (a.name || '').localeCompare(b.name || '');
       case 'rating':
-        return parseFloat(b.rating) - parseFloat(a.rating);
+        return parseFloat(b.rating || 0) - parseFloat(a.rating || 0);
       case 'revenue':
         return (b.monthly_revenue || 0) - (a.monthly_revenue || 0);
       case 'rooms':
@@ -220,7 +183,7 @@ const SuperAdminHotels = () => {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 0
-    }).format(amount);
+    }).format(amount || 0);
   };
 
   const getAmenityIcon = (amenity) => {
@@ -245,10 +208,23 @@ const SuperAdminHotels = () => {
     return icons[amenity] || <FaCheckCircle />;
   };
 
-  const openHotelDetails = (hotel) => {
-    setSelectedHotel(hotel);
+  const openHotelDetails = async (hotel) => {
+    // Fetch fresh details when opening modal
+    const details = await fetchHotelDetails(hotel.id);
+    setSelectedHotel({ ...hotel, ...details });
     setShowModal(true);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50/30 md:ml-64 flex items-center justify-center">
+        <div className="text-center">
+          <FaHotel className="w-12 h-12 text-purple-400 mx-auto mb-4 animate-pulse" />
+          <p className="text-gray-600">Loading hotels data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50/30 md:ml-64">
@@ -374,7 +350,7 @@ const SuperAdminHotels = () => {
                     
                     <div className="flex items-center text-sm text-gray-600 mb-2">
                       <FaMapMarkerAlt className="w-4 h-4 mr-2 text-gray-400" />
-                      {hotel.address || `${hotel.city}, ${hotel.state}`}
+                      {hotel.address || `${hotel.city || ''}, ${hotel.state || ''}`}
                     </div>
 
                     {hotel.phone && (
@@ -388,15 +364,15 @@ const SuperAdminHotels = () => {
                   {/* Stats */}
                   <div className="grid grid-cols-3 gap-4 mb-4 pt-4 border-t border-gray-100">
                     <div className="text-center">
-                      <div className="text-lg font-semibold text-gray-900">{hotel.total_rooms || 0}</div>
+                      <div className="text-lg font-semibold text-gray-900">{hotel.total_rooms}</div>
                       <div className="text-xs text-gray-500">Total Rooms</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-semibold text-green-600">{hotel.available_rooms || 0}</div>
+                      <div className="text-lg font-semibold text-green-600">{hotel.available_rooms}</div>
                       <div className="text-xs text-gray-500">Available</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-semibold text-gray-900">{formatCurrency(hotel.monthly_revenue || 0)}</div>
+                      <div className="text-lg font-semibold text-gray-900">{formatCurrency(hotel.monthly_revenue)}</div>
                       <div className="text-xs text-gray-500">Monthly Revenue</div>
                     </div>
                   </div>
@@ -472,8 +448,8 @@ const SuperAdminHotels = () => {
                         <div className="text-sm text-gray-500">{hotel.country}</div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">{hotel.total_rooms || 0}</div>
-                        <div className="text-sm text-green-600">{hotel.available_rooms || 0} available</div>
+                        <div className="text-sm text-gray-900">{hotel.total_rooms}</div>
+                        <div className="text-sm text-green-600">{hotel.available_rooms} available</div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center">
@@ -482,7 +458,7 @@ const SuperAdminHotels = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{formatCurrency(hotel.monthly_revenue || 0)}</div>
+                        <div className="text-sm font-medium text-gray-900">{formatCurrency(hotel.monthly_revenue)}</div>
                         <div className="text-sm text-gray-500">per month</div>
                       </td>
                       <td className="px-6 py-4">
@@ -588,18 +564,18 @@ const SuperAdminHotels = () => {
 
                 {/* Stats */}
                 <div className="bg-gray-50/70 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Statistics</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Real-time Statistics</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center p-3 bg-white/50 rounded-lg">
-                      <div className="text-2xl font-bold text-gray-900">{selectedHotel.total_rooms || 0}</div>
+                      <div className="text-2xl font-bold text-gray-900">{selectedHotel.total_rooms}</div>
                       <div className="text-sm text-gray-600">Total Rooms</div>
                     </div>
                     <div className="text-center p-3 bg-white/50 rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">{selectedHotel.available_rooms || 0}</div>
+                      <div className="text-2xl font-bold text-green-600">{selectedHotel.available_rooms}</div>
                       <div className="text-sm text-gray-600">Available</div>
                     </div>
                     <div className="text-center p-3 bg-white/50 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">{selectedHotel.occupied_rooms || 0}</div>
+                      <div className="text-2xl font-bold text-blue-600">{selectedHotel.occupied_rooms}</div>
                       <div className="text-sm text-gray-600">Occupied</div>
                     </div>
                     <div className="text-center p-3 bg-white/50 rounded-lg">
@@ -609,6 +585,27 @@ const SuperAdminHotels = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Room Details */}
+              {selectedHotel.rooms && selectedHotel.rooms.length > 0 && (
+                <div className="bg-gray-50/70 rounded-lg p-6 mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Room Breakdown</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {Object.entries(
+                      selectedHotel.rooms.reduce((acc, room) => {
+                        const type = room.type || room.room_type || 'Standard';
+                        acc[type] = (acc[type] || 0) + 1;
+                        return acc;
+                      }, {})
+                    ).map(([type, count]) => (
+                      <div key={type} className="bg-white/50 rounded-lg p-3 text-center">
+                        <div className="text-lg font-semibold text-gray-900">{count}</div>
+                        <div className="text-sm text-gray-600">{type} Rooms</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Description */}
               <div className="bg-gray-50/70 rounded-lg p-6 mb-6">
@@ -637,7 +634,7 @@ const SuperAdminHotels = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-white/70 rounded-lg p-4 text-center">
                     <FaDollarSign className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-gray-900">{formatCurrency(selectedHotel.monthly_revenue || 0)}</div>
+                    <div className="text-2xl font-bold text-gray-900">{formatCurrency(selectedHotel.monthly_revenue)}</div>
                     <div className="text-sm text-gray-600">Monthly Revenue</div>
                   </div>
                   <div className="bg-white/70 rounded-lg p-4 text-center">
