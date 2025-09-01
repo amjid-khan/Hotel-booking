@@ -189,6 +189,36 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // ---------------- Super Admin User Management ----------------
+  const updateUserSuperAdmin = async (id, formData) => {
+    try {
+      await axios.put(`${BASE_URL}/api/auth/superadmin/users/${id}`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      // Refresh all users list
+      fetchAllUsers();
+    } catch (err) {
+      console.error("Error updating user (superadmin):", err);
+      throw err;
+    }
+  };
+
+  const deleteUserSuperAdmin = async (id) => {
+    try {
+      await axios.delete(`${BASE_URL}/api/auth/superadmin/users/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      // Refresh all users list
+      fetchAllUsers();
+    } catch (err) {
+      console.error("Error deleting user (superadmin):", err);
+      throw err;
+    }
+  };
+
   // ---------------- Authentication ----------------
   const login = (userData, tokenData) => {
     const updatedUser = {
@@ -335,6 +365,10 @@ export function AuthProvider({ children }) {
         updateHotelSuperAdmin,
         deleteHotelSuperAdmin,
         getHotelByIdSuperAdmin,
+
+        // superadmin user management
+        updateUserSuperAdmin,
+        deleteUserSuperAdmin,
         
         setUser,
       }}

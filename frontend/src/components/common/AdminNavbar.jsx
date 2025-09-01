@@ -32,11 +32,9 @@ const AdminNavbar = () => {
         setShowDropdown(false);
       }
     };
-
     if (showDropdown) {
       document.addEventListener("mousedown", handleClickOutside);
     }
-
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
@@ -54,13 +52,11 @@ const AdminNavbar = () => {
   };
 
   const handleSwitchHotel = async (hotel) => {
-    if (hotel.id === selectedHotelId) return; // already selected
+    if (hotel.id === selectedHotelId) return;
     setSwitchingHotelName(hotel.name);
     setLoadingHotel(true);
     selectHotel(hotel.id);
     setShowDropdown(false);
-
-    // Simulate loading
     await new Promise((resolve) => setTimeout(resolve, 2000));
     navigate(`/admin/hotel/${hotel.id}`);
     setLoadingHotel(false);
@@ -74,6 +70,12 @@ const AdminNavbar = () => {
     { name: "Settings", path: "/settings", icon: <HiCog /> },
     { name: "Reports", path: "/reports", icon: <MdAnalytics /> },
   ];
+
+  // --- For USER ROLE: Find the hotel name assigned ---
+  const assignedHotelName =
+    user?.role === "user"
+      ? hotels.find((h) => h.id === user.hotelId)?.name || "Assigned Hotel"
+      : null;
 
   return (
     <>
@@ -100,7 +102,9 @@ const AdminNavbar = () => {
           </div>
           <div>
             <div className="font-bold text-gray-900 text-lg">LuxStay</div>
-            <div className="text-xs text-gray-500">Admin</div>
+            <div className="text-xs text-gray-500">
+              {user?.role === "user" ? assignedHotelName : "Admin"}
+            </div>
           </div>
         </div>
         <button
@@ -133,7 +137,9 @@ const AdminNavbar = () => {
             </div>
             <div>
               <div className="font-bold text-gray-900 text-lg">LuxStay</div>
-              <div className="text-xs text-gray-500">Admin Panel</div>
+              <div className="text-xs text-gray-500">
+                {user?.role === "user" ? assignedHotelName : "Admin Panel"}
+              </div>
             </div>
           </div>
         </div>
@@ -158,71 +164,78 @@ const AdminNavbar = () => {
               </div>
               <div>
                 <div className="font-medium text-gray-900 text-sm">
-                  {user.full_name || "Administrator"}
+                  {user.full_name || "User"}
                 </div>
-                <div className="text-xs text-gray-500">Administrator</div>
+                <div className="text-xs text-gray-500">
+                  {user.role === "user" ? assignedHotelName : "Administrator"}
+                </div>
               </div>
             </div>
 
-            {/* Create Hotel Button */}
-            <button
-              onClick={handleCreateHotel}
-              className="w-full mb-3 bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2"
-            >
-              <HiPlus className="w-4 h-4" />
-              Create Hotel
-            </button>
-
-            {/* Hotel Selector */}
-            {hotels.length > 0 && (
-              <div className="relative" ref={dropdownRef}>
+            {/* Only show Create Hotel + Dropdown if NOT normal user */}
+            {user.role !== "user" && (
+              <>
                 <button
-                  onClick={() => setShowDropdown(!showDropdown)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 hover:border-gray-400 transition-colors duration-200"
+                  onClick={handleCreateHotel}
+                  className="w-full mb-3 bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2"
                 >
-                  <span className="truncate">
-                    {selectedHotelId
-                      ? hotels.find((h) => h.id === selectedHotelId)?.name ||
-                        "Select Hotel"
-                      : "Select Hotel"}
-                  </span>
-                  <FaChevronDown
-                    className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${
-                      showDropdown ? "rotate-180" : ""
-                    }`}
-                  />
+                  <HiPlus className="w-4 h-4" />
+                  Create Hotel
                 </button>
 
-                {showDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
-                    <div className="px-3 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-gray-50">
-                      Available Hotels
-                    </div>
-                    {hotels.map((hotel) => {
-                      const isSelected = selectedHotelId === hotel.id;
-                      return (
-                        <button
-                          key={hotel.id}
-                          onClick={() => handleSwitchHotel(hotel)}
-                          className={`w-full text-left px-3 py-2.5 text-sm hover:bg-gray-50 transition-colors duration-150 flex items-center justify-between ${
-                            isSelected
-                              ? "bg-blue-50 text-blue-700 border-r-2 border-blue-600"
-                              : "text-gray-700"
-                          }`}
-                        >
-                          <span className="truncate">{hotel.name}</span>
-                          {isSelected && (
-                            <div className="flex items-center gap-1 text-blue-600">
-                              <FaCheck className="w-3 h-3" />
-                              <span className="text-xs font-medium">Active</span>
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
+                {hotels.length > 0 && (
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      onClick={() => setShowDropdown(!showDropdown)}
+                      className="w-full flex items-center justify-between px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 hover:border-gray-400 transition-colors duration-200"
+                    >
+                      <span className="truncate">
+                        {selectedHotelId
+                          ? hotels.find((h) => h.id === selectedHotelId)?.name ||
+                            "Select Hotel"
+                          : "Select Hotel"}
+                      </span>
+                      <FaChevronDown
+                        className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${
+                          showDropdown ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+
+                    {showDropdown && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+                        <div className="px-3 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-gray-50">
+                          Available Hotels
+                        </div>
+                        {hotels.map((hotel) => {
+                          const isSelected = selectedHotelId === hotel.id;
+                          return (
+                            <button
+                              key={hotel.id}
+                              onClick={() => handleSwitchHotel(hotel)}
+                              className={`w-full text-left px-3 py-2.5 text-sm hover:bg-gray-50 transition-colors duration-150 flex items-center justify-between ${
+                                isSelected
+                                  ? "bg-blue-50 text-blue-700 border-r-2 border-blue-600"
+                                  : "text-gray-700"
+                              }`}
+                            >
+                              <span className="truncate">{hotel.name}</span>
+                              {isSelected && (
+                                <div className="flex items-center gap-1 text-blue-600">
+                                  <FaCheck className="w-3 h-3" />
+                                  <span className="text-xs font-medium">
+                                    Active
+                                  </span>
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
+              </>
             )}
           </div>
         )}

@@ -26,8 +26,7 @@ const SuperAdminDashboard = () => {
   const totalHotels = hotels.length;
   // Filter out superadmins
   const filteredUsers = users.filter((u) => u.role !== "superadmin");
-
-  const totalUsers = filteredUsers.length; // Use filtered users for stats
+  const totalUsers = filteredUsers.length;
 
   const totalBookings = bookings.length;
   const totalRevenue = 0; // This will be calculated from bookings
@@ -176,14 +175,10 @@ const SuperAdminDashboard = () => {
                   </div>
                 </div>
                 <div className="mb-1">
-                  <h3 className="text-2xl font-bold text-gray-900">
-                    {stat.value}
-                  </h3>
+                  <h3 className="text-2xl font-bold text-gray-900">{stat.value}</h3>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {stat.title}
-                  </p>
+                  <p className="text-sm font-medium text-gray-900">{stat.title}</p>
                   <p className="text-xs text-gray-500">{stat.description}</p>
                 </div>
               </div>
@@ -203,24 +198,12 @@ const SuperAdminDashboard = () => {
             <table className="w-full">
               <thead className="bg-gray-50/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Hotel Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Location
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Phone
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Created
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hotel Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -235,42 +218,30 @@ const SuperAdminDashboard = () => {
                   hotels.map((hotel) => (
                     <tr key={hotel.id} className="hover:bg-gray-50/50">
                       <td className="px-6 py-4">
-                        <div className="font-medium text-gray-900">
-                          {hotel.name || "N/A"}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          ID: {hotel.id}
-                        </div>
+                        <div className="font-medium text-gray-900">{hotel.name}</div>
+                        <div className="text-sm text-gray-500">ID: {hotel.id}</div>
                       </td>
                       <td className="px-6 py-4 text-gray-600">
                         <div className="flex items-center">
                           <FaMapMarkerAlt className="w-3 h-3 mr-1 text-gray-400" />
-                          {hotel.location || hotel.address || "N/A"}
+                          {hotel.location || hotel.address}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-gray-600">
                         <div className="flex items-center">
                           <FaPhone className="w-3 h-3 mr-1 text-gray-400" />
-                          {hotel.phone || "N/A"}
+                          {hotel.phone}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-gray-600">
                         <div className="flex items-center">
                           <FaEnvelope className="w-3 h-3 mr-1 text-gray-400" />
-                          {hotel.email || "N/A"}
+                          {hotel.email}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-gray-600">
-                        {hotel.createdAt
-                          ? new Date(hotel.createdAt).toLocaleDateString()
-                          : "N/A"}
-                      </td>
+                      <td className="px-6 py-4 text-gray-600">{new Date(hotel.createdAt).toLocaleDateString()}</td>
                       <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-medium border rounded-full ${getStatusColor(
-                            "Active"
-                          )}`}
-                        >
+                        <span className={`inline-flex px-2 py-1 text-xs font-medium border rounded-full ${getStatusColor("Active")}`}>
                           Active
                         </span>
                       </td>
@@ -294,28 +265,16 @@ const SuperAdminDashboard = () => {
             <table className="w-full">
               <thead className="bg-gray-50/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Hotel ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Registered
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hotel ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registered</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {users.length === 0 ? (
+                {filteredUsers.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="text-center py-8 text-gray-500">
                       <FaUsers className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -323,45 +282,27 @@ const SuperAdminDashboard = () => {
                     </td>
                   </tr>
                 ) : (
-                  users.map((user) => (
+                  filteredUsers.map((user) => (
                     <tr key={user.id} className="hover:bg-gray-50/50">
                       <td className="px-6 py-4">
-                        <div className="font-medium text-gray-900">
-                          {user.full_name || user.name || "N/A"}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          ID: {user.id}
-                        </div>
+                        <div className="font-medium text-gray-900">{user.full_name || user.name}</div>
+                        <div className="text-sm text-gray-500">ID: {user.id}</div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center text-gray-600">
                           <FaEnvelope className="w-3 h-3 mr-1 text-gray-400" />
-                          {user.email || "N/A"}
+                          {user.email}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-medium border rounded-full ${getStatusColor(
-                            user.role
-                          )}`}
-                        >
+                        <span className={`inline-flex px-2 py-1 text-xs font-medium border rounded-full ${getStatusColor(user.role)}`}>
                           {getRoleDisplayName(user.role)}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-gray-600">
-                        {user.hotelId || "N/A"}
-                      </td>
-                      <td className="px-6 py-4 text-gray-600">
-                        {user.createdAt
-                          ? new Date(user.createdAt).toLocaleDateString()
-                          : "N/A"}
-                      </td>
+                      <td className="px-6 py-4 text-gray-600">{user.hotelId}</td>
+                      <td className="px-6 py-4 text-gray-600">{new Date(user.createdAt).toLocaleDateString()}</td>
                       <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-medium border rounded-full ${getStatusColor(
-                            "Active"
-                          )}`}
-                        >
+                        <span className={`inline-flex px-2 py-1 text-xs font-medium border rounded-full ${getStatusColor("Active")}`}>
                           Active
                         </span>
                       </td>
