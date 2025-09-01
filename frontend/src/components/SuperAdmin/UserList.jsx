@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
-import { Eye, User, Mail, Phone, MapPin, Calendar, Building2, Shield, X } from 'lucide-react';
+import { Eye, Edit2, User, Mail, Phone, MapPin, Calendar, Building2, Shield, X } from 'lucide-react';
 
 const UserList = () => {
   const { allUsers } = useContext(AuthContext);
@@ -42,6 +42,11 @@ const UserList = () => {
     }
   };
 
+  const handleEditUser = (user) => {
+    // TODO: Add your edit logic here (e.g., navigate to edit page or open edit modal)
+    console.log('Edit user:', user);
+  };
+
   return (
     <>
       <div className="pl-64 min-h-screen bg-gray-50">
@@ -54,6 +59,7 @@ const UserList = () => {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            {/* Total Users */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -66,6 +72,7 @@ const UserList = () => {
               </div>
             </div>
 
+            {/* Admins */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -78,6 +85,7 @@ const UserList = () => {
               </div>
             </div>
 
+            {/* Managers */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -90,6 +98,7 @@ const UserList = () => {
               </div>
             </div>
 
+            {/* Users */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -135,21 +144,18 @@ const UserList = () => {
                       <tr key={user.id} className="hover:bg-gray-50 transition-colors duration-150">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10">
+                            <div className="flex-shrink-0 h-10 w-10 relative">
                               {user.profile_image ? (
                                 <img
                                   className="h-10 w-10 rounded-full object-cover border-2 border-gray-200"
                                   src={`${import.meta.env.VITE_BASE_URL}${user.profile_image}`}
                                   alt={user.full_name}
-                                  onError={(e) => {
-                                    e.target.style.display = 'none';
-                                    e.target.nextSibling.style.display = 'flex';
-                                  }}
                                 />
-                              ) : null}
-                              <div className={`h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold ${user.profile_image ? 'hidden' : 'flex'}`}>
-                                {user.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
-                              </div>
+                              ) : (
+                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold">
+                                  {user.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
+                                </div>
+                              )}
                             </div>
                             <div className="ml-4">
                               <div className="text-sm font-medium text-gray-900">{user.full_name || user.name || user.email.split('@')[0]}</div>
@@ -173,28 +179,27 @@ const UserList = () => {
                             <Building2 className="h-4 w-4 text-gray-400 mr-2" />
                             <div>
                               <span className="text-sm text-gray-900">{user.hotel_name || 'Not Assigned'}</span>
-                              {user.hotelId && (
-                                <div className="text-xs text-gray-500">ID: {user.hotelId}</div>
-                              )}
+                              {user.hotelId && <div className="text-xs text-gray-500">ID: {user.hotelId}</div>}
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            user.status === 'active' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-red-100 text-red-800'
-                          }`}>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                             {user.status || 'active'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                           <button
                             onClick={() => openModal(user)}
-                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-150"
+                            className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium text-blue-600 bg-blue-100 hover:bg-blue-200 transition-colors"
                           >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View
+                            <Eye className="h-4 w-4 mr-1" /> View
+                          </button>
+                          <button
+                            onClick={() => handleEditUser(user)}
+                            className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium text-white bg-green-600 hover:bg-green-700 transition-colors"
+                          >
+                            <Edit2 className="h-4 w-4 mr-1" /> Edit
                           </button>
                         </td>
                       </tr>
@@ -211,8 +216,9 @@ const UserList = () => {
       {isModalOpen && selectedUser && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-screen items-center justify-center p-4">
-            <div className="fixed inset-0 bg-black bg-opacity-30 transition-opacity" onClick={closeModal}></div>
-            
+            {/* Slightly transparent black overlay */}
+            <div className="fixed inset-0 bg-black bg-opacity-20 transition-opacity" onClick={closeModal}></div>
+
             <div className="relative transform overflow-hidden rounded-xl bg-white shadow-2xl transition-all w-full max-w-lg">
               {/* Modal Header */}
               <div className="bg-white px-6 py-4 border-b border-gray-200">
@@ -238,15 +244,12 @@ const UserList = () => {
                           className="h-16 w-16 rounded-full object-cover border-2 border-gray-200"
                           src={`${import.meta.env.VITE_BASE_URL}${selectedUser.profile_image}`}
                           alt={selectedUser.full_name}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
-                          }}
                         />
-                      ) : null}
-                      <div className={`h-16 w-16 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-xl ${selectedUser.profile_image ? 'hidden' : 'flex'}`}>
-                        {selectedUser.full_name ? selectedUser.full_name.charAt(0).toUpperCase() : 'U'}
-                      </div>
+                      ) : (
+                        <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-xl">
+                          {selectedUser.full_name ? selectedUser.full_name.charAt(0).toUpperCase() : 'U'}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <h4 className="text-lg font-semibold text-gray-900">{selectedUser.full_name || selectedUser.name || selectedUser.email.split('@')[0]}</h4>
@@ -263,7 +266,6 @@ const UserList = () => {
                         <p className="text-sm text-gray-900">{selectedUser.email}</p>
                       </div>
                     </div>
-
                     <div className="flex items-center space-x-3">
                       <Phone className="h-5 w-5 text-gray-400" />
                       <div>
@@ -271,7 +273,6 @@ const UserList = () => {
                         <p className="text-sm text-gray-900">{selectedUser.phone || 'Not provided'}</p>
                       </div>
                     </div>
-
                     <div className="flex items-center space-x-3">
                       <Shield className="h-5 w-5 text-gray-400" />
                       <div>
@@ -281,18 +282,14 @@ const UserList = () => {
                         </span>
                       </div>
                     </div>
-
                     <div className="flex items-center space-x-3">
                       <Building2 className="h-5 w-5 text-gray-400" />
                       <div>
                         <p className="text-sm font-medium text-gray-500">Hotel</p>
                         <p className="text-sm text-gray-900">{selectedUser.hotel_name || 'Not Assigned'}</p>
-                        {selectedUser.hotelId && (
-                          <p className="text-xs text-gray-500">Hotel ID: {selectedUser.hotelId}</p>
-                        )}
+                        {selectedUser.hotelId && <p className="text-xs text-gray-500">Hotel ID: {selectedUser.hotelId}</p>}
                       </div>
                     </div>
-
                     <div className="flex items-center space-x-3">
                       <MapPin className="h-5 w-5 text-gray-400" />
                       <div>
@@ -300,7 +297,6 @@ const UserList = () => {
                         <p className="text-sm text-gray-900">{selectedUser.address || 'Not provided'}</p>
                       </div>
                     </div>
-
                     <div className="flex items-center space-x-3">
                       <Calendar className="h-5 w-5 text-gray-400" />
                       <div>

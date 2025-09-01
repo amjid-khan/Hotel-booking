@@ -28,21 +28,36 @@ import {
   FaDumbbell,
   FaCoffee,
   FaConciergeBell,
+  FaSave,
+  FaTimes,
 } from "react-icons/fa";
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 const SuperAdminHotels = () => {
-  const { token, user, allHotels, fetchAllHotels } =
-    useContext(AuthContext);
+  const { 
+    token, 
+    user, 
+    allHotels, 
+    fetchAllHotels,
+    updateHotelSuperAdmin,
+    deleteHotelSuperAdmin,
+    getHotelByIdSuperAdmin
+  } = useContext(AuthContext);
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [sortBy, setSortBy] = useState("name");
   const [viewMode, setViewMode] = useState("grid");
   const [selectedHotel, setSelectedHotel] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [hotelDetails, setHotelDetails] = useState({});
+  const [editFormData, setEditFormData] = useState({});
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch detailed hotel information including rooms count
   const fetchHotelDetails = async (hotelId) => {
@@ -85,6 +100,96 @@ const SuperAdminHotels = () => {
       console.error(`Error fetching hotel details for ${hotelId}:`, error);
       return null;
     }
+  };
+
+  // Handle Edit Hotel
+  const handleEditHotel = async (hotel) => {
+    try {
+      const hotelData = await getHotelByIdSuperAdmin(hotel.id);
+      setEditFormData({
+        name: hotelData.name || '',
+        address: hotelData.address || '',
+        description: hotelData.description || '',
+        email: hotelData.email || '',
+        city: hotelData.city || '',
+        state: hotelData.state || '',
+        country: hotelData.country || '',
+        zip: hotelData.zip || '',
+        phone: hotelData.phone || '',
+        starRating: hotelData.starRating || 1,
+      });
+      setSelectedHotel(hotel);
+      setShowEditModal(true);
+    } catch (error) {
+      console.error('Error fetching hotel data for edit:', error);
+      alert('Error loading hotel data for editing');
+    }
+  };
+
+  // Handle Update Hotel
+  const handleUpdateHotel = async (e) => {
+    e.preventDefault();
+    setIsUpdating(true);
+
+    try {
+      await updateHotelSuperAdmin(selectedHotel.id, editFormData);
+      setShowEditModal(false);
+      setSelectedHotel(null);
+      setEditFormData({});
+      
+      // Show success message
+      alert('Hotel updated successfully!');
+      
+      // Refresh hotel details if modal is open
+      if (showModal && selectedHotel) {
+        setHotelDetails(prev => {
+          const updated = { ...prev };
+          delete updated[selectedHotel.id];
+          return updated;
+        });
+        await fetchHotelDetails(selectedHotel.id);
+      }
+    } catch (error) {
+      console.error('Error updating hotel:', error);
+      alert('Error updating hotel. Please try again.');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Handle Delete Hotel
+  const handleDeleteHotel = async () => {
+    setIsDeleting(true);
+
+    try {
+      await deleteHotelSuperAdmin(selectedHotel.id);
+      setShowDeleteModal(false);
+      setShowModal(false);
+      setSelectedHotel(null);
+      
+      // Show success message
+      alert('Hotel deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting hotel:', error);
+      alert('Error deleting hotel. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Confirm Delete Modal
+  const confirmDelete = (hotel) => {
+    setSelectedHotel(hotel);
+    setShowDeleteModal(true);
+  };
+
+  // Handle form input changes
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   // Fetch all hotel details when component mounts
@@ -139,9 +244,9 @@ const SuperAdminHotels = () => {
         available_rooms: details.available_rooms || hotel.available_rooms || 0,
         occupied_rooms: details.occupied_rooms || hotel.occupied_rooms || 0,
         monthly_revenue:
-          hotel.monthly_revenue || Math.floor(Math.random() * 150000) + 50000, // This should come from your booking system
+          hotel.monthly_revenue || Math.floor(Math.random() * 150000) + 50000,
         total_bookings:
-          hotel.total_bookings || Math.floor(Math.random() * 300) + 100, // This should come from your booking system
+          hotel.total_bookings || Math.floor(Math.random() * 300) + 100,
         created_at:
           hotel.created_at || hotel.createdAt || new Date().toISOString(),
       };
@@ -462,8 +567,17 @@ const SuperAdminHotels = () => {
                       <FaEye className="w-4 h-4" />
                       View Details
                     </button>
-                    <button className="p-2 border border-gray-300 hover:border-gray-400 rounded-lg text-gray-600 hover:text-gray-900 transition-colors duration-200">
+                    <button 
+                      onClick={() => handleEditHotel(hotel)}
+                      className="p-2 border border-gray-300 hover:border-gray-400 rounded-lg text-gray-600 hover:text-gray-900 transition-colors duration-200"
+                    >
                       <FaEdit className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => confirmDelete(hotel)}
+                      className="p-2 border border-red-300 hover:border-red-400 rounded-lg text-red-600 hover:text-red-700 transition-colors duration-200"
+                    >
+                      <FaTrash className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -566,10 +680,16 @@ const SuperAdminHotels = () => {
                           >
                             <FaEye className="w-4 h-4" />
                           </button>
-                          <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors duration-200">
+                          <button 
+                            onClick={() => handleEditHotel(hotel)}
+                            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                          >
                             <FaEdit className="w-4 h-4" />
                           </button>
-                          <button className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors duration-200">
+                          <button 
+                            onClick={() => confirmDelete(hotel)}
+                            className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                          >
                             <FaTrash className="w-4 h-4" />
                           </button>
                         </div>
@@ -601,6 +721,264 @@ const SuperAdminHotels = () => {
         )}
       </div>
 
+      {/* Edit Hotel Modal */}
+      {showEditModal && selectedHotel && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <form onSubmit={handleUpdateHotel}>
+              {/* Modal Header */}
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Edit Hotel</h2>
+                    <p className="text-gray-600">Update hotel information</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowEditModal(false)}
+                    className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-700"
+                  >
+                    <FaTimes className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Basic Information */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Hotel Name
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={editFormData.name || ''}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={editFormData.email || ''}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Phone
+                    </label>
+                    <input
+                      type="text"
+                      name="phone"
+                      value={editFormData.phone || ''}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Star Rating
+                    </label>
+                    <select
+                      name="starRating"
+                      value={editFormData.starRating || 1}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      {[1, 2, 3, 4, 5].map(rating => (
+                        <option key={rating} value={rating}>{rating} Star</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Address
+                    </label>
+                    <input
+                      type="text"
+                      name="address"
+                      value={editFormData.address || ''}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      City
+                    </label>
+                    <input
+                      type="text"
+                      name="city"
+                      value={editFormData.city || ''}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      State
+                    </label>
+                    <input
+                      type="text"
+                      name="state"
+                      value={editFormData.state || ''}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Country
+                    </label>
+                    <input
+                      type="text"
+                      name="country"
+                      value={editFormData.country || ''}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      ZIP Code
+                    </label>
+                    <input
+                      type="text"
+                      name="zip"
+                      value={editFormData.zip || ''}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      name="description"
+                      value={editFormData.description || ''}
+                      onChange={handleInputChange}
+                      rows={4}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+                <div className="flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditModal(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isUpdating}
+                    className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+                  >
+                    {isUpdating ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Updating...
+                      </>
+                    ) : (
+                      <>
+                        <FaSave className="w-4 h-4" />
+                        Update Hotel
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && selectedHotel && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <FaTrash className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Delete Hotel
+                  </h3>
+                  <p className="text-gray-600">
+                    This action cannot be undone
+                  </p>
+                </div>
+              </div>
+              
+              <div className="mb-6">
+                <p className="text-gray-700">
+                  Are you sure you want to delete <strong>{selectedHotel.name}</strong>? 
+                  This will permanently remove the hotel and all associated data.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteHotel}
+                  disabled={isDeleting}
+                  className="px-6 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+                >
+                  {isDeleting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <FaTrash className="w-4 h-4" />
+                      Delete Hotel
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hotel Details Modal */}
       {showModal && selectedHotel && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -627,7 +1005,7 @@ const SuperAdminHotels = () => {
                   onClick={() => setShowModal(false)}
                   className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-700"
                 >
-                  ✕
+                  <FaTimes className="w-5 h-5" />
                 </button>
               </div>
             </div>
@@ -812,7 +1190,13 @@ const SuperAdminHotels = () => {
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-3">
-                <button className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-3 px-6 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2">
+                <button 
+                  onClick={() => {
+                    setShowModal(false);
+                    handleEditHotel(selectedHotel);
+                  }}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-3 px-6 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+                >
                   <FaEdit className="w-4 h-4" />
                   Edit Hotel
                 </button>
@@ -825,6 +1209,10 @@ const SuperAdminHotels = () => {
                   Manage Users
                 </button>
                 <button
+                  onClick={() => {
+                    setShowModal(false);
+                    confirmDelete(selectedHotel);
+                  }}
                   className="bg-red-600 hover:bg-red-700 text-white py-3 px-6 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2"
                 >
                   <FaTrash className="w-4 h-4" />

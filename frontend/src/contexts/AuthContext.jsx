@@ -137,19 +137,57 @@ export function AuthProvider({ children }) {
     }
   };
 
-const fetchAllUsers = async () => {
-  if (!token) return;
-  try {
-    const res = await axios.get(`${BASE_URL}/api/auth/all-users`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    setAllUsers(res.data.users || []);
-  } catch (err) {
-    console.error("Error fetching all users (superadmin):", err);
-    setAllUsers([]);
-  }
-};
+  const fetchAllUsers = async () => {
+    if (!token) return;
+    try {
+      const res = await axios.get(`${BASE_URL}/api/auth/all-users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setAllUsers(res.data.users || []);
+    } catch (err) {
+      console.error("Error fetching all users (superadmin):", err);
+      setAllUsers([]);
+    }
+  };
 
+  // ---------------- Super Admin Hotel Management ----------------
+  const updateHotelSuperAdmin = async (hotelId, hotelData) => {
+    try {
+      await axios.put(`${BASE_URL}/api/hotels/superadmin/hotel/${hotelId}`, hotelData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      // Refresh all hotels list
+      fetchAllHotels();
+    } catch (err) {
+      console.error("Error updating hotel (superadmin):", err);
+      throw err;
+    }
+  };
+
+  const deleteHotelSuperAdmin = async (hotelId) => {
+    try {
+      await axios.delete(`${BASE_URL}/api/hotels/superadmin/hotel/${hotelId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      // Refresh all hotels list
+      fetchAllHotels();
+    } catch (err) {
+      console.error("Error deleting hotel (superadmin):", err);
+      throw err;
+    }
+  };
+
+  const getHotelByIdSuperAdmin = async (hotelId) => {
+    try {
+      const res = await axios.get(`${BASE_URL}/api/hotels/superadmin/hotel/${hotelId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.data.hotel;
+    } catch (err) {
+      console.error("Error fetching hotel by ID (superadmin):", err);
+      throw err;
+    }
+  };
 
   // ---------------- Authentication ----------------
   const login = (userData, tokenData) => {
@@ -225,22 +263,22 @@ const fetchAllUsers = async () => {
     }
   };
 
-const deleteUser = async (id) => {
-  try {
-    // Use the correct endpoint that matches your API structure
-    await axios.delete(`${BASE_URL}/api/auth/hotel-users/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    
-    // Refresh the users list for the currently selected hotel
-    if (selectedHotelId) {
-      fetchUsers(selectedHotelId);
+  const deleteUser = async (id) => {
+    try {
+      // Use the correct endpoint that matches your API structure
+      await axios.delete(`${BASE_URL}/api/auth/hotel-users/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      // Refresh the users list for the currently selected hotel
+      if (selectedHotelId) {
+        fetchUsers(selectedHotelId);
+      }
+    } catch (err) {
+      console.error("Error deleting user:", err);
+      throw err;
     }
-  } catch (err) {
-    console.error("Error deleting user:", err);
-    throw err;
-  }
-};
+  };
 
   // ---------------- Auto fetch on login ----------------
   useEffect(() => {
@@ -260,9 +298,6 @@ const deleteUser = async (id) => {
       fetchAllUsers();
     }
   }, [user, token]);
-
-  //super Admin
-
 
   return (
     <AuthContext.Provider
@@ -295,6 +330,12 @@ const deleteUser = async (id) => {
         allUsers,
         fetchAllHotels,
         fetchAllUsers,
+        
+        // superadmin hotel management
+        updateHotelSuperAdmin,
+        deleteHotelSuperAdmin,
+        getHotelByIdSuperAdmin,
+        
         setUser,
       }}
     >
