@@ -17,6 +17,9 @@ import Reports from "./components/admin/report/Report";
 import SuperAdminLayout from "./components/layout/SuperAdminLayout";
 import SuperAdminHotel from "./components/SuperAdmin/SuperAdminHotel";
 import UserList from "./components/SuperAdmin/UserList";
+import BookingOrders from "./components/admin/bookinorder/BookingOrders";
+import UserDashbaord from "./components/frontend/UserDashbaord";
+import BrowseRoom from "./components/frontend/BrowseRoom";
 
 // --- After login, redirect based on role + hotel status ---
 function HomeRedirect() {
@@ -48,7 +51,7 @@ function HomeRedirect() {
     case "superadmin":
       return <Navigate to="/superadmin" replace />;
     case "user":
-      return <Navigate to="/user" replace />;
+      return <Navigate to="/dashboard" replace />;
     default:
       return <Navigate to="/login" replace />;
   }
@@ -84,7 +87,7 @@ function LoginRedirect() {
     case "superadmin":
       return <Navigate to="/superadmin" replace />;
     case "user":
-      return <Navigate to="/user" replace />;
+      return <Navigate to="/userdashboard" replace />;
     default:
       return <Navigate to="/" replace />;
   }
@@ -99,9 +102,12 @@ export default function App() {
       {/* Login */}
       <Route path="/login" element={<LoginRedirect />} />
 
-      {/* User Routes */}
+      {/* User Routes - Fixed Structure */}
       <Route element={<ProtectedRoute roles={["user"]} />}>
-        <Route path="/user" element={<UserLayout />}></Route>
+        <Route element={<UserLayout />}>
+          <Route path="/browserooms" element={<BrowseRoom />} />
+          <Route path="/userdashboard" element={<UserDashbaord />} />
+        </Route>
       </Route>
 
       {/* Admin Routes */}
@@ -117,19 +123,17 @@ export default function App() {
           <Route path="/users" element={<User />} />
           <Route path="/settings" element={<Setting />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/bookings" element={<BookingOrders />} />
         </Route>
       </Route>
 
       {/* SuperAdmin Routes */}
       <Route element={<ProtectedRoute roles={["superadmin"]} />}>
-        {/* Layout wrapper */}
-        <Route element={<SuperAdminLayout/>}>
-          {/* Nested route for dashboard */}
+        <Route element={<SuperAdminLayout />}>
           <Route path="/superadmin" element={<SuperAdminDashboard />} />
           <Route path="/Hotels" element={<SuperAdminHotel />} />
           <Route path="/superadminusers" element={<UserList />} />
         </Route>
-
       </Route>
 
       {/* 404 Not Found */}

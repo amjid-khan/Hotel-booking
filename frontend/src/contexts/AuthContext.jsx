@@ -46,18 +46,27 @@ export function AuthProvider({ children }) {
 
   // ---------------- Per-hotel data ----------------
   const fetchRooms = useCallback(async (hotelId) => {
-    if (!hotelId || !token) return;
+    if (!token) return;
     try {
-      const res = await axios.get(`${BASE_URL}/api/rooms?hotelId=${hotelId}`, {
+      let url;
+      if (user?.role === "user") {
+        url = `${BASE_URL}/api/rooms/user`; // user-specific route
+      } else {
+        if (!hotelId) return;
+        url = `${BASE_URL}/api/rooms?hotelId=${hotelId}`;
+      }
+
+      const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = Array.isArray(res.data) ? res.data : res.data.rooms || [];
       setRooms(data);
+      console.log("Fetched Rooms:", data);
     } catch (err) {
       console.error("Error fetching rooms:", err);
       setRooms([]);
     }
-  }, [token]);
+  }, [token, user]);
 
   const fetchUsers = useCallback(async (hotelId) => {
     if (!hotelId || !token) return;
@@ -74,43 +83,52 @@ export function AuthProvider({ children }) {
   }, [token]);
 
   const fetchHotelName = useCallback(async (hotelId) => {
-    if (!hotelId || !token) return;
-    try {
-      const res = await axios.get(`${BASE_URL}/api/hotels/${hotelId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const hotelData = res.data.hotel || res.data;
-      if (hotelData) {
-        setHotelName(hotelData.name || "");
-        setHotels(prev =>
-          prev.map(h => h.id === hotelId ? { ...h, ...hotelData } : h)
-        );
-      }
-    } catch (err) {
-      console.error("Error fetching hotel name:", err);
-      setHotelName("");
-    }
-  }, [token]);
+  if (!hotelId || !token) return;
 
-  const fetchHotels = useCallback(async () => {
-    if (!token) return;
-    try {
-      const res = await axios.get(`${BASE_URL}/api/hotels/my-hotels`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const list = Array.isArray(res.data) ? res.data : res.data.hotels || [];
-      setHotels(list);
+  // Normal user ke liye skip karna hai
+  if (user?.role === "user") {
+    return; // User ke case me API hit nahi karni
+  }
 
-      if (list.length > 0 && !selectedHotelId) {
-        setSelectedHotelId(list[0].id);
-        setHotelName(list[0].name || "");
-        localStorage.setItem("selectedHotelId", list[0].id);
-      }
-    } catch (err) {
-      console.error("Error fetching hotels:", err);
-      setHotels([]);
+  try {
+    const res = await axios.get(`${BASE_URL}/api/hotels/${hotelId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const hotelData = res.data.hotel || res.data;
+    if (hotelData) {
+      setHotelName(hotelData.name || "");
+      console.log("Fetched Hotel Detail:", hotelData);
+      setHotels(prev =>
+        prev.map(h => h.id === hotelId ? { ...h, ...hotelData } : h)
+      );
     }
-  }, [token, selectedHotelId]);
+  } catch (err) {
+    console.error("Error fetching hotel name:", err);
+    setHotelName("");
+  }
+}, [token, user]);
+
+const fetchHotels = useCallback(async () => {
+  if (!token || user?.role === "user") return; // normal user ke liye skip karo
+  
+  try {
+    const res = await axios.get(`${BASE_URL}/api/hotels/my-hotels`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const list = Array.isArray(res.data) ? res.data : res.data.hotels || [];
+    setHotels(list);
+
+    if (list.length > 0 && !selectedHotelId) {
+      setSelectedHotelId(list[0].id);
+      setHotelName(list[0].name || "");
+      localStorage.setItem("selectedHotelId", list[0].id);
+    }
+  } catch (err) {
+    console.error("Error fetching hotels:", err);
+    setHotels([]);
+  }
+}, [token, selectedHotelId, user]);
+
 
   const selectHotel = (hotelId) => {
     if (!hotelId) return;
@@ -156,7 +174,6 @@ export function AuthProvider({ children }) {
       await axios.put(`${BASE_URL}/api/hotels/superadmin/hotel/${hotelId}`, hotelData, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // Refresh all hotels list
       fetchAllHotels();
     } catch (err) {
       console.error("Error updating hotel (superadmin):", err);
@@ -169,7 +186,6 @@ export function AuthProvider({ children }) {
       await axios.delete(`${BASE_URL}/api/hotels/superadmin/hotel/${hotelId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // Refresh all hotels list
       fetchAllHotels();
     } catch (err) {
       console.error("Error deleting hotel (superadmin):", err);
@@ -198,7 +214,6 @@ export function AuthProvider({ children }) {
           "Content-Type": "multipart/form-data",
         },
       });
-      // Refresh all users list
       fetchAllUsers();
     } catch (err) {
       console.error("Error updating user (superadmin):", err);
@@ -211,7 +226,6 @@ export function AuthProvider({ children }) {
       await axios.delete(`${BASE_URL}/api/auth/superadmin/users/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // Refresh all users list
       fetchAllUsers();
     } catch (err) {
       console.error("Error deleting user (superadmin):", err);
@@ -236,8 +250,12 @@ export function AuthProvider({ children }) {
     fetchHotels().then(() => {
       const lastHotel = localStorage.getItem("selectedHotelId") || updatedUser.hotelId;
       if (lastHotel) selectHotel(lastHotel);
-      if (updatedUser.role === "user" && lastHotel) {
-        navigate(`/hotel/${lastHotel}`);
+
+      // For normal hotel user → fetch immediately
+      if (updatedUser.role === "user" && updatedUser.hotelId) {
+        fetchHotelName(updatedUser.hotelId);
+        fetchRooms(updatedUser.hotelId);
+        navigate(`/hotel/${updatedUser.hotelId}`);
       }
     });
 
@@ -295,15 +313,10 @@ export function AuthProvider({ children }) {
 
   const deleteUser = async (id) => {
     try {
-      // Use the correct endpoint that matches your API structure
       await axios.delete(`${BASE_URL}/api/auth/hotel-users/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
-      // Refresh the users list for the currently selected hotel
-      if (selectedHotelId) {
-        fetchUsers(selectedHotelId);
-      }
+      if (selectedHotelId) fetchUsers(selectedHotelId);
     } catch (err) {
       console.error("Error deleting user:", err);
       throw err;

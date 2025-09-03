@@ -82,6 +82,16 @@ exports.loginUser = async (req, res) => {
 
         const token = generateToken(tokenPayload);
 
+        let hotelDetails = null;
+
+        // Agar user admin nahi hai, tab hotel details fetch karo
+        if (user.role !== 'admin' && user.hotelId) {
+            const [hotels] = await pool.query('SELECT * FROM hotels WHERE id = ?', [user.hotelId]);
+            if (hotels.length > 0) {
+                hotelDetails = hotels[0];
+            }
+        }
+
         res.json({
             user: {
                 id: user.id,
@@ -93,6 +103,7 @@ exports.loginUser = async (req, res) => {
                 profile_image: user.profile_image || null,
                 status: user.status || 'active'
             },
+            hotel: hotelDetails,
             token
         });
     } catch (error) {
@@ -364,3 +375,4 @@ exports.deleteAnyUser = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+

@@ -8,6 +8,7 @@ const {
     getAllRooms,
     updateRoom,
     deleteRoom,
+    getUserRooms
 } = require('../controllers/roomControllers'); // Ensure correct file path
 
 // Add new room (with image upload)
@@ -43,5 +44,8 @@ router.delete(
     authorizeRoles('admin', 'superadmin'),
     deleteRoom
 );
+
+router.get('/user', authenticateToken, authorizeRoles('user'), getUserRooms); // http://localhost:5000/api/rooms/user
+
 
 module.exports = router;

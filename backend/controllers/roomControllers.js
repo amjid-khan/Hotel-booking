@@ -155,3 +155,43 @@ exports.deleteRoom = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
+
+
+
+// Get rooms only for the user's assigned hotel
+exports.getUserRooms = async (req, res) => {
+    try {
+        const { role, hotelId } = req.user; // Comes from authenticateToken middleware
+
+        if (role !== 'user') {
+            return res.status(403).json({ message: 'Access denied' });
+        }
+
+        if (!hotelId) {
+            return res.status(400).json({ message: 'No hotel assigned to this user' });
+        }
+
+        // Corrected column names to match your schema
+        const [rooms] = await pool.query(
+            `SELECT 
+                id, 
+                roomNumber, 
+                type, 
+                price, 
+                capacity, 
+                description, 
+                image, 
+                isAvailable, 
+                created_at, 
+                updated_at 
+             FROM rooms 
+             WHERE hotelId = ?`,
+            [hotelId]
+        );
+
+        res.json({ rooms });
+    } catch (error) {
+        console.error('Error fetching user rooms:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
