@@ -19,7 +19,6 @@ export default function CreateHotel() {
     zip: "",
     phone: "",
     email: "",
-    starRating: "",
   });
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -113,8 +112,8 @@ export default function CreateHotel() {
               <p className="text-gray-600 mb-4">Setting up your property...</p>
               <div className="flex justify-center space-x-1">
                 <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+                <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
               </div>
             </div>
           </div>
@@ -208,25 +207,6 @@ export default function CreateHotel() {
                   />
                 </div>
               ))}
-            </div>
-
-            {/* Star Rating */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Star Rating *</label>
-              <select
-                name="starRating"
-                value={form.starRating}
-                onChange={onChange}
-                required
-                className="border border-gray-300 rounded-lg p-2 w-full shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Select star rating</option>
-                {[1,2,3,4,5].map((star) => (
-                  <option key={star} value={star}>
-                    {"⭐".repeat(star)} {star} Star{star>1 && "s"}
-                  </option>
-                ))}
-              </select>
             </div>
 
             {/* Description */}

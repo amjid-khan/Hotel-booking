@@ -6,7 +6,6 @@ import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import Login from "./components/auth/Login";
 import NotFound from "./pages/NotFound";
-import UserLayout from "./components/layout/UserLayout";
 import AdminLayout from "./components/layout/AdminLayout";
 import CreateHotel from "./components/admin/createhotel/CreateHotel";
 import useAdminHotelCheck from "./hooks/useAdminHotelCheck";
@@ -18,8 +17,6 @@ import SuperAdminLayout from "./components/layout/SuperAdminLayout";
 import SuperAdminHotel from "./components/SuperAdmin/SuperAdminHotel";
 import UserList from "./components/SuperAdmin/UserList";
 import BookingOrders from "./components/admin/bookinorder/BookingOrders";
-import UserDashbaord from "./components/frontend/UserDashbaord";
-import BrowseRoom from "./components/frontend/BrowseRoom";
 
 // --- After login, redirect based on role + hotel status ---
 function HomeRedirect() {
@@ -51,7 +48,7 @@ function HomeRedirect() {
     case "superadmin":
       return <Navigate to="/superadmin" replace />;
     case "user":
-      return <Navigate to="/dashboard" replace />;
+      return <Navigate to="/userdashboard" replace />;
     default:
       return <Navigate to="/login" replace />;
   }
@@ -87,7 +84,7 @@ function LoginRedirect() {
     case "superadmin":
       return <Navigate to="/superadmin" replace />;
     case "user":
-      return <Navigate to="/userdashboard" replace />;
+      return <Navigate to="/admin" replace />;
     default:
       return <Navigate to="/" replace />;
   }
@@ -103,12 +100,12 @@ export default function App() {
       <Route path="/login" element={<LoginRedirect />} />
 
       {/* User Routes - Fixed Structure */}
-      <Route element={<ProtectedRoute roles={["user"]} />}>
+      {/* <Route element={<ProtectedRoute roles={["user"]} />}>
         <Route element={<UserLayout />}>
           <Route path="/browserooms" element={<BrowseRoom />} />
           <Route path="/userdashboard" element={<UserDashbaord />} />
         </Route>
-      </Route>
+      </Route> */}
 
       {/* Admin Routes */}
       <Route element={<ProtectedRoute roles={["admin"]} />}>

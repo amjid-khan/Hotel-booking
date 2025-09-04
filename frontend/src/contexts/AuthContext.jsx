@@ -61,7 +61,6 @@ export function AuthProvider({ children }) {
       });
       const data = Array.isArray(res.data) ? res.data : res.data.rooms || [];
       setRooms(data);
-      console.log("Fetched Rooms:", data);
     } catch (err) {
       console.error("Error fetching rooms:", err);
       setRooms([]);
@@ -83,52 +82,50 @@ export function AuthProvider({ children }) {
   }, [token]);
 
   const fetchHotelName = useCallback(async (hotelId) => {
-  if (!hotelId || !token) return;
+    if (!hotelId || !token) return;
 
-  // Normal user ke liye skip karna hai
-  if (user?.role === "user") {
-    return; // User ke case me API hit nahi karni
-  }
-
-  try {
-    const res = await axios.get(`${BASE_URL}/api/hotels/${hotelId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const hotelData = res.data.hotel || res.data;
-    if (hotelData) {
-      setHotelName(hotelData.name || "");
-      console.log("Fetched Hotel Detail:", hotelData);
-      setHotels(prev =>
-        prev.map(h => h.id === hotelId ? { ...h, ...hotelData } : h)
-      );
+    // Normal user ke liye skip karna hai
+    if (user?.role === "user") {
+      return; // User ke case me API hit nahi karni
     }
-  } catch (err) {
-    console.error("Error fetching hotel name:", err);
-    setHotelName("");
-  }
-}, [token, user]);
 
-const fetchHotels = useCallback(async () => {
-  if (!token || user?.role === "user") return; // normal user ke liye skip karo
-  
-  try {
-    const res = await axios.get(`${BASE_URL}/api/hotels/my-hotels`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const list = Array.isArray(res.data) ? res.data : res.data.hotels || [];
-    setHotels(list);
-
-    if (list.length > 0 && !selectedHotelId) {
-      setSelectedHotelId(list[0].id);
-      setHotelName(list[0].name || "");
-      localStorage.setItem("selectedHotelId", list[0].id);
+    try {
+      const res = await axios.get(`${BASE_URL}/api/hotels/${hotelId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const hotelData = res.data.hotel || res.data;
+      if (hotelData) {
+        setHotelName(hotelData.name || "");
+        setHotels(prev =>
+          prev.map(h => h.id === hotelId ? { ...h, ...hotelData } : h)
+        );
+      }
+    } catch (err) {
+      console.error("Error fetching hotel name:", err);
+      setHotelName("");
     }
-  } catch (err) {
-    console.error("Error fetching hotels:", err);
-    setHotels([]);
-  }
-}, [token, selectedHotelId, user]);
+  }, [token, user]);
 
+  const fetchHotels = useCallback(async () => {
+    if (!token || user?.role === "user") return; // normal user ke liye skip karo
+    
+    try {
+      const res = await axios.get(`${BASE_URL}/api/hotels/my-hotels`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const list = Array.isArray(res.data) ? res.data : res.data.hotels || [];
+      setHotels(list);
+
+      if (list.length > 0 && !selectedHotelId) {
+        setSelectedHotelId(list[0].id);
+        setHotelName(list[0].name || "");
+        localStorage.setItem("selectedHotelId", list[0].id);
+      }
+    } catch (err) {
+      console.error("Error fetching hotels:", err);
+      setHotels([]);
+    }
+  }, [token, selectedHotelId, user]);
 
   const selectHotel = (hotelId) => {
     if (!hotelId) return;
@@ -242,6 +239,12 @@ const fetchHotels = useCallback(async () => {
       role: userData.role,
       hotelId: userData.hotelId || null,
     };
+
+    // YAHAN hotel data console mein print karenge
+    if (userData.hotel) {
+      console.log("Hotel Data on Login:", userData.hotel);
+    }
+
     setUser(updatedUser);
     setToken(tokenData);
     localStorage.setItem("user", JSON.stringify(updatedUser));

@@ -54,7 +54,6 @@ exports.registerUser = async (req, res) => {
     }
 };
 
-// ====================== LOGIN USER ======================
 exports.loginUser = async (req, res) => {
     const { email, password } = req.body;
 
@@ -72,19 +71,17 @@ exports.loginUser = async (req, res) => {
 
         delete user.password;
 
-        // Build payload for token (including hotelId)
+        // Token payload
         const tokenPayload = {
             id: user.id,
             email: user.email,
             role: user.role,
             hotelId: user.role === 'admin' ? null : user.hotelId
         };
-
         const token = generateToken(tokenPayload);
 
+        // Fetch hotel details if user is not admin
         let hotelDetails = null;
-
-        // Agar user admin nahi hai, tab hotel details fetch karo
         if (user.role !== 'admin' && user.hotelId) {
             const [hotels] = await pool.query('SELECT * FROM hotels WHERE id = ?', [user.hotelId]);
             if (hotels.length > 0) {
@@ -92,6 +89,7 @@ exports.loginUser = async (req, res) => {
             }
         }
 
+        // Merge hotel into user object directly
         res.json({
             user: {
                 id: user.id,
@@ -101,9 +99,9 @@ exports.loginUser = async (req, res) => {
                 hotelId: user.role === 'admin' ? null : user.hotelId,
                 phone: user.phone || null,
                 profile_image: user.profile_image || null,
-                status: user.status || 'active'
+                status: user.status || 'active',
+                hotel: hotelDetails || null // <-- hotel details yahan aa jayenge
             },
-            hotel: hotelDetails,
             token
         });
     } catch (error) {
@@ -111,6 +109,7 @@ exports.loginUser = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
 
 // ====================== UPDATE USER ======================
 exports.updateUser = async (req, res) => {
@@ -255,90 +254,90 @@ exports.deleteAnyUser = async (req, res) => {
 };
 
 // ====================== UPDATE ANY USER (SUPERADMIN ONLY) ======================
-exports.updateAnyUser = async (req, res) => {
-    const { id } = req.params;
-    const { full_name, email, password, role, hotelId, phone, status } = req.body;
-    const profile_image = req.file ? req.file.filename : null;
+// exports.updateAnyUser = async (req, res) => {
+//     const { id } = req.params;
+//     const { full_name, email, password, role, hotelId, phone, status } = req.body;
+//     const profile_image = req.file ? req.file.filename : null;
 
-    try {
-        // Check if user exists
-        const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
-        if (users.length === 0) return res.status(404).json({ message: 'User not found' });
+//     try {
+//         // Check if user exists
+//         const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
+//         if (users.length === 0) return res.status(404).json({ message: 'User not found' });
 
-        const user = users[0];
+//         const user = users[0];
 
-        // Check if new email already exists (if email is being changed)
-        if (email && email !== user.email) {
-            const [existing] = await pool.query('SELECT * FROM users WHERE email = ? AND id != ?', [email, id]);
-            if (existing.length > 0) {
-                return res.status(400).json({ message: 'Email already exists' });
-            }
-        }
+//         // Check if new email already exists (if email is being changed)
+//         if (email && email !== user.email) {
+//             const [existing] = await pool.query('SELECT * FROM users WHERE email = ? AND id != ?', [email, id]);
+//             if (existing.length > 0) {
+//                 return res.status(400).json({ message: 'Email already exists' });
+//             }
+//         }
 
-        // Hash password if provided
-        const hashedPassword = password ? await bcrypt.hash(password, 10) : user.password;
+//         // Hash password if provided
+//         const hashedPassword = password ? await bcrypt.hash(password, 10) : user.password;
 
-        // Handle profile image replacement
-        if (profile_image && user.profile_image) {
-            const oldImagePath = path.join(__dirname, '../uploads', user.profile_image);
-            if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
-        }
+//         // Handle profile image replacement
+//         if (profile_image && user.profile_image) {
+//             const oldImagePath = path.join(__dirname, '../uploads', user.profile_image);
+//             if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
+//         }
 
-        // Update user with conditional logic for admin vs other roles
-        let query, params;
-        if ((role || user.role) === 'admin' || (role || user.role) === 'superadmin') {
-            query = 'UPDATE users SET name = ?, email = ?, password = ?, role = ?, phone = ?, profile_image = ?, status = ? WHERE id = ?';
-            params = [
-                full_name || user.name,
-                email || user.email,
-                hashedPassword,
-                role || user.role,
-                phone || user.phone,
-                profile_image || user.profile_image,
-                status || user.status,
-                id
-            ];
-        } else {
-            query = 'UPDATE users SET name = ?, email = ?, password = ?, role = ?, hotelId = ?, phone = ?, profile_image = ?, status = ? WHERE id = ?';
-            params = [
-                full_name || user.name,
-                email || user.email,
-                hashedPassword,
-                role || user.role,
-                hotelId !== undefined ? hotelId : user.hotelId,
-                phone || user.phone,
-                profile_image || user.profile_image,
-                status || user.status,
-                id
-            ];
-        }
+//         // Update user with conditional logic for admin vs other roles
+//         let query, params;
+//         if ((role || user.role) === 'admin' || (role || user.role) === 'superadmin') {
+//             query = 'UPDATE users SET name = ?, email = ?, password = ?, role = ?, phone = ?, profile_image = ?, status = ? WHERE id = ?';
+//             params = [
+//                 full_name || user.name,
+//                 email || user.email,
+//                 hashedPassword,
+//                 role || user.role,
+//                 phone || user.phone,
+//                 profile_image || user.profile_image,
+//                 status || user.status,
+//                 id
+//             ];
+//         } else {
+//             query = 'UPDATE users SET name = ?, email = ?, password = ?, role = ?, hotelId = ?, phone = ?, profile_image = ?, status = ? WHERE id = ?';
+//             params = [
+//                 full_name || user.name,
+//                 email || user.email,
+//                 hashedPassword,
+//                 role || user.role,
+//                 hotelId !== undefined ? hotelId : user.hotelId,
+//                 phone || user.phone,
+//                 profile_image || user.profile_image,
+//                 status || user.status,
+//                 id
+//             ];
+//         }
 
-        await pool.query(query, params);
+//         await pool.query(query, params);
 
-        // Get updated user data
-        const [updatedUsers] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
-        const updatedUser = updatedUsers[0];
-        delete updatedUser.password;
+//         // Get updated user data
+//         const [updatedUsers] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
+//         const updatedUser = updatedUsers[0];
+//         delete updatedUser.password;
 
-        res.json({
-            success: true,
-            message: 'User updated successfully',
-            user: {
-                id: updatedUser.id,
-                full_name: updatedUser.name,
-                email: updatedUser.email,
-                role: updatedUser.role,
-                hotelId: updatedUser.hotelId || null,
-                phone: updatedUser.phone || null,
-                profile_image: updatedUser.profile_image || null,
-                status: updatedUser.status || 'active'
-            }
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error' });
-    }
-};
+//         res.json({
+//             success: true,
+//             message: 'User updated successfully',
+//             user: {
+//                 id: updatedUser.id,
+//                 full_name: updatedUser.name,
+//                 email: updatedUser.email,
+//                 role: updatedUser.role,
+//                 hotelId: updatedUser.hotelId || null,
+//                 phone: updatedUser.phone || null,
+//                 profile_image: updatedUser.profile_image || null,
+//                 status: updatedUser.status || 'active'
+//             }
+//         });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({ message: 'Server error' });
+//     }
+// };
 
 // ====================== DELETE ANY USER (SUPERADMIN ONLY) ======================
 exports.deleteAnyUser = async (req, res) => {

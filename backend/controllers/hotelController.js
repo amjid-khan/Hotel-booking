@@ -5,19 +5,19 @@ exports.createHotel = async (req, res) => {
     try {
         const {
             name, address, description,
-            email, city, state, country, zip, phone, starRating
+            email, city, state, country, zip, phone
         } = req.body;
 
         const adminId = req.user.id;
 
         const query = `
             INSERT INTO hotels 
-            (admin_id, name, address, description, email, city, state, country, zip, phone, starRating) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (admin_id, name, address, description, email, city, state, country, zip, phone) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         const [result] = await db.execute(query, [
             adminId, name, address, description,
-            email, city, state, country, zip, phone, starRating
+            email, city, state, country, zip, phone
         ]);
 
         const hotelId = result.insertId;
@@ -35,8 +35,7 @@ exports.createHotel = async (req, res) => {
                 state,
                 country,
                 zip,
-                phone,
-                starRating
+                phone
             }
         });
     } catch (err) {
@@ -50,7 +49,7 @@ exports.getAdminHotels = async (req, res) => {
     try {
         const adminId = req.user.id;
         const query = `
-            SELECT id, name, address, description, email, city, state, country, zip, phone, starRating 
+            SELECT id, name, address, description, email, city, state, country, zip, phone
             FROM hotels WHERE admin_id = ?
         `;
         const [hotels] = await db.execute(query, [adminId]);
@@ -138,7 +137,7 @@ exports.updateHotel = async (req, res) => {
         const { id } = req.params;
         const {
             name, address, description,
-            email, city, state, country, zip, phone, starRating
+            email, city, state, country, zip, phone
         } = req.body;
         const { id: userId, role } = req.user;
 
@@ -147,18 +146,18 @@ exports.updateHotel = async (req, res) => {
             query = `
                 UPDATE hotels 
                 SET name = ?, address = ?, description = ?, 
-                    email = ?, city = ?, state = ?, country = ?, zip = ?, phone = ?, starRating = ?
+                    email = ?, city = ?, state = ?, country = ?, zip = ?, phone = ?
                 WHERE id = ?
             `;
-            params = [name, address, description, email, city, state, country, zip, phone, starRating, id];
+            params = [name, address, description, email, city, state, country, zip, phone, id];
         } else {
             query = `
                 UPDATE hotels 
                 SET name = ?, address = ?, description = ?, 
-                    email = ?, city = ?, state = ?, country = ?, zip = ?, phone = ?, starRating = ?
+                    email = ?, city = ?, state = ?, country = ?, zip = ?, phone = ?
                 WHERE id = ? AND admin_id = ?
             `;
-            params = [name, address, description, email, city, state, country, zip, phone, starRating, id, userId];
+            params = [name, address, description, email, city, state, country, zip, phone, id, userId];
         }
 
         const [result] = await db.execute(query, params);
@@ -210,7 +209,7 @@ exports.getHotelById = async (req, res) => {
         if (role === 'superadmin') {
             query = `
                 SELECT h.id, h.name, h.address, h.description, h.email, 
-                       h.city, h.state, h.country, h.zip, h.phone, h.starRating,
+                       h.city, h.state, h.country, h.zip, h.phone,
                        u.name AS adminName, u.email AS adminEmail
                 FROM hotels h
                 LEFT JOIN users u ON h.admin_id = u.id
@@ -219,7 +218,7 @@ exports.getHotelById = async (req, res) => {
             params = [id];
         } else {
             query = `
-                SELECT id, name, address, description, email, city, state, country, zip, phone, starRating 
+                SELECT id, name, address, description, email, city, state, country, zip, phone
                 FROM hotels WHERE id = ? AND admin_id = ?
             `;
             params = [id, userId];
@@ -239,12 +238,10 @@ exports.getHotelById = async (req, res) => {
 };
 
 // ==================== GET ALL HOTELS (SUPERADMIN ONLY) ====================
-// ==================== GET ALL HOTELS (SuperAdmin only) ====================
 exports.getAllHotelsSuperAdmin = async (req, res) => {
     try {
         const { role } = req.user;
 
-        // Sirf superadmin ko allow karo
         if (role !== "superadmin") {
             return res.status(403).json({
                 success: false,
@@ -263,8 +260,7 @@ exports.getAllHotelsSuperAdmin = async (req, res) => {
                 h.state, 
                 h.country, 
                 h.zip, 
-                h.phone, 
-                h.starRating,
+                h.phone,
                 u.id AS adminId,
                 u.name AS adminName, 
                 u.email AS adminEmail,
@@ -284,5 +280,3 @@ exports.getAllHotelsSuperAdmin = async (req, res) => {
         res.status(500).json({ success: false, message: "Server error" });
     }
 };
-
-// ==================== GET USER'S HOTEL WITH ROOMS ====================

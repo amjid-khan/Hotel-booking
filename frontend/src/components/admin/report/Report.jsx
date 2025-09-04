@@ -523,7 +523,7 @@ const Reports = () => {
 
   if (!selectedHotelId) {
     return (
-      <div className="min-h-screen bg-gray-50 pl-64 p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 md:pl-64 p-4 md:p-8 flex items-center justify-center">
         <div className="text-center">
           <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-gray-700 mb-2">No Hotel Selected</h2>
@@ -534,7 +534,7 @@ const Reports = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pl-64">
+    <div className="min-h-screen bg-gray-50 md:pl-64 pt-[80px] md:pt-0">
       <div className="p-4 sm:p-6 lg:p-8">
         {/* Header */}
         <div className="mb-8">
@@ -567,7 +567,7 @@ const Reports = () => {
         {/* Filters */}
         <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 mb-8">
           <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <Filter className="w-5 h-5 text-gray-500" />
                 <span className="font-medium text-gray-700">Filters:</span>
@@ -602,7 +602,7 @@ const Reports = () => {
         </div>
 
         {/* Report Types Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           {reportTypes.map((type) => {
             const IconComponent = type.icon;
             const isSelected = selectedReport === type.id;

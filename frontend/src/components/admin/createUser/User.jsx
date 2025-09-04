@@ -92,8 +92,8 @@ const User = () => {
       email: user.email,
       phone: user.phone || "",
       password: "",
-      role: user.role,
-      status: user.status,
+      role: user.role || "user",
+      status: user.status || "active",
       profile_image: null,
       profile_image_url: user.profile_image ? `${BASE_URL}/uploads/${user.profile_image}` : null,
     });
@@ -124,20 +124,18 @@ const User = () => {
     );
   };
 
-const handleDelete = async (id) => {
-  if (!token) return toast.error("No token found — please log in first.");
-  
-  try {
-    // Call deleteUser with just the id parameter
-    await deleteUser(id);
-    setDeleteId(null);
-    toast.dismiss();
-    toast.success("User deleted successfully!");
-  } catch (error) {
-    console.error(error.response?.data || error.message);
-    toast.error(error.response?.data?.message || "Error deleting user");
-  }
-};
+  const handleDelete = async (id) => {
+    if (!token) return toast.error("No token found — please log in first.");
+    try {
+      await deleteUser(id);
+      setDeleteId(null);
+      toast.dismiss();
+      toast.success("User deleted successfully!");
+    } catch (error) {
+      console.error(error.response?.data || error.message);
+      toast.error(error.response?.data?.message || "Error deleting user");
+    }
+  };
 
   const getRoleColor = (role) => {
     const colors = {
@@ -153,42 +151,44 @@ const handleDelete = async (id) => {
     status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800";
 
   return (
-    <div className="min-h-screen bg-gray-50 pl-60">
+    <div className="min-h-screen bg-gray-50 md:pl-64 pt-16 md:pt-0">
       <ToastContainer position="top-right" autoClose={3000} />
 
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200 px-8 py-6 flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">User Management</h1>
-          <p className="text-gray-600">Manage hotel staff and user accounts efficiently.</p>
+      <div className="bg-white shadow-sm border-b border-gray-200 px-4 md:px-8 py-4 md:py-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">User Management</h1>
+            <p className="text-gray-600 text-sm md:text-base">Manage hotel staff and user accounts efficiently.</p>
+          </div>
+          <button
+            onClick={handleOpenModal}
+            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm"
+          >
+            <FaUserPlus className="text-sm" /> Create User
+          </button>
         </div>
-        <button
-          onClick={handleOpenModal}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 shadow-sm"
-        >
-          <FaUserPlus className="text-sm" /> Create User
-        </button>
       </div>
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center p-6 border-b border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900">
+            <div className="flex justify-between items-center p-4 md:p-6 border-b border-gray-200 sticky top-0 bg-white">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900">
                 {formData.id ? "Update User" : "Create New User"}
               </h2>
-              <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600">
-                <FaTimes size={24} />
+              <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600 p-1">
+                <FaTimes size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-4 md:space-y-6">
               {/* Profile Image */}
               <div className="text-center">
                 <label className="block text-sm font-medium text-gray-700 mb-4">Profile Picture</label>
                 <div className="flex flex-col items-center">
-                  <div className="relative w-24 h-24 rounded-full overflow-hidden shadow-md border-2 border-gray-200">
+                  <div className="relative w-20 md:w-24 h-20 md:h-24 rounded-full overflow-hidden shadow-md border-2 border-gray-200">
                     {formData.profile_image_url ? (
                       <img
                         src={formData.profile_image_url}
@@ -197,11 +197,11 @@ const handleDelete = async (id) => {
                       />
                     ) : (
                       <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                        <FaUser className="text-gray-400" size={40} />
+                        <FaUser className="text-gray-400" size={32} />
                       </div>
                     )}
-                    <label className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full cursor-pointer hover:bg-blue-700">
-                      <FaSync className="text-white" size={14} />
+                    <label className="absolute bottom-0 right-0 bg-blue-600 p-1.5 md:p-2 rounded-full cursor-pointer hover:bg-blue-700">
+                      <FaSync className="text-white" size={12} />
                       <input
                         type="file"
                         name="profile_image"
@@ -215,7 +215,7 @@ const handleDelete = async (id) => {
               </div>
 
               {/* Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
                   <input
@@ -224,7 +224,7 @@ const handleDelete = async (id) => {
                     value={formData.full_name}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
                   />
                 </div>
                 <div>
@@ -235,7 +235,7 @@ const handleDelete = async (id) => {
                     value={formData.email}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
                   />
                 </div>
                 <div>
@@ -245,7 +245,7 @@ const handleDelete = async (id) => {
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
                   />
                 </div>
                 <div>
@@ -259,30 +259,31 @@ const handleDelete = async (id) => {
                     onChange={handleChange}
                     required={!formData.id}
                     placeholder={formData.id ? "Leave blank to keep current password" : "Enter password"}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
                   />
                 </div>
+
+                {/* Role as Text Input */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Role *</label>
-                  <select
+                  <input
+                    type="text"
                     name="role"
                     value={formData.role}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="admin">Admin</option>
-                    <option value="manager">Manager</option>
-                    <option value="staff">Staff</option>
-                    <option value="user">User</option>
-                  </select>
+                    placeholder="Enter role (e.g., admin, manager)"
+                    required
+                    className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
+                  />
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Status *</label>
                   <select
                     name="status"
                     value={formData.status}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
                   >
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
@@ -291,18 +292,18 @@ const handleDelete = async (id) => {
               </div>
 
               {/* Buttons */}
-              <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-gray-200">
+              <div className="flex flex-col sm:flex-row justify-end gap-3 md:gap-4 mt-6 md:mt-8 pt-4 md:pt-6 border-t border-gray-200">
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                  className="w-full sm:w-auto px-4 md:px-6 py-2.5 md:py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm md:text-base"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
+                  className="w-full sm:w-auto px-6 md:px-8 py-2.5 md:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium text-sm md:text-base"
                 >
                   {submitting
                     ? formData.id ? "Updating..." : "Creating..."
@@ -314,27 +315,86 @@ const handleDelete = async (id) => {
         </div>
       )}
 
-      {/* Users Table */}
-      <div className="p-8">
+      {/* Users Table/Cards */}
+      <div className="p-4 md:p-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {Array.isArray(users) && users.length > 0 ? (
-            <table className="w-full hidden lg:table">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="py-4 px-6">Profile</th>
-                  <th className="py-4 px-6">Full Name</th>
-                  <th className="py-4 px-6">Email</th>
-                  <th className="py-4 px-6">Phone</th>
-                  <th className="py-4 px-6">Role</th>
-                  <th className="py-4 px-6">Status</th>
-                  <th className="py-4 px-6 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
+            <>
+              {/* Desktop Table */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="py-4 px-6 text-left font-semibold text-gray-900">Profile</th>
+                      <th className="py-4 px-6 text-left font-semibold text-gray-900">Full Name</th>
+                      <th className="py-4 px-6 text-left font-semibold text-gray-900">Email</th>
+                      <th className="py-4 px-6 text-left font-semibold text-gray-900">Phone</th>
+                      <th className="py-4 px-6 text-left font-semibold text-gray-900">Role</th>
+                      <th className="py-4 px-6 text-left font-semibold text-gray-900">Status</th>
+                      <th className="py-4 px-6 text-center font-semibold text-gray-900">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {users.map((user) => (
+                      <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="py-4 px-6">
+                          <div className="w-12 h-12 rounded-full overflow-hidden shadow-sm">
+                            {user.profile_image ? (
+                              <img
+                                src={`${BASE_URL}/uploads/${user.profile_image}`}
+                                alt={user.full_name || user.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                <FaUser className="text-gray-500" size={20} />
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 font-semibold">{user.full_name || user.name}</td>
+                        <td className="py-4 px-6 text-gray-600">{user.email}</td>
+                        <td className="py-4 px-6 text-gray-600">{user.phone || "-"}</td>
+                        <td className="py-4 px-6">
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(user.role)}`}>
+                            {user.role}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(user.status)}`}>
+                            {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <div className="flex justify-center gap-2">
+                            <button 
+                              onClick={() => handleEdit(user)} 
+                              className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                              title="Edit User"
+                            >
+                              <FaEdit size={16} />
+                            </button>
+                            <button 
+                              onClick={() => confirmDelete(user.id)} 
+                              className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                              title="Delete User"
+                            >
+                              <FaTrash size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Cards */}
+              <div className="lg:hidden divide-y divide-gray-200">
                 {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="py-4 px-6">
-                      <div className="w-12 h-12 rounded-full overflow-hidden shadow-sm">
+                  <div key={user.id} className="p-4 md:p-6">
+                    <div className="flex items-start gap-3 md:gap-4">
+                      <div className="w-16 md:w-20 h-16 md:h-20 rounded-full overflow-hidden shadow-sm flex-shrink-0">
                         {user.profile_image ? (
                           <img
                             src={`${BASE_URL}/uploads/${user.profile_image}`}
@@ -343,41 +403,61 @@ const handleDelete = async (id) => {
                           />
                         ) : (
                           <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                            <FaUser className="text-gray-500" size={20} />
+                            <FaUser className="text-gray-500" size={24} />
                           </div>
                         )}
                       </div>
-                    </td>
-                    <td className="py-4 px-6 font-semibold">{user.full_name || user.name}</td>
-                    <td className="py-4 px-6 text-gray-600">{user.email}</td>
-                    <td className="py-4 px-6 text-gray-600">{user.phone || "-"}</td>
-                    <td className="py-4 px-6">
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(user.role)}`}>
-                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(user.status)}`}>
-                        {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-center flex justify-center gap-2">
-                      <button onClick={() => handleEdit(user)} className="p-2 text-green-600 hover:bg-green-100 rounded-lg">
-                        <FaEdit size={16} />
-                      </button>
-                      <button onClick={() => confirmDelete(user.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg">
-                        <FaTrash size={16} />
-                      </button>
-                    </td>
-                  </tr>
+                      <div className="flex-grow min-w-0">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h4 className="font-semibold text-gray-900 text-sm md:text-base">
+                              {user.full_name || user.name}
+                            </h4>
+                            <p className="text-xs md:text-sm text-gray-600">{user.email}</p>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${getRoleColor(user.role)}`}>
+                              {user.role}
+                            </span>
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(user.status)}`}>
+                              {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="text-xs md:text-sm text-gray-600 mb-3">
+                          <p><span className="font-medium">Phone:</span> {user.phone || "Not provided"}</p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => handleEdit(user)}
+                            className="flex-1 sm:flex-none px-3 py-1.5 text-green-600 border border-green-600 rounded text-xs md:text-sm hover:bg-green-50 transition-colors"
+                            title="Edit User"
+                          >
+                            <FaEdit className="inline mr-1" size={12} />
+                            Edit
+                          </button>
+                          <button 
+                            onClick={() => confirmDelete(user.id)}
+                            className="flex-1 sm:flex-none px-3 py-1.5 text-red-600 border border-red-600 rounded text-xs md:text-sm hover:bg-red-50 transition-colors"
+                            title="Delete User"
+                          >
+                            <FaTrash className="inline mr-1" size={12} />
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </>
           ) : (
-            <div className="text-center py-16">
-              <FaUserPlus size={48} className="mx-auto opacity-50 mb-4" />
+            <div className="text-center py-12 md:py-16 px-4">
+              <FaUserPlus size={32} className="mx-auto opacity-50 mb-4 md:w-12 md:h-12" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No users found</h3>
-              <p className="text-gray-600">Start by creating your first user for this hotel.</p>
+              <p className="text-gray-600 text-sm md:text-base">Start by creating your first user for this hotel.</p>
             </div>
           )}
         </div>

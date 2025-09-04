@@ -27,13 +27,13 @@ const Setting = () => {
 
   if (!hotel) {
     return (
-      <div className="min-h-screen bg-gray-50 pl-0 md:pl-64">
-        <div className="flex items-center justify-center min-h-screen">
+      <div className="min-h-screen bg-gray-50 md:pl-64 pt-16 md:pt-0">
+        <div className="flex items-center justify-center min-h-screen p-4">
           <div className="text-center">
-            <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Building className="w-8 h-8 text-gray-400" />
+            <div className="w-12 md:w-16 h-12 md:h-16 bg-gray-200 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <Building className="w-6 md:w-8 h-6 md:h-8 text-gray-400" />
             </div>
-            <p className="text-gray-600 font-medium">No hotel selected or available</p>
+            <p className="text-gray-600 font-medium text-sm md:text-base">No hotel selected or available</p>
           </div>
         </div>
       </div>
@@ -174,7 +174,7 @@ const Setting = () => {
           {[...Array(5)].map((_, i) => (
             <Star
               key={i}
-              className={`w-6 h-6 cursor-pointer transition-colors ${i < safeRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300 hover:text-yellow-300"}`}
+              className={`w-5 md:w-6 h-5 md:h-6 cursor-pointer transition-colors ${i < safeRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300 hover:text-yellow-300"}`}
               onClick={() => handleInputChange("starRating", i + 1)}
             />
           ))}
@@ -184,9 +184,9 @@ const Setting = () => {
     return (
       <div className="flex items-center gap-2">
         {[...Array(5)].map((_, i) => (
-          <Star key={i} className={`w-4 h-4 ${i < safeRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} />
+          <Star key={i} className={`w-3 md:w-4 h-3 md:h-4 ${i < safeRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} />
         ))}
-        <span className="text-sm text-gray-600">({safeRating}/5)</span>
+        <span className="text-xs md:text-sm text-gray-600">({safeRating}/5)</span>
       </div>
     );
   };
@@ -200,7 +200,7 @@ const Setting = () => {
       <div key={field.key} className={field.type === "textarea" ? "col-span-full" : ""}>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           <div className="flex items-center gap-2">
-            <IconComponent className="w-4 h-4 text-gray-500" />
+            <IconComponent className="w-3 md:w-4 h-3 md:h-4 text-gray-500" />
             {field.label}
             {field.required && <span className="text-red-500">*</span>}
           </div>
@@ -216,7 +216,7 @@ const Setting = () => {
             onChange={(e) => handleInputChange(field.key, e.target.value)}
             readOnly={!isEditing}
             rows={4}
-            className={`w-full px-3 py-2.5 border rounded-lg transition-colors resize-none ${
+            className={`w-full px-3 py-2.5 border rounded-lg transition-colors resize-none text-sm md:text-base ${
               isEditing 
                 ? "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white" 
                 : "border-gray-300 bg-gray-50 cursor-not-allowed"
@@ -228,7 +228,7 @@ const Setting = () => {
             value={value || ""}
             onChange={(e) => handleInputChange(field.key, e.target.value)}
             readOnly={!isEditing}
-            className={`w-full px-3 py-2.5 border rounded-lg transition-colors ${
+            className={`w-full px-3 py-2.5 border rounded-lg transition-colors text-sm md:text-base ${
               isEditing 
                 ? "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white" 
                 : "border-gray-300 bg-gray-50 cursor-not-allowed"
@@ -237,8 +237,8 @@ const Setting = () => {
         )}
 
         {hasError && (
-          <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-            <AlertTriangle className="w-4 h-4" />
+          <p className="text-red-500 text-xs md:text-sm mt-1 flex items-center gap-1">
+            <AlertTriangle className="w-3 md:w-4 h-3 md:h-4" />
             {hasError}
           </p>
         )}
@@ -249,37 +249,37 @@ const Setting = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Main Content */}
-      <div className="pl-0 md:pl-64 p-6">
+      <div className="md:pl-64 pt-16 md:pt-0 p-4 md:p-6">
         <div className="max-w-5xl mx-auto">
           {/* Header */}
-          <div className="mb-8">
+          <div className="mb-6 md:mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <Settings className="w-6 h-6 text-white" />
+              <div className="flex items-center gap-3 md:gap-4">
+                <div className="w-10 md:w-12 h-10 md:h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <Settings className="w-5 md:w-6 h-5 md:h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Hotel Settings</h1>
-                  <p className="text-gray-600 mt-1">Manage your hotel information and preferences</p>
+                  <h1 className="text-xl md:text-2xl font-bold text-gray-900">Hotel Settings</h1>
+                  <p className="text-gray-600 mt-1 text-sm md:text-base">Manage your hotel information and preferences</p>
                 </div>
               </div>
               
               {/* Action Buttons */}
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
                 {!isEditing ? (
                   <>
                     <button 
                       onClick={handleEdit} 
-                      className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                      className="flex items-center justify-center gap-2 px-3 md:px-4 py-2 md:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm md:text-base"
                     >
-                      <Edit className="w-4 h-4" />
+                      <Edit className="w-3 md:w-4 h-3 md:h-4" />
                       Edit Hotel
                     </button>
                     <button 
                       onClick={() => setShowDeleteConfirm(true)} 
-                      className="flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                      className="flex items-center justify-center gap-2 px-3 md:px-4 py-2 md:py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors text-sm md:text-base"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3 md:w-4 h-3 md:h-4" />
                       Delete
                     </button>
                   </>
@@ -288,14 +288,14 @@ const Setting = () => {
                     <button 
                       onClick={handleSave} 
                       disabled={isLoading} 
-                      className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors disabled:cursor-not-allowed"
+                      className="flex items-center justify-center gap-2 px-3 md:px-4 py-2 md:py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors disabled:cursor-not-allowed text-sm md:text-base"
                     >
-                      <Save className="w-4 h-4" />
+                      <Save className="w-3 md:w-4 h-3 md:h-4" />
                       Save Changes
                     </button>
                     <button 
                       onClick={handleCancel} 
-                      className="flex items-center gap-2 px-4 py-2.5 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+                      className="flex items-center justify-center gap-2 px-3 md:px-4 py-2 md:py-2.5 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors text-sm md:text-base"
                     >
                       Cancel
                     </button>
@@ -306,20 +306,20 @@ const Setting = () => {
           </div>
 
           {/* Form Sections */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {fieldGroups.map((group, i) => {
               const GroupIcon = group.icon;
               return (
                 <div key={i} className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                  <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                        <GroupIcon className="w-4 h-4 text-white" />
+                  <div className="px-4 md:px-6 py-3 md:py-4 border-b border-gray-200 bg-gray-50">
+                    <div className="flex items-center gap-2 md:gap-3">
+                      <div className="w-6 md:w-8 h-6 md:h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <GroupIcon className="w-3 md:w-4 h-3 md:h-4 text-white" />
                       </div>
-                      <h2 className="text-lg font-semibold text-gray-900">{group.title}</h2>
+                      <h2 className="text-base md:text-lg font-semibold text-gray-900">{group.title}</h2>
                     </div>
                   </div>
-                  <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     {group.fields.map(renderField)}
                   </div>
                 </div>
@@ -331,20 +331,20 @@ const Setting = () => {
 
       {/* Loading Overlay */}
       {isLoading && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl">
-            <div className="relative w-20 h-20 mx-auto mb-6">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 md:p-8 max-w-sm w-full text-center shadow-2xl">
+            <div className="relative w-16 md:w-20 h-16 md:h-20 mx-auto mb-4 md:mb-6">
               <div className="absolute inset-0 rounded-full border-4 border-gray-100"></div>
               <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-blue-600 border-r-blue-600 animate-spin"></div>
               <div className="absolute inset-2 rounded-full border-3 border-transparent border-t-purple-500 animate-spin-slow"></div>
-              <div className="absolute inset-6 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 animate-pulse"></div>
+              <div className="absolute inset-4 md:inset-6 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 animate-pulse"></div>
             </div>
             
-            <div className="space-y-3">
-              <h3 className="text-xl font-bold text-gray-800">
+            <div className="space-y-2 md:space-y-3">
+              <h3 className="text-lg md:text-xl font-bold text-gray-800">
                 {showDeleteConfirm ? 'Deleting Hotel...' : 'Updating Hotel Information'}
               </h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
+              <p className="text-gray-600 text-xs md:text-sm leading-relaxed">
                 {showDeleteConfirm 
                   ? 'Please wait while we delete the hotel from our system...' 
                   : 'Please wait while we save your changes to the database...'
@@ -352,7 +352,7 @@ const Setting = () => {
               </p>
             </div>
             
-            <div className="mt-6">
+            <div className="mt-4 md:mt-6">
               <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
                 <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 h-full rounded-full animate-progress"></div>
               </div>
@@ -365,32 +365,32 @@ const Setting = () => {
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && !isLoading && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-8 max-w-md w-full shadow-2xl">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 relative">
+          <div className="bg-white rounded-xl p-6 md:p-8 max-w-md w-full shadow-2xl">
+            <div className="text-center mb-4 md:mb-6">
+              <div className="w-12 md:w-16 h-12 md:h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4 relative">
                 <div className="absolute inset-0 bg-red-200 rounded-full animate-ping opacity-75"></div>
-                <AlertTriangle className="w-8 h-8 text-red-600 relative z-10" />
+                <AlertTriangle className="w-6 md:w-8 h-6 md:h-8 text-red-600 relative z-10" />
               </div>
               
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Delete Hotel</h2>
-              <p className="text-gray-600 leading-relaxed">
+              <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-2">Delete Hotel</h2>
+              <p className="text-gray-600 leading-relaxed text-sm md:text-base">
                 Are you sure you want to delete "<span className="font-semibold text-gray-900">{hotel.name}</span>"? 
                 This action cannot be undone.
               </p>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
               <button 
                 onClick={() => setShowDeleteConfirm(false)} 
-                className="flex-1 px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium transition-colors"
+                className="flex-1 px-3 md:px-4 py-2 md:py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium transition-colors text-sm md:text-base"
               >
                 Cancel
               </button>
               <button 
                 onClick={handleDelete} 
-                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                className="flex-1 px-3 md:px-4 py-2 md:py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm md:text-base"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-3 md:w-4 h-3 md:h-4" />
                 Delete Hotel
               </button>
             </div>
@@ -399,25 +399,26 @@ const Setting = () => {
       )}
       
       <style jsx>{`
-        @keyframes spin-slow {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(-360deg); }
-        }
-        @keyframes progress {
-          0% { transform: translateX(-100%); }
-          50% { transform: translateX(0%); }
-          100% { transform: translateX(100%); }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 3s linear infinite;
-        }
-        .animate-progress {
-          animation: progress 2s ease-in-out infinite;
-        }
-        .border-3 {
-          border-width: 3px;
-        }
-      `}</style>
+  @keyframes spin-slow {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(-360deg); }
+  }
+  @keyframes progress {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(0%); }
+    100% { transform: translateX(100%); }
+  }
+  .animate-spin-slow {
+    animation: spin-slow 3s linear infinite;
+  }
+  .animate-progress {
+    animation: progress 2s ease-in-out infinite;
+  }
+  .border-3 {
+    border-width: 3px;
+  }
+`}</style>
+
     </div>
   );
 };
