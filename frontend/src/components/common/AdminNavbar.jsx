@@ -15,7 +15,7 @@ import { GiModernCity } from "react-icons/gi";
 import { AuthContext } from "../../contexts/AuthContext";
 
 const AdminNavbar = () => {
-  const { user, logout, hotels = [], selectedHotelId, selectHotel } =
+  const { user, logout, hotels = [], selectedHotelId, selectHotel, hotelName } =
     useContext(AuthContext);
   const [mobileActive, setMobileActive] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -71,10 +71,10 @@ const AdminNavbar = () => {
     { name: "Reports", path: "/reports", icon: <MdAnalytics /> },
   ];
 
-  // --- For USER ROLE: Find the hotel name assigned ---
+  // --- For USER ROLE: Assigned hotel name ---
   const assignedHotelName =
     user?.role === "user"
-      ? hotels.find((h) => h.id === user.hotelId)?.name || "Assigned Hotel"
+      ? hotels.find((h) => h.id === user.hotelId)?.name || hotelName || "Assigned Hotel"
       : null;
 
   return (
@@ -190,10 +190,7 @@ const AdminNavbar = () => {
                       className="w-full flex items-center justify-between px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 hover:border-gray-400 transition-colors duration-200"
                     >
                       <span className="truncate">
-                        {selectedHotelId
-                          ? hotels.find((h) => h.id === selectedHotelId)?.name ||
-                            "Select Hotel"
-                          : "Select Hotel"}
+                        {hotels.find((h) => h.id === selectedHotelId)?.name || "Select Hotel"}
                       </span>
                       <FaChevronDown
                         className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${

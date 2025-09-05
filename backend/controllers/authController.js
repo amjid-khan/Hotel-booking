@@ -80,16 +80,7 @@ exports.loginUser = async (req, res) => {
         };
         const token = generateToken(tokenPayload);
 
-        // Fetch hotel details if user is not admin
-        let hotelDetails = null;
-        if (user.role !== 'admin' && user.hotelId) {
-            const [hotels] = await pool.query('SELECT * FROM hotels WHERE id = ?', [user.hotelId]);
-            if (hotels.length > 0) {
-                hotelDetails = hotels[0];
-            }
-        }
-
-        // Merge hotel into user object directly
+        // Respond only with hotelId (no full hotel details)
         res.json({
             user: {
                 id: user.id,
@@ -99,8 +90,7 @@ exports.loginUser = async (req, res) => {
                 hotelId: user.role === 'admin' ? null : user.hotelId,
                 phone: user.phone || null,
                 profile_image: user.profile_image || null,
-                status: user.status || 'active',
-                hotel: hotelDetails || null // <-- hotel details yahan aa jayenge
+                status: user.status || 'active'
             },
             token
         });
@@ -109,6 +99,8 @@ exports.loginUser = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+
 
 
 // ====================== UPDATE USER ======================

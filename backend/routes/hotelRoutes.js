@@ -48,5 +48,4 @@ router.put('/superadmin/hotel/:id', protect, isSuperAdmin, updateHotel);
 // Delete any hotel by ID (SuperAdmin can delete any hotel)
 router.delete('/superadmin/hotel/:id', protect, isSuperAdmin, deleteHotel);
 
-
 module.exports = router;
