@@ -280,3 +280,93 @@ exports.getAllHotelsSuperAdmin = async (req, res) => {
         res.status(500).json({ success: false, message: "Server error" });
     }
 };
+
+
+// ==================== GET ROLE'S ASSIGNED HOTEL DASHBOARD ====================
+exports.getRoleHotelDashboard = async (req, res) => {
+    try {
+        const { id: userId, role } = req.user;
+
+        // Skip for admin and superadmin - they have separate flows
+        if (role === "admin" || role === "superadmin") {
+            return res.status(403).json({
+                success: false,
+                message: "Use appropriate admin/superadmin endpoints"
+            });
+        }
+
+        // Get user's assigned hotel ID
+        const [userRows] = await db.execute(
+            'SELECT hotelId FROM users WHERE id = ?',
+            [userId]
+        );
+
+        if (!userRows.length || !userRows[0].hotelId) {
+            return res.status(404).json({
+                success: false,
+                message: 'No hotel assigned to this user'
+            });
+        }
+
+        const hotelId = userRows[0].hotelId;
+
+        // Get complete hotel information
+        const [hotelRows] = await db.execute(`
+            SELECT 
+                h.id, 
+                h.name, 
+                h.address, 
+                h.description, 
+                h.email, 
+                h.city, 
+                h.state, 
+                h.country, 
+                h.zip, 
+                h.phone,
+                u.name AS adminName,
+                u.email AS adminEmail
+            FROM hotels h
+            LEFT JOIN users u ON h.admin_id = u.id
+            WHERE h.id = ?
+        `, [hotelId]);
+
+        if (!hotelRows.length) {
+            return res.status(404).json({
+                success: false,
+                message: 'Hotel not found'
+            });
+        }
+
+        // Optional: Get additional hotel stats (rooms, bookings, etc.)
+        const [roomStats] = await db.execute(`
+            SELECT 
+                COUNT(*) as totalRooms,
+                COUNT(CASE WHEN status = 'available' THEN 1 END) as availableRooms,
+                COUNT(CASE WHEN status = 'occupied' THEN 1 END) as occupiedRooms,
+                COUNT(CASE WHEN status = 'maintenance' THEN 1 END) as maintenanceRooms
+            FROM rooms 
+            WHERE hotelId = ?
+        `, [hotelId]);
+
+        const hotel = {
+            ...hotelRows[0],
+            stats: roomStats[0] || {
+                totalRooms: 0,
+                availableRooms: 0,
+                occupiedRooms: 0,
+                maintenanceRooms: 0
+            }
+        };
+
+        res.json({
+            success: true,
+            message: 'Hotel dashboard data retrieved successfully',
+            hotel,
+            userRole: role
+        });
+
+    } catch (err) {
+        console.error("Error fetching role hotel dashboard:", err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};

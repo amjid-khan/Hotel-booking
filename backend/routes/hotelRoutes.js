@@ -10,7 +10,7 @@ const {
     deleteHotel,
     getHotelById,
     getAllHotelsSuperAdmin,
-    getUserHotelWithRooms
+    getRoleHotelDashboard
 } = require('../controllers/hotelController');
 
 // ==================== ADMIN ROUTES ====================
@@ -47,6 +47,11 @@ router.put('/superadmin/hotel/:id', protect, isSuperAdmin, updateHotel);
 
 // Delete any hotel by ID (SuperAdmin can delete any hotel)
 router.delete('/superadmin/hotel/:id', protect, isSuperAdmin, deleteHotel);
+
+
+// ==================== ROLE USER ROUTES ====================
+// Get assigned hotel dashboard for role users (receptionist, manager, etc.)
+router.get('/dashboard', protect, getRoleHotelDashboard);
 
 
 module.exports = router;

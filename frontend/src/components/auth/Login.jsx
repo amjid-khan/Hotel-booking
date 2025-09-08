@@ -13,6 +13,8 @@ function LoginRegister() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const BASE_URL = import.meta.env.VITE_BASE_URL;
+
   const onChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -45,7 +47,7 @@ function LoginRegister() {
     try {
       if (isRegister) {
         // Registration (role is always "admin")
-        await axios.post('http://localhost:5000/api/auth/register', {
+        await axios.post(`${BASE_URL}/api/auth/register`, {
           full_name,
           email,
           password,
@@ -56,7 +58,7 @@ function LoginRegister() {
         setFormData({ full_name: '', email: '', password: '', role: 'admin' });
       } else {
         // Login
-        const response = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+        const response = await axios.post(`${BASE_URL}/api/auth/login`, { email, password });
         const { user, token } = response.data;
 
         // Save to AuthContext & localStorage
@@ -65,7 +67,7 @@ function LoginRegister() {
         // Navigate based on role
         if (user.role === 'admin') {
           // Fetch admin hotels
-          const hotelRes = await axios.get(`http://localhost:5000/api/hotels/admin/${user.id}`, {
+          const hotelRes = await axios.get(`${BASE_URL}/api/hotels/admin/${user.id}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           const hotels = hotelRes.data || [];
