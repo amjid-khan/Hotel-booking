@@ -8,6 +8,7 @@ import {
   FaChevronDown,
   FaSignOutAlt,
   FaCheck,
+  FaBed,
 } from "react-icons/fa";
 import { MdDashboard, MdBookOnline, MdAnalytics } from "react-icons/md";
 import { HiPlus, HiUsers, HiCog } from "react-icons/hi";
@@ -65,6 +66,7 @@ const AdminNavbar = () => {
   const links = [
     { name: "Dashboard", path: "/admin", icon: <MdDashboard /> },
     { name: "Add Room", path: "/add-room", icon: <HiPlus /> },
+    { name: "Room Booking", path: "/room-booking", icon: <FaBed /> },
     { name: "Booking Orders", path: "/bookings", icon: <MdBookOnline /> },
     { name: "Users", path: "/users", icon: <HiUsers /> },
     { name: "Settings", path: "/settings", icon: <HiCog /> },
@@ -125,12 +127,12 @@ const AdminNavbar = () => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-50 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 h-screen w-64 bg-white border-r border-gray-200 z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${
           mobileActive ? "translate-x-0" : "-translate-x-full"
         } md:translate-x-0 md:z-30`}
       >
         {/* Header (Visible on Desktop) */}
-        <div className="hidden md:flex h-16 items-center justify-between px-6 border-b border-gray-200 bg-gray-50/50">
+        <div className="hidden md:flex h-16 items-center justify-between px-6 border-b border-gray-200 bg-gray-50/50 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <GiModernCity className="text-white text-lg" />
@@ -156,7 +158,7 @@ const AdminNavbar = () => {
 
         {/* User Section */}
         {user && (
-          <div className="p-6 border-b border-gray-200 bg-gray-50/30 mt-16 md:mt-0">
+          <div className="p-6 border-b border-gray-200 bg-gray-50/30 mt-16 md:mt-0 flex-shrink-0">
             <div className="flex items-center gap-3 mb-4">
               <div className="relative">
                 <FaUserCircle className="w-10 h-10 text-gray-400" />
@@ -240,36 +242,38 @@ const AdminNavbar = () => {
           </div>
         )}
 
-        {/* Navigation */}
-        <nav className="flex-1 p-4">
-          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-2">
-            Navigation
-          </div>
-          <div className="space-y-1">
-            {links.map((link) => (
-              <NavLink
-                key={link.name}
-                to={link.path}
-                onClick={() => setMobileActive(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200 ${
-                    isActive
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  }`
-                }
-              >
-                <span className="w-5 h-5 flex items-center justify-center">
-                  {link.icon}
-                </span>
-                {link.name}
-              </NavLink>
-            ))}
-          </div>
-        </nav>
+        {/* Navigation - Scrollable */}
+        <div className="flex-1 overflow-hidden">
+          <nav className="h-full overflow-y-auto p-4">
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-2">
+              Navigation
+            </div>
+            <div className="space-y-1 pb-4">
+              {links.map((link) => (
+                <NavLink
+                  key={link.name}
+                  to={link.path}
+                  onClick={() => setMobileActive(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                      isActive
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    }`
+                  }
+                >
+                  <span className="w-5 h-5 flex items-center justify-center">
+                    {link.icon}
+                  </span>
+                  {link.name}
+                </NavLink>
+              ))}
+            </div>
+          </nav>
+        </div>
 
-        {/* Logout Section */}
-        <div className="p-4 border-t border-gray-200">
+        {/* Logout Section - Fixed at bottom */}
+        <div className="p-4 border-t border-gray-200 flex-shrink-0">
           <button
             onClick={() => setShowLogoutConfirm(true)}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-300 hover:border-red-400 rounded-lg text-sm font-medium transition-colors duration-200"

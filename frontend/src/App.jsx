@@ -17,6 +17,7 @@ import SuperAdminLayout from "./components/layout/SuperAdminLayout";
 import SuperAdminHotel from "./components/SuperAdmin/SuperAdminHotel";
 import UserList from "./components/SuperAdmin/UserList";
 import BookingOrders from "./components/admin/bookinorder/BookingOrders";
+import RoomBookimg from "./components/admin/roombooking/RoomBookimg";
 
 // --- After login, redirect based on role + hotel status ---
 function HomeRedirect() {
@@ -121,6 +122,7 @@ export default function App() {
           <Route path="/settings" element={<Setting />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/bookings" element={<BookingOrders />} />
+          <Route path="/room-booking" element={<RoomBookimg />} />
         </Route>
       </Route>
 
