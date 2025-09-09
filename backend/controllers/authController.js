@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+const { User, Hotel } = require('../models');
 const bcrypt = require('bcryptjs');
 const generateToken = require('../utils/generateToken');
 const fs = require('fs');
@@ -15,37 +15,28 @@ exports.registerUser = async (req, res) => {
 
     try {
         // Check if email exists
-        const [existing] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
-        if (existing.length > 0) {
+        const existing = await User.findOne({ where: { email } });
+        if (existing) {
             return res.status(400).json({ message: 'User already exists' });
         }
 
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        let query, params;
-        if (role === 'admin') {
-            query = 'INSERT INTO users (name, email, password, role, phone, profile_image, status) VALUES (?, ?, ?, ?, ?, ?, ?)';
-            params = [full_name, email, hashedPassword, role, phone || null, profile_image, status || 'active'];
-        } else {
-            query = 'INSERT INTO users (name, email, password, role, hotelId, phone, profile_image, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
-            params = [full_name, email, hashedPassword, role, hotelId || null, phone || null, profile_image, status || 'active'];
-        }
-
-        const [result] = await pool.query(query, params);
-
-        const user = {
-            id: result.insertId,
-            full_name,
+        let userData = {
+            name: full_name,
             email,
+            password: hashedPassword,
             role,
-            hotelId: role === 'admin' ? null : (hotelId || null),
             phone: phone || null,
             profile_image,
             status: status || 'active'
         };
+        if (role !== 'admin') userData.hotelId = hotelId || null;
 
-        const token = generateToken(user);
+        const user = await User.create(userData);
+
+        const token = generateToken(user.toJSON());
         res.status(201).json({ user, token });
 
     } catch (error) {
@@ -62,14 +53,11 @@ exports.loginUser = async (req, res) => {
     }
 
     try {
-        const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
-        if (users.length === 0) return res.status(400).json({ message: 'Invalid credentials' });
+        const user = await User.findOne({ where: { email } });
+        if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
-        const user = users[0];
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
-
-        delete user.password;
 
         // Token payload
         const tokenPayload = {
@@ -83,13 +71,9 @@ exports.loginUser = async (req, res) => {
         // Fetch hotel details if user is not admin
         let hotelDetails = null;
         if (user.role !== 'admin' && user.hotelId) {
-            const [hotels] = await pool.query('SELECT * FROM hotels WHERE id = ?', [user.hotelId]);
-            if (hotels.length > 0) {
-                hotelDetails = hotels[0];
-            }
+            hotelDetails = await Hotel.findByPk(user.hotelId);
         }
 
-        // Merge hotel into user object directly
         res.json({
             user: {
                 id: user.id,
@@ -100,7 +84,7 @@ exports.loginUser = async (req, res) => {
                 phone: user.phone || null,
                 profile_image: user.profile_image || null,
                 status: user.status || 'active',
-                hotel: hotelDetails || null // <-- hotel details yahan aa jayenge
+                hotel: hotelDetails || null
             },
             token
         });
@@ -110,7 +94,6 @@ exports.loginUser = async (req, res) => {
     }
 };
 
-
 // ====================== UPDATE USER ======================
 exports.updateUser = async (req, res) => {
     const { id } = req.params;
@@ -118,10 +101,9 @@ exports.updateUser = async (req, res) => {
     const profile_image = req.file ? req.file.filename : null;
 
     try {
-        const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
-        if (users.length === 0) return res.status(404).json({ message: 'User not found' });
+        const user = await User.findByPk(id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
 
-        const user = users[0];
         const hashedPassword = password ? await bcrypt.hash(password, 10) : user.password;
 
         if (profile_image && user.profile_image) {
@@ -129,16 +111,18 @@ exports.updateUser = async (req, res) => {
             if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
         }
 
-        let query, params;
-        if (role === 'admin') {
-            query = 'UPDATE users SET name = ?, email = ?, password = ?, role = ?, phone = ?, profile_image = ?, status = ? WHERE id = ?';
-            params = [full_name || user.name, email || user.email, hashedPassword, role, phone || user.phone, profile_image || user.profile_image, status || user.status, id];
-        } else {
-            query = 'UPDATE users SET name = ?, email = ?, password = ?, role = ?, hotelId = ?, phone = ?, profile_image = ?, status = ? WHERE id = ?';
-            params = [full_name || user.name, email || user.email, hashedPassword, role, hotelId || user.hotelId, phone || user.phone, profile_image || user.profile_image, status || user.status, id];
-        }
+        let updateData = {
+            name: full_name || user.name,
+            email: email || user.email,
+            password: hashedPassword,
+            role: role || user.role,
+            phone: phone || user.phone,
+            profile_image: profile_image || user.profile_image,
+            status: status || user.status
+        };
+        if (role !== 'admin') updateData.hotelId = hotelId || user.hotelId;
 
-        await pool.query(query, params);
+        await user.update(updateData);
         res.json({ message: 'User updated successfully' });
     } catch (error) {
         console.error(error);
@@ -151,17 +135,15 @@ exports.deleteUser = async (req, res) => {
     const { id } = req.params;
 
     try {
-        const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
-        if (users.length === 0) return res.status(404).json({ message: 'User not found' });
-
-        const user = users[0];
+        const user = await User.findByPk(id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
 
         if (user.profile_image) {
             const imagePath = path.join(__dirname, '../uploads', user.profile_image);
             if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
         }
 
-        await pool.query('DELETE FROM users WHERE id = ?', [id]);
+        await user.destroy();
         res.json({ message: 'User deleted successfully' });
     } catch (error) {
         console.error(error);
@@ -176,7 +158,7 @@ exports.getHotelUsers = async (req, res) => {
     if (!hotelId) return res.status(400).json({ message: "hotelId is required" });
 
     try {
-        const [users] = await pool.query('SELECT * FROM users WHERE hotelId = ?', [hotelId]);
+        const users = await User.findAll({ where: { hotelId } });
         res.json({ users });
     } catch (error) {
         console.error(error);
@@ -187,7 +169,7 @@ exports.getHotelUsers = async (req, res) => {
 // ====================== GET ALL USERS (SUPERADMIN ONLY) ======================
 exports.getAllUsers = async (req, res) => {
     try {
-        const [users] = await pool.query('SELECT * FROM users');
+        const users = await User.findAll();
         res.json({ success: true, users });
     } catch (error) {
         console.error(error);
@@ -202,10 +184,9 @@ exports.updateAnyUser = async (req, res) => {
     const profile_image = req.file ? req.file.filename : null;
 
     try {
-        const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
-        if (users.length === 0) return res.status(404).json({ message: 'User not found' });
+        const user = await User.findByPk(id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
 
-        const user = users[0];
         const hashedPassword = password ? await bcrypt.hash(password, 10) : user.password;
 
         if (profile_image && user.profile_image) {
@@ -213,16 +194,20 @@ exports.updateAnyUser = async (req, res) => {
             if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
         }
 
-        let query, params;
-        if ((role || user.role) === 'admin' || (role || user.role) === 'superadmin') {
-            query = 'UPDATE users SET name = ?, email = ?, password = ?, role = ?, phone = ?, profile_image = ?, status = ? WHERE id = ?';
-            params = [full_name || user.name, email || user.email, hashedPassword, role || user.role, phone || user.phone, profile_image || user.profile_image, status || user.status, id];
-        } else {
-            query = 'UPDATE users SET name = ?, email = ?, password = ?, role = ?, hotelId = ?, phone = ?, profile_image = ?, status = ? WHERE id = ?';
-            params = [full_name || user.name, email || user.email, hashedPassword, role || user.role, hotelId || user.hotelId, phone || user.phone, profile_image || user.profile_image, status || user.status, id];
+        let updateData = {
+            name: full_name || user.name,
+            email: email || user.email,
+            password: hashedPassword,
+            role: role || user.role,
+            phone: phone || user.phone,
+            profile_image: profile_image || user.profile_image,
+            status: status || user.status
+        };
+        if ((role || user.role) !== 'admin' && (role || user.role) !== 'superadmin') {
+            updateData.hotelId = hotelId || user.hotelId;
         }
 
-        await pool.query(query, params);
+        await user.update(updateData);
         res.json({ success: true, message: 'User updated successfully' });
     } catch (error) {
         console.error(error);
@@ -235,49 +220,19 @@ exports.deleteAnyUser = async (req, res) => {
     const { id } = req.params;
 
     try {
-        const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
-        if (users.length === 0) return res.status(404).json({ message: 'User not found' });
+        const user = await User.findByPk(id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
 
-        const user = users[0];
-
-        if (user.profile_image) {
-            const imagePath = path.join(__dirname, '../uploads', user.profile_image);
-            if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
-        }
-
-        await pool.query('DELETE FROM users WHERE id = ?', [id]);
-        res.json({ success: true, message: 'User deleted successfully' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error' });
-    }
-};
-
-
-// ====================== DELETE ANY USER (SUPERADMIN ONLY) ======================
-exports.deleteAnyUser = async (req, res) => {
-    const { id } = req.params;
-
-    try {
-        // Check if user exists
-        const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
-        if (users.length === 0) return res.status(404).json({ message: 'User not found' });
-
-        const user = users[0];
-
-        // Prevent superadmin from deleting themselves
         if (req.user && req.user.id === parseInt(id)) {
             return res.status(400).json({ message: 'Cannot delete your own account' });
         }
 
-        // Delete profile image if exists
         if (user.profile_image) {
             const imagePath = path.join(__dirname, '../uploads', user.profile_image);
             if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
         }
 
-        // Delete user
-        await pool.query('DELETE FROM users WHERE id = ?', [id]);
+        await user.destroy();
 
         res.json({
             success: true,
@@ -289,4 +244,3 @@ exports.deleteAnyUser = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
-

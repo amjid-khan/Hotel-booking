@@ -1,57 +1,40 @@
-const pool = require('../config/db');
+'use strict';
+module.exports = (sequelize, DataTypes) => {
+    const Room = sequelize.define('Room', {
+        roomNumber: {
+            type: DataTypes.STRING(50),
+            allowNull: false
+        },
+        type: DataTypes.STRING(50),
+        price: {
+            type: DataTypes.DECIMAL(10, 2),
+            allowNull: false
+        },
+        image: DataTypes.STRING(255),
+        capacity: DataTypes.INTEGER,
+        description: DataTypes.TEXT,
+        hotelId: {
+            type: DataTypes.INTEGER,
+            references: {
+                model: 'hotels',
+                key: 'id'
+            }
+        },
+        isAvailable: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: true
+        }
+    }, {
+        tableName: 'rooms',
+        underscored: false,
+        timestamps: true,
+        createdAt: 'created_at',
+        updatedAt: 'updated_at'
+    });
 
-const getAllRooms = async () => {
-    const [rows] = await pool.query('SELECT * FROM rooms');
-    return rows;
-};
+    Room.associate = function (models) {
+        Room.belongsTo(models.Hotel, { foreignKey: 'hotelId', as: 'hotel' });
+    };
 
-const getRoomById = async (id) => {
-    const [rows] = await pool.query('SELECT * FROM rooms WHERE id = ?', [id]);
-    return rows[0];
-};
-
-const createRoom = async ({ roomNumber, type, price }) => {
-    const [result] = await pool.query(
-        'INSERT INTO rooms (roomNumber, type, price) VALUES (?, ?, ?)',
-        [roomNumber, type, price]
-    );
-    return result.insertId;
-};
-
-const updateRoom = async (id, { roomNumber, type, price }) => {
-    const fields = [];
-    const values = [];
-
-    if (roomNumber) {
-        fields.push('roomNumber = ?');
-        values.push(roomNumber);
-    }
-    if (type) {
-        fields.push('type = ?');
-        values.push(type);
-    }
-    if (price) {
-        fields.push('price = ?');
-        values.push(price);
-    }
-    if (fields.length === 0) return false;
-
-    values.push(id);
-    const sql = `UPDATE rooms SET ${fields.join(', ')} WHERE id = ?`;
-
-    const [result] = await pool.query(sql, values);
-    return result.affectedRows > 0;
-};
-
-const deleteRoom = async (id) => {
-    const [result] = await pool.query('DELETE FROM rooms WHERE id = ?', [id]);
-    return result.affectedRows > 0;
-};
-
-module.exports = {
-    getAllRooms,
-    getRoomById,
-    createRoom,
-    updateRoom,
-    deleteRoom,
+    return Room;
 };

@@ -1,66 +1,48 @@
-const pool = require('../config/db');
-const bcrypt = require('bcryptjs');
+'use strict';
+module.exports = (sequelize, DataTypes) => {
+    const User = sequelize.define('User', {
+        name: {
+            type: DataTypes.STRING(100),
+            allowNull: false
+        },
+        email: {
+            type: DataTypes.STRING(100),
+            allowNull: false,
+            unique: true
+        },
+        password: {
+            type: DataTypes.STRING(255),
+            allowNull: false
+        },
+        role: {
+            type: DataTypes.ENUM('user', 'admin', 'superadmin'),
+            allowNull: false,
+            defaultValue: 'user'
+        },
+        hotelId: {
+            type: DataTypes.INTEGER,
+            references: {
+                model: 'hotels',
+                key: 'id'
+            }
+        },
+        phone: DataTypes.STRING(20),
+        profile_image: DataTypes.STRING(255),
+        status: {
+            type: DataTypes.ENUM('active', 'inactive'),
+            defaultValue: 'active'
+        }
+    }, {
+        tableName: 'users',
+        underscored: false,
+        timestamps: true,
+        createdAt: 'created_at',
+        updatedAt: 'updated_at'
+    });
 
-const getUserById = async (id) => {
-    const [rows] = await pool.query('SELECT id, name, email, role FROM users WHERE id = ?', [id]);
-    return rows[0];
-};
+    User.associate = function (models) {
+        User.belongsTo(models.Hotel, { foreignKey: 'hotelId', as: 'hotel' });
+    };
 
-const getUserByEmail = async (email) => {
-    const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
-    return rows[0];
-};
-
-const createUser = async ({ name, email, password, role = 'user' }) => {
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const [result] = await pool.query(
-        'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
-        [name, email, hashedPassword, role]
-    );
-    return result.insertId;
-};
-
-const updateUser = async (id, { name, email, password }) => {
-    const fields = [];
-    const values = [];
-
-    if (name) {
-        fields.push('name = ?');
-        values.push(name);
-    }
-    if (email) {
-        fields.push('email = ?');
-        values.push(email);
-    }
-    if (password) {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        fields.push('password = ?');
-        values.push(hashedPassword);
-    }
-    if (fields.length === 0) return false;
-
-    values.push(id);
-    const sql = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
-
-    const [result] = await pool.query(sql, values);
-    return result.affectedRows > 0;
-};
-
-const deleteUser = async (id) => {
-    const [result] = await pool.query('DELETE FROM users WHERE id = ?', [id]);
-    return result.affectedRows > 0;
-};
-
-const getAllUsers = async () => {
-    const [rows] = await pool.query('SELECT id, name, email, role FROM users');
-    return rows;
-};
-
-module.exports = {
-    getUserById,
-    getUserByEmail,
-    createUser,
-    updateUser,
-    deleteUser,
-    getAllUsers,
+    return User;
 };

@@ -1,4 +1,4 @@
-const db = require("../config/db.js");
+const { Hotel, User, Room } = require("../models");
 
 // ==================== CREATE NEW HOTEL (Admin only) ====================
 exports.createHotel = async (req, res) => {
@@ -10,33 +10,23 @@ exports.createHotel = async (req, res) => {
 
         const adminId = req.user.id;
 
-        const query = `
-            INSERT INTO hotels 
-            (admin_id, name, address, description, email, city, state, country, zip, phone) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `;
-        const [result] = await db.execute(query, [
-            adminId, name, address, description,
-            email, city, state, country, zip, phone
-        ]);
-
-        const hotelId = result.insertId;
+        const hotel = await Hotel.create({
+            adminId,
+            name,
+            address,
+            description,
+            email,
+            city,
+            state,
+            country,
+            zip,
+            phone
+        });
 
         res.status(201).json({
             success: true,
             message: 'Hotel created successfully',
-            hotel: {
-                id: hotelId,
-                name,
-                address,
-                description,
-                email,
-                city,
-                state,
-                country,
-                zip,
-                phone
-            }
+            hotel
         });
     } catch (err) {
         console.error("Error creating hotel:", err);
@@ -48,11 +38,10 @@ exports.createHotel = async (req, res) => {
 exports.getAdminHotels = async (req, res) => {
     try {
         const adminId = req.user.id;
-        const query = `
-            SELECT id, name, address, description, email, city, state, country, zip, phone
-            FROM hotels WHERE admin_id = ?
-        `;
-        const [hotels] = await db.execute(query, [adminId]);
+        const hotels = await Hotel.findAll({
+            where: { adminId },
+            attributes: ['id', 'name', 'address', 'description', 'email', 'city', 'state', 'country', 'zip', 'phone']
+        });
 
         res.json({ success: true, hotels });
     } catch (err) {
@@ -67,17 +56,17 @@ exports.checkHotel = async (req, res) => {
         const { id: userId, role } = req.user;
 
         if (role === "admin") {
-            const [rows] = await db.execute(
-                'SELECT id, name FROM hotels WHERE admin_id = ? LIMIT 1',
-                [userId]
-            );
+            const hotel = await Hotel.findOne({
+                where: { adminId: userId },
+                attributes: ['id', 'name']
+            });
 
-            if (rows.length > 0) {
+            if (hotel) {
                 return res.json({
                     success: true,
                     hasHotel: true,
-                    hotelId: rows[0].id,
-                    hotelName: rows[0].name
+                    hotelId: hotel.id,
+                    hotelName: hotel.name
                 });
             } else {
                 return res.json({
@@ -88,12 +77,8 @@ exports.checkHotel = async (req, res) => {
                 });
             }
         } else {
-            const [userRows] = await db.execute(
-                'SELECT hotelId FROM users WHERE id = ?',
-                [userId]
-            );
-
-            if (!userRows.length || !userRows[0].hotelId) {
+            const user = await User.findByPk(userId);
+            if (!user || !user.hotelId) {
                 return res.json({
                     success: true,
                     hasHotel: false,
@@ -102,14 +87,8 @@ exports.checkHotel = async (req, res) => {
                 });
             }
 
-            const hotelId = userRows[0].hotelId;
-
-            const [hotelRows] = await db.execute(
-                'SELECT name FROM hotels WHERE id = ?',
-                [hotelId]
-            );
-
-            if (!hotelRows.length) {
+            const hotel = await Hotel.findByPk(user.hotelId, { attributes: ['name'] });
+            if (!hotel) {
                 return res.json({
                     success: true,
                     hasHotel: false,
@@ -121,8 +100,8 @@ exports.checkHotel = async (req, res) => {
             return res.json({
                 success: true,
                 hasHotel: true,
-                hotelId,
-                hotelName: hotelRows[0].name
+                hotelId: user.hotelId,
+                hotelName: hotel.name
             });
         }
     } catch (err) {
@@ -141,29 +120,19 @@ exports.updateHotel = async (req, res) => {
         } = req.body;
         const { id: userId, role } = req.user;
 
-        let query, params;
+        let hotel;
         if (role === 'superadmin') {
-            query = `
-                UPDATE hotels 
-                SET name = ?, address = ?, description = ?, 
-                    email = ?, city = ?, state = ?, country = ?, zip = ?, phone = ?
-                WHERE id = ?
-            `;
-            params = [name, address, description, email, city, state, country, zip, phone, id];
+            hotel = await Hotel.findByPk(id);
         } else {
-            query = `
-                UPDATE hotels 
-                SET name = ?, address = ?, description = ?, 
-                    email = ?, city = ?, state = ?, country = ?, zip = ?, phone = ?
-                WHERE id = ? AND admin_id = ?
-            `;
-            params = [name, address, description, email, city, state, country, zip, phone, id, userId];
+            hotel = await Hotel.findOne({ where: { id, adminId: userId } });
         }
 
-        const [result] = await db.execute(query, params);
-
-        if (result.affectedRows === 0)
+        if (!hotel)
             return res.status(404).json({ success: false, message: 'Hotel not found or access denied' });
+
+        await hotel.update({
+            name, address, description, email, city, state, country, zip, phone
+        });
 
         res.json({ success: true, message: 'Hotel updated successfully' });
     } catch (err) {
@@ -178,19 +147,17 @@ exports.deleteHotel = async (req, res) => {
         const { id } = req.params;
         const { id: userId, role } = req.user;
 
-        let query, params;
+        let hotel;
         if (role === 'superadmin') {
-            query = 'DELETE FROM hotels WHERE id = ?';
-            params = [id];
+            hotel = await Hotel.findByPk(id);
         } else {
-            query = 'DELETE FROM hotels WHERE id = ? AND admin_id = ?';
-            params = [id, userId];
+            hotel = await Hotel.findOne({ where: { id, adminId: userId } });
         }
 
-        const [result] = await db.execute(query, params);
-
-        if (result.affectedRows === 0)
+        if (!hotel)
             return res.status(404).json({ success: false, message: 'Hotel not found or access denied' });
+
+        await hotel.destroy();
 
         res.json({ success: true, message: 'Hotel deleted successfully' });
     } catch (err) {
@@ -205,32 +172,33 @@ exports.getHotelById = async (req, res) => {
         const { id } = req.params;
         const { id: userId, role } = req.user;
 
-        let query, params;
+        let hotel;
         if (role === 'superadmin') {
-            query = `
-                SELECT h.id, h.name, h.address, h.description, h.email, 
-                       h.city, h.state, h.country, h.zip, h.phone,
-                       u.name AS adminName, u.email AS adminEmail
-                FROM hotels h
-                LEFT JOIN users u ON h.admin_id = u.id
-                WHERE h.id = ?
-            `;
-            params = [id];
+            hotel = await Hotel.findOne({
+                where: { id },
+                include: [{
+                    model: User,
+                    as: 'admin',
+                    attributes: ['name', 'email']
+                }]
+            });
         } else {
-            query = `
-                SELECT id, name, address, description, email, city, state, country, zip, phone
-                FROM hotels WHERE id = ? AND admin_id = ?
-            `;
-            params = [id, userId];
+            hotel = await Hotel.findOne({
+                where: { id, adminId: userId }
+            });
         }
 
-        const [rows] = await db.execute(query, params);
-
-        if (rows.length === 0) {
+        if (!hotel) {
             return res.status(404).json({ success: false, message: 'Hotel not found or access denied' });
         }
 
-        res.json({ success: true, hotel: rows[0] });
+        let hotelData = hotel.toJSON();
+        if (role === 'superadmin' && hotel.admin) {
+            hotelData.adminName = hotel.admin.name;
+            hotelData.adminEmail = hotel.admin.email;
+        }
+
+        res.json({ success: true, hotel: hotelData });
     } catch (err) {
         console.error("Error fetching hotel by ID:", err);
         res.status(500).json({ success: false, message: 'Server error' });
@@ -249,30 +217,26 @@ exports.getAllHotelsSuperAdmin = async (req, res) => {
             });
         }
 
-        const query = `
-            SELECT 
-                h.id, 
-                h.name, 
-                h.address, 
-                h.description, 
-                h.email, 
-                h.city, 
-                h.state, 
-                h.country, 
-                h.zip, 
-                h.phone,
-                u.id AS adminId,
-                u.name AS adminName, 
-                u.email AS adminEmail,
-                COUNT(r.id) AS totalRooms
-            FROM hotels h
-            LEFT JOIN users u ON h.admin_id = u.id
-            LEFT JOIN rooms r ON h.id = r.hotelId
-            GROUP BY h.id
-            ORDER BY h.id DESC
-        `;
-
-        const [hotels] = await db.execute(query);
+        const hotels = await Hotel.findAll({
+            include: [
+                {
+                    model: User,
+                    as: 'admin',
+                    attributes: ['id', 'name', 'email']
+                },
+                {
+                    model: Room,
+                    attributes: []
+                }
+            ],
+            attributes: {
+                include: [
+                    [Hotel.sequelize.fn('COUNT', Hotel.sequelize.col('Rooms.id')), 'totalRooms']
+                ]
+            },
+            group: ['Hotel.id'],
+            order: [['id', 'DESC']]
+        });
 
         res.json({ success: true, hotels });
     } catch (err) {
@@ -280,7 +244,6 @@ exports.getAllHotelsSuperAdmin = async (req, res) => {
         res.status(500).json({ success: false, message: "Server error" });
     }
 };
-
 
 // ==================== GET ROLE'S ASSIGNED HOTEL DASHBOARD ====================
 exports.getRoleHotelDashboard = async (req, res) => {
@@ -296,72 +259,45 @@ exports.getRoleHotelDashboard = async (req, res) => {
         }
 
         // Get user's assigned hotel ID
-        const [userRows] = await db.execute(
-            'SELECT hotelId FROM users WHERE id = ?',
-            [userId]
-        );
-
-        if (!userRows.length || !userRows[0].hotelId) {
+        const user = await User.findByPk(userId);
+        if (!user || !user.hotelId) {
             return res.status(404).json({
                 success: false,
                 message: 'No hotel assigned to this user'
             });
         }
 
-        const hotelId = userRows[0].hotelId;
+        const hotel = await Hotel.findOne({
+            where: { id: user.hotelId },
+            include: [{
+                model: User,
+                as: 'admin',
+                attributes: ['name', 'email']
+            }]
+        });
 
-        // Get complete hotel information
-        const [hotelRows] = await db.execute(`
-            SELECT 
-                h.id, 
-                h.name, 
-                h.address, 
-                h.description, 
-                h.email, 
-                h.city, 
-                h.state, 
-                h.country, 
-                h.zip, 
-                h.phone,
-                u.name AS adminName,
-                u.email AS adminEmail
-            FROM hotels h
-            LEFT JOIN users u ON h.admin_id = u.id
-            WHERE h.id = ?
-        `, [hotelId]);
-
-        if (!hotelRows.length) {
+        if (!hotel) {
             return res.status(404).json({
                 success: false,
                 message: 'Hotel not found'
             });
         }
 
-        // Optional: Get additional hotel stats (rooms, bookings, etc.)
-        const [roomStats] = await db.execute(`
-            SELECT 
-                COUNT(*) as totalRooms,
-                COUNT(CASE WHEN status = 'available' THEN 1 END) as availableRooms,
-                COUNT(CASE WHEN status = 'occupied' THEN 1 END) as occupiedRooms,
-                COUNT(CASE WHEN status = 'maintenance' THEN 1 END) as maintenanceRooms
-            FROM rooms 
-            WHERE hotelId = ?
-        `, [hotelId]);
+        // Get additional hotel stats (rooms, etc.)
+        const totalRooms = await Room.count({ where: { hotelId: user.hotelId } });
+        const availableRooms = await Room.count({ where: { hotelId: user.hotelId, isAvailable: true } });
+        // You can add more stats as needed
 
-        const hotel = {
-            ...hotelRows[0],
-            stats: roomStats[0] || {
-                totalRooms: 0,
-                availableRooms: 0,
-                occupiedRooms: 0,
-                maintenanceRooms: 0
-            }
+        const hotelData = hotel.toJSON();
+        hotelData.stats = {
+            totalRooms,
+            availableRooms
         };
 
         res.json({
             success: true,
             message: 'Hotel dashboard data retrieved successfully',
-            hotel,
+            hotel: hotelData,
             userRole: role
         });
 
