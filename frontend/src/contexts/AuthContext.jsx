@@ -1,5 +1,5 @@
 // src/contexts/AuthContext.jsx
-import React, { createContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -19,10 +19,13 @@ export function AuthProvider({ children }) {
   const [hotels, setHotels] = useState([]);
   const [hotelName, setHotelName] = useState("");
   const [selectedHotelId, setSelectedHotelId] = useState(null);
+  const [permissionsByHotel, setPermissionsByHotel] = useState({});
+  const [permissions, setPermissions] = useState([]);
 
   // Superadmin scoped states
   const [allHotels, setAllHotels] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
+  const navigationDoneRef = useRef(false);
 
   // ---------------- Restore saved session ----------------
   useEffect(() => {
@@ -136,7 +139,41 @@ export function AuthProvider({ children }) {
     fetchRooms(hotelId);
     fetchUsers(hotelId);
     fetchHotelName(hotelId);
+    // loadPermissions(hotelId);
   };
+
+  // ---------------- Permissions (per-hotel) ----------------
+  // const loadPermissions = useCallback(async (hotelIdParam) => {
+  //   if (!token) return;
+  //   const hotelIdToUse = hotelIdParam || selectedHotelId || user?.hotelId;
+  //   if (!hotelIdToUse && user?.role !== 'superadmin') return;
+  //   try {
+  //     const res = await axios.get(`${BASE_URL}/api/me/permissions`, {
+  //       params: user?.role === 'superadmin' ? {} : { hotelId: hotelIdToUse },
+  //       headers: { Authorization: `Bearer ${token}` },
+  //     });
+  //     const perms = res.data?.permissions || [];
+  //     setPermissions(perms);
+  //     if (hotelIdToUse) {
+  //       setPermissionsByHotel(prev => ({ ...prev, [hotelIdToUse]: perms }));
+  //     }
+  //   } catch (err) {
+  //     console.error('Error loading permissions:', err);
+  //     // keep previous permissions if error
+  //   }
+  // }, [token, selectedHotelId, user]);
+
+  // const hasPermission = useCallback((name) => {
+  //   if (user?.role === 'superadmin') return true;
+  //   if (!name) return true;
+  //   return permissions.includes(name);
+  // }, [permissions, user]);
+
+  // const hasAnyPermission = useCallback((names = []) => {
+  //   if (user?.role === 'superadmin') return true;
+  //   if (!Array.isArray(names) || names.length === 0) return true;
+  //   return names.some(n => permissions.includes(n));
+  // }, [permissions, user]);
 
   // ---------------- Superadmin data ----------------
   const fetchAllHotels = async () => {
@@ -254,11 +291,10 @@ export function AuthProvider({ children }) {
       const lastHotel = localStorage.getItem("selectedHotelId") || updatedUser.hotelId;
       if (lastHotel) selectHotel(lastHotel);
 
-      // For normal hotel user → fetch immediately
+      // For normal hotel user → prefetch data; navigation handled by effect to avoid throttling
       if (updatedUser.role === "user" && updatedUser.hotelId) {
         fetchHotelName(updatedUser.hotelId);
         fetchRooms(updatedUser.hotelId);
-        navigate(`/hotel/${updatedUser.hotelId}`);
       }
     });
 
@@ -281,6 +317,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     localStorage.removeItem("selectedHotelId");
+    navigationDoneRef.current = false;
   };
 
   // ---------------- User management (per-hotel) ----------------
@@ -336,7 +373,12 @@ export function AuthProvider({ children }) {
     fetchRooms(selectedHotelId);
     fetchUsers(selectedHotelId);
     fetchHotelName(selectedHotelId);
-  }, [selectedHotelId, fetchRooms, fetchUsers, fetchHotelName]);
+    // loadPermissions(selectedHotelId);
+    if (user?.role === "user" && !navigationDoneRef.current) {
+      navigate(`/admin/hotel/${selectedHotelId}`);
+      navigationDoneRef.current = true;
+    }
+  }, [selectedHotelId, fetchRooms, fetchUsers, fetchHotelName, user, navigate]);
 
   useEffect(() => {
     if (user?.role === "superadmin") {
@@ -365,6 +407,11 @@ export function AuthProvider({ children }) {
         fetchUsers,
         fetchHotels,
         fetchHotelName,
+        // permissions
+        // permissions,
+        // permissionsByHotel,
+        // hasPermission,
+        // hasAnyPermission,
 
         // user management actions
         createUser,

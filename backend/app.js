@@ -5,7 +5,8 @@ require('dotenv').config();
 const authRoutes = require('./routes/authRoutes');
 const roomRoutes = require('./routes/roomRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
-const userRoutes = require('./routes/userRoutes');  // <-- add this
+const userRoutes = require('./routes/userRoutes');
+
 
 const app = express();
 
@@ -15,7 +16,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/bookings', bookingRoutes);
-app.use('/api/users', userRoutes);  // <-- add this
+app.use('/api/users', userRoutes);
 
 app.get('/', (req, res) => {
     res.send('Hotel Booking SaaS API is running...');

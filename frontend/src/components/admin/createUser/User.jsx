@@ -8,6 +8,8 @@ import "react-toastify/dist/ReactToastify.css";
 const User = () => {
   const BASE_URL = import.meta.env.VITE_BASE_URL;
   const { token, users, fetchUsers, selectedHotelId, createUser, updateUser, deleteUser } = useContext(AuthContext);
+  const [roles, setRoles] = useState([]);
+  const [showRoleModal, setShowRoleModal] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -21,6 +23,7 @@ const User = () => {
     profile_image: null,
     profile_image_url: null,
   });
+  const [selectedHotelRoleId, setSelectedHotelRoleId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
 
@@ -28,7 +31,72 @@ const User = () => {
     if (selectedHotelId) fetchUsers(selectedHotelId);
   }, [selectedHotelId, fetchUsers]);
 
+  useEffect(() => {
+    const load = async () => {
+      if (!token) return;
+      try {
+        // permissions (admin allowed)
+        const p = await fetch(`${BASE_URL}/api/permissions`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const plist = await p.json();
+        const permsArray = Array.isArray(plist) ? plist : (plist.permissions || []);
+        setPermissions(permsArray);
+      } catch (e) {
+        console.error('load permissions error', e);
+      }
+      try {
+        if (!selectedHotelId) return;
+        const r = await fetch(`${BASE_URL}/api/roles?hotelId=${selectedHotelId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const rjson = await r.json();
+        const rolesArray = Array.isArray(rjson) ? rjson : (rjson.roles || rjson);
+        setRoles(rolesArray || []);
+      } catch (e) {
+        console.error('load roles error', e);
+      }
+    };
+    load();
+  }, [token, selectedHotelId]);
+
   const handleOpenModal = () => setShowModal(true);
+
+  const openRoleModal = () => {
+    setRoleForm({ name: "", description: "", permissionIds: [] });
+    setShowRoleModal(true);
+  };
+
+  const togglePermission = (id) => {
+    setRoleForm(prev => {
+      const exists = prev.permissionIds.includes(id);
+      return { ...prev, permissionIds: exists ? prev.permissionIds.filter(x => x !== id) : [...prev.permissionIds, id] };
+    });
+  };
+
+  const submitRole = async (e) => {
+    e.preventDefault();
+    if (!token) return;
+    if (!selectedHotelId) return;
+    try {
+      const resp = await fetch(`${BASE_URL}/api/roles?hotelId=${selectedHotelId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(roleForm)
+      });
+      if (!resp.ok) throw new Error('Failed to create role');
+      toast.success('Role created');
+      setShowRoleModal(false);
+      // refresh roles
+      const r = await fetch(`${BASE_URL}/api/roles?hotelId=${selectedHotelId}`, { headers: { Authorization: `Bearer ${token}` } });
+      const rjson = await r.json();
+      const rolesArray = Array.isArray(rjson) ? rjson : (rjson.roles || rjson);
+      setRoles(rolesArray || []);
+    } catch (err) {
+      console.error(err);
+      toast.error('Error creating role');
+    }
+  };
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -43,6 +111,7 @@ const User = () => {
       profile_image: null,
       profile_image_url: null,
     });
+    setSelectedHotelRoleId("");
   };
 
   const handleChange = (e) => {
@@ -66,6 +135,10 @@ const User = () => {
     setSubmitting(true);
     try {
       const data = { ...formData, hotelId: selectedHotelId };
+      // Force platform role to 'user' for new staff to satisfy backend enum
+      if (!formData.id) {
+        data.role = 'user';
+      }
 
       if (formData.id) {
         await updateUser(formData.id, data);
@@ -73,6 +146,28 @@ const User = () => {
       } else {
         await createUser(data);
         toast.success("User created successfully!");
+        // Assign selected hotel role to the newly created user
+        if (selectedHotelRoleId) {
+          try {
+            const res = await fetch(`${BASE_URL}/api/auth/users?hotelId=${selectedHotelId}`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            const resJson = await res.json();
+            const list = Array.isArray(resJson) ? resJson : (resJson.users || []);
+            const created = list.find(u => u.email === formData.email);
+            if (created?.id) {
+              await fetch(`${BASE_URL}/api/roles/assign`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ userId: created.id, roleId: Number(selectedHotelRoleId), hotelId: Number(selectedHotelId) })
+              });
+              toast.success('Hotel role assigned');
+            }
+          } catch (assignErr) {
+            console.error('assign role error', assignErr);
+            toast.error('Could not assign hotel role');
+          }
+        }
       }
 
       fetchUsers(selectedHotelId);
@@ -97,6 +192,7 @@ const User = () => {
       profile_image: null,
       profile_image_url: user.profile_image ? `${BASE_URL}/uploads/${user.profile_image}` : null,
     });
+    setSelectedHotelRoleId("");
     handleOpenModal();
   };
 
@@ -167,6 +263,13 @@ const User = () => {
           >
             <FaUserPlus className="text-sm" /> Create User
           </button>
+          <button
+            onClick={openRoleModal}
+            className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm"
+          >
+            Create Role
+          </button>
+          {/* Removed View Roles button as roles with permissions will be shown inline below */}
         </div>
       </div>
 
@@ -263,18 +366,21 @@ const User = () => {
                   />
                 </div>
 
-                {/* Role as Text Input */}
+                {/* App-level Role removed; defaulted to 'user' for new staff */}
+
+                {/* Hotel Role (RBAC assignment) */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Role *</label>
-                  <input
-                    type="text"
-                    name="role"
-                    value={formData.role}
-                    onChange={handleChange}
-                    placeholder="Enter role (e.g., admin, manager)"
-                    required
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Hotel Role (RBAC)</label>
+                  <select
+                    value={selectedHotelRoleId}
+                    onChange={(e) => setSelectedHotelRoleId(e.target.value)}
                     className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
-                  />
+                  >
+                    <option value="">Select a hotel role (optional)</option>
+                    {roles.map(r => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -314,6 +420,60 @@ const User = () => {
           </div>
         </div>
       )}
+
+      {/* Create Role Modal */}
+      {showRoleModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-4 md:p-6 border-b border-gray-200 sticky top-0 bg-white">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900">Create Role</h2>
+              <button onClick={() => setShowRoleModal(false)} className="text-gray-400 hover:text-gray-600 p-1">
+                <FaTimes size={20} />
+              </button>
+            </div>
+            <form onSubmit={submitRole} className="p-4 md:p-6 space-y-4 md:space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Role Name *</label>
+                  <input
+                    type="text"
+                    value={roleForm.name}
+                    onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value })}
+                    required
+                    className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                  <input
+                    type="text"
+                    value={roleForm.description}
+                    onChange={(e) => setRoleForm({ ...roleForm, description: e.target.value })}
+                    className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Permissions</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-64 overflow-y-auto border rounded p-3">
+                  {permissions.map(p => (
+                    <label key={p.id} className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={roleForm.permissionIds.includes(p.id)} onChange={() => togglePermission(p.id)} />
+                      <span>{p.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button type="button" onClick={() => setShowRoleModal(false)} className="px-4 py-2 border rounded">Cancel</button>
+                <button type="submit" className="px-6 py-2 bg-purple-600 text-white rounded">Create Role</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Roles & Permissions table removed from UI as requested */}
 
       {/* Users Table/Cards */}
       <div className="p-4 md:p-8">
@@ -356,8 +516,8 @@ const User = () => {
                         <td className="py-4 px-6 text-gray-600">{user.email}</td>
                         <td className="py-4 px-6 text-gray-600">{user.phone || "-"}</td>
                         <td className="py-4 px-6">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(user.role)}`}>
-                            {user.role}
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(user.hotelRoleName || user.role)}`}>
+                            {(user.hotelRoleName || user.role)}
                           </span>
                         </td>
                         <td className="py-4 px-6">
@@ -416,8 +576,8 @@ const User = () => {
                             <p className="text-xs md:text-sm text-gray-600">{user.email}</p>
                           </div>
                           <div className="flex flex-col gap-1">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${getRoleColor(user.role)}`}>
-                              {user.role}
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${getRoleColor(user.hotelRoleName || user.role)}`}>
+                              {(user.hotelRoleName || user.role)}
                             </span>
                             <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(user.status)}`}>
                               {user.status.charAt(0).toUpperCase() + user.status.slice(1)}

@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
-import { Eye, Edit2, Trash2, User, Mail, Phone, MapPin, Calendar, Building2, Shield, X, Loader } from 'lucide-react';
+import { Eye, Edit2, Trash2, User, Mail, Phone, MapPin, Calendar, Building2, Shield, X, Loader, CheckCircle, AlertTriangle } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 const UserList = () => {
   const { allUsers, updateUserSuperAdmin, deleteUserSuperAdmin } = useContext(AuthContext);
@@ -41,11 +42,15 @@ const UserList = () => {
   const openModal = (user) => {
     setSelectedUser(user);
     setIsModalOpen(true);
+    // Add blur to body content
+    document.body.style.overflow = 'hidden';
   };
 
   const closeModal = () => {
     setSelectedUser(null);
     setIsModalOpen(false);
+    // Remove blur from body content
+    document.body.style.overflow = 'unset';
   };
 
   const openEditModal = (user) => {
@@ -59,6 +64,8 @@ const UserList = () => {
       hotelId: user.hotelId || ''
     });
     setIsEditModalOpen(true);
+    // Add blur to body content
+    document.body.style.overflow = 'hidden';
   };
 
   const closeEditModal = () => {
@@ -72,6 +79,8 @@ const UserList = () => {
       status: '',
       hotelId: ''
     });
+    // Remove blur from body content
+    document.body.style.overflow = 'unset';
   };
 
   const handleInputChange = (e) => {
@@ -99,6 +108,16 @@ const UserList = () => {
 
       await updateUserSuperAdmin(selectedUser.id, formData);
       
+      // Show success toast
+      toast.success('User updated successfully!', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      
       // Show loader for 1.5 seconds
       setTimeout(() => {
         setLoading(false);
@@ -106,6 +125,14 @@ const UserList = () => {
       }, 1500);
     } catch (error) {
       console.error('Error updating user:', error);
+      toast.error('Failed to update user. Please try again.', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       setTimeout(() => {
         setLoading(false);
       }, 1500);
@@ -113,23 +140,70 @@ const UserList = () => {
   };
 
   const handleDeleteUser = async (userId) => {
-    if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      setLoading(true);
+    // Show toast confirmation instead of alert
+    const confirmDelete = () => {
+      toast.dismiss(); // Clear any existing toasts
       
-      try {
-        await deleteUserSuperAdmin(userId);
-        
-        // Show loader for 1.5 seconds
-        setTimeout(() => {
-          setLoading(false);
-        }, 1500);
-      } catch (error) {
-        console.error('Error deleting user:', error);
-        setTimeout(() => {
-          setLoading(false);
-        }, 1500);
-      }
-    }
+      toast(
+        ({ closeToast }) => (
+          <div className="flex flex-col space-y-3">
+            <div className="flex items-center space-x-2">
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              <span className="font-medium text-gray-900">Delete User</span>
+            </div>
+            <p className="text-sm text-gray-600">
+              Are you sure you want to delete this user? This action cannot be undone.
+            </p>
+            <div className="flex space-x-2 justify-end">
+              <button
+                onClick={closeToast}
+                className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  closeToast();
+                  setLoading(true);
+                  
+                  try {
+                    await deleteUserSuperAdmin(userId);
+                    toast.success('User deleted successfully!', {
+                      position: "top-right",
+                      autoClose: 3000,
+                    });
+                  } catch (error) {
+                    console.error('Error deleting user:', error);
+                    toast.error('Failed to delete user. Please try again.', {
+                      position: "top-right",
+                      autoClose: 3000,
+                    });
+                  } finally {
+                    setTimeout(() => {
+                      setLoading(false);
+                    }, 1500);
+                  }
+                }}
+                className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors duration-200"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ),
+        {
+          position: "top-center",
+          autoClose: false,
+          hideProgressBar: true,
+          closeOnClick: false,
+          pauseOnHover: true,
+          draggable: false,
+          closeButton: false,
+        }
+      );
+    };
+
+    confirmDelete();
   };
 
   const formatDate = (dateString) => {
@@ -154,15 +228,19 @@ const UserList = () => {
     setActiveFilter(role);
   };
 
+  const getHotelName = (user) => {
+    return user.hotel_name || user.hotelName || 'Hotel Luxe';
+  };
+
   return (
     <>
       {/* Loading Overlay */}
       {loading && (
-        <div className="fixed inset-0 z-[100] bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white rounded-xl p-8 flex flex-col items-center shadow-2xl">
+        <div className="fixed inset-0 z-[100] bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-white rounded-2xl p-8 flex flex-col items-center shadow-2xl border border-gray-100">
             <Loader className="h-12 w-12 text-blue-600 animate-spin mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Processing...</h3>
-            <p className="text-gray-600 text-center">Please wait while we update the user information.</p>
+            <p className="text-gray-600 text-center">Please wait while we update the information.</p>
           </div>
         </div>
       )}
@@ -279,7 +357,7 @@ const UserList = () => {
                           <div className="flex items-center">
                             <Building2 className="h-3 w-3 md:h-4 md:w-4 text-gray-400 mr-1 md:mr-2" />
                             <div className="truncate max-w-[80px] md:max-w-none">
-                              <span className="text-xs md:text-sm text-gray-900">{user.hotel_name || 'Not Assigned'}</span>
+                              <span className="text-xs md:text-sm text-gray-900">{getHotelName(user)}</span>
                               {user.hotelId && <div className="text-xs text-gray-500">ID: {user.hotelId}</div>}
                             </div>
                           </div>
@@ -319,98 +397,145 @@ const UserList = () => {
         </div>
       </div>
 
-      {/* View Modal */}
+      {/* Professional View Modal */}
       {isModalOpen && selectedUser && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-screen items-center justify-center p-4">
-            <div className="fixed inset-0 bg-black bg-opacity-20 transition-opacity" onClick={closeModal}></div>
+            {/* Backdrop with blur effect */}
+            <div 
+              className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm transition-opacity" 
+              onClick={closeModal}
+            ></div>
 
-            <div className="relative transform overflow-hidden rounded-xl bg-white shadow-2xl transition-all w-full max-w-lg">
-              <div className="bg-white px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">User Details</h3>
-                <button
-                  onClick={closeModal}
-                  className="rounded-md bg-gray-100 p-2 text-gray-400 hover:bg-gray-200 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <div className="bg-white px-6 py-6 space-y-6">
-                <div className="flex items-center space-x-4">
-                  <div className="flex-shrink-0">
-                    {selectedUser.profile_image ? (
-                      <img
-                        className="h-16 w-16 rounded-full object-cover border-2 border-gray-200"
-                        src={`${import.meta.env.VITE_BASE_URL}/uploads/${selectedUser.profile_image}`}
-                        alt={selectedUser.full_name || selectedUser.name || 'User'}
-                      />
-                    ) : (
-                      <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-xl">
-                        {selectedUser.full_name ? selectedUser.full_name.charAt(0).toUpperCase() : 'U'}
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-semibold text-gray-900">{selectedUser.full_name || selectedUser.name || selectedUser.email.split('@')[0]}</h4>
-                    <p className="text-sm text-gray-500">User ID: {selectedUser.id}</p>
-                  </div>
-                </div>
-
-                {/* Details Grid */}
-                <div className="grid grid-cols-1 gap-6">
-                  <div className="flex items-center space-x-3">
-                    <Mail className="h-5 w-5 text-gray-400" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Email</p>
-                      <p className="text-sm text-gray-900">{selectedUser.email}</p>
+            <div className="relative transform overflow-hidden rounded-2xl bg-white shadow-2xl transition-all w-full max-w-2xl border border-gray-100">
+              {/* Header with gradient */}
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-6 text-white">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    {/* Professional User Avatar */}
+                    <div className="flex-shrink-0">
+                      {selectedUser.profile_image ? (
+                        <img
+                          className="h-20 w-20 rounded-full object-cover border-4 border-white shadow-lg"
+                          src={`${import.meta.env.VITE_BASE_URL}/uploads/${selectedUser.profile_image}`}
+                          alt={selectedUser.full_name || selectedUser.name || 'User'}
+                        />
+                      ) : (
+                        <div className="h-20 w-20 rounded-full bg-white bg-opacity-20 backdrop-blur-sm flex items-center justify-center border-4 border-white shadow-lg">
+                          <User className="h-10 w-10 text-white" />
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Phone className="h-5 w-5 text-gray-400" />
                     <div>
-                      <p className="text-sm font-medium text-gray-500">Phone</p>
-                      <p className="text-sm text-gray-900">{selectedUser.phone || 'Not provided'}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Shield className="h-5 w-5 text-gray-400" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Role</p>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleBadgeColor(selectedUser.role)}`}>
+                      <h3 className="text-2xl font-bold mb-1">
+                        {selectedUser.full_name || selectedUser.name || selectedUser.email.split('@')[0]}
+                      </h3>
+                      <p className="text-blue-100 text-sm">ID: {selectedUser.id}</p>
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mt-2 ${getRoleBadgeColor(selectedUser.role)} bg-white bg-opacity-90`}>
                         {selectedUser.role}
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <Building2 className="h-5 w-5 text-gray-400" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Hotel</p>
-                      <p className="text-sm text-gray-900">{selectedUser.hotel_name || 'Not Assigned'}</p>
-                      {selectedUser.hotelId && <p className="text-xs text-gray-500">Hotel ID: {selectedUser.hotelId}</p>}
+                  <button
+                    onClick={closeModal}
+                    className="rounded-full bg-white bg-opacity-20 p-2 text-white hover:bg-opacity-30 focus:outline-none focus:ring-2 focus:ring-white transition-all duration-200"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Professional Content */}
+              <div className="bg-white px-6 py-8 space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Contact Information */}
+                  <div className="space-y-6">
+                    <h4 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                      Contact Information
+                    </h4>
+                    
+                    <div className="space-y-4">
+                      <div className="flex items-start space-x-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
+                        <Mail className="h-5 w-5 text-blue-500 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-700">Email Address</p>
+                          <p className="text-sm text-gray-900 break-all">{selectedUser.email}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start space-x-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
+                        <Phone className="h-5 w-5 text-green-500 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-700">Phone Number</p>
+                          <p className="text-sm text-gray-900">{selectedUser.phone || 'Not provided'}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start space-x-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
+                        <MapPin className="h-5 w-5 text-red-500 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-700">Address</p>
+                          <p className="text-sm text-gray-900">{selectedUser.address || 'Not provided'}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <MapPin className="h-5 w-5 text-gray-400" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Address</p>
-                      <p className="text-sm text-gray-900">{selectedUser.address || 'Not provided'}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Calendar className="h-5 w-5 text-gray-400" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Created</p>
-                      <p className="text-sm text-gray-900">{formatDate(selectedUser.created_at)}</p>
+
+                  {/* Professional Information */}
+                  <div className="space-y-6">
+                    <h4 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                      Professional Details
+                    </h4>
+                    
+                    <div className="space-y-4">
+                      <div className="flex items-start space-x-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
+                        <Shield className="h-5 w-5 text-purple-500 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-700">Role</p>
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border mt-1 ${getRoleBadgeColor(selectedUser.role)}`}>
+                            {selectedUser.role}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start space-x-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
+                        <Building2 className="h-5 w-5 text-indigo-500 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-700">Hotel Assignment</p>
+                          <p className="text-sm text-gray-900 font-medium">{getHotelName(selectedUser)}</p>
+                          {selectedUser.hotelId && (
+                            <p className="text-xs text-gray-500 mt-1">Hotel ID: {selectedUser.hotelId}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-start space-x-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
+                        <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-700">Account Status</p>
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium mt-1 ${selectedUser.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            {selectedUser.status || 'active'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start space-x-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
+                        <Calendar className="h-5 w-5 text-orange-500 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-700">Member Since</p>
+                          <p className="text-sm text-gray-900">{formatDate(selectedUser.created_at)}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gray-50 px-6 py-3 flex justify-end">
+              {/* Footer */}
+              <div className="bg-gray-50 px-6 py-4 flex justify-end border-t border-gray-200">
                 <button
                   onClick={closeModal}
-                  className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  className="inline-flex justify-center items-center px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200"
                 >
                   Close
                 </button>
@@ -420,112 +545,140 @@ const UserList = () => {
         </div>
       )}
 
-      {/* Edit Modal */}
+      {/* Professional Edit Modal */}
       {isEditModalOpen && selectedUser && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-screen items-center justify-center p-4">
-            <div className="fixed inset-0 bg-black bg-opacity-20 transition-opacity" onClick={closeEditModal}></div>
+            {/* Backdrop with blur effect */}
+            <div 
+              className="fixed inset-0 backdrop-blur-sm transition-opacity" 
+              onClick={closeEditModal}
+            ></div>
 
-            <div className="relative transform overflow-hidden rounded-xl bg-white shadow-2xl transition-all w-full max-w-lg">
-              <div className="bg-white px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">Edit User</h3>
-                <button
-                  onClick={closeEditModal}
-                  className="rounded-md bg-gray-100 p-2 text-gray-400 hover:bg-gray-200 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <X className="h-5 w-5" />
-                </button>
+            <div className="relative transform overflow-hidden rounded-2xl bg-white shadow-2xl transition-all w-full max-w-lg border border-gray-100">
+              {/* Header with blur background */}
+              <div className="bg-white bg-opacity-20 backdrop-blur-md px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-semibold text-gray-900">Edit User Profile</h3>
+                  <button
+                    onClick={closeEditModal}
+                    className="rounded-full bg-gray-100 p-2 text-black hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-all duration-200"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
 
-              <form onSubmit={handleEditUser} className="bg-white px-6 py-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                  <input
-                    type="text"
-                    name="full_name"
-                    value={editFormData.full_name}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={editFormData.email}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                  <select
-                    name="role"
-                    value={editFormData.role}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="user">User</option>
-                    <option value="manager">Manager</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <input
-                    type="text"
-                    name="phone"
-                    value={editFormData.phone}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                  <select
-                    name="status"
-                    value={editFormData.status}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                </div>
-
-                {editFormData.role !== 'admin' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Hotel ID</label>
+              {/* Professional Edit Form */}
+              <form onSubmit={handleEditUser} className="bg-white px-6 py-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Full Name <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
-                      name="hotelId"
-                      value={editFormData.hotelId}
+                      name="full_name"
+                      value={editFormData.full_name}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                      placeholder="Enter full name"
+                      required
                     />
                   </div>
-                )}
 
-                <div className="bg-gray-50 px-6 py-3 flex justify-end space-x-3 -mx-6 -mb-6 mt-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={editFormData.email}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                      placeholder="Enter email address"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Role <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="role"
+                      value={editFormData.role}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                      required
+                    >
+                      <option value="user">User</option>
+                      <option value="manager">Manager</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+                    <input
+                      type="text"
+                      name="phone"
+                      value={editFormData.phone}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                      placeholder="Enter phone number"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Account Status <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="status"
+                      value={editFormData.status}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                    >
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+
+                  {editFormData.role !== 'admin' && (
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">Hotel ID</label>
+                      <input
+                        type="text"
+                        name="hotelId"
+                        value={editFormData.hotelId}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                        placeholder="Enter hotel ID"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Form Actions */}
+                <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3 -mx-6 -mb-6 mt-8 border-t border-gray-200">
                   <button
                     type="button"
                     onClick={closeEditModal}
-                    className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    className="inline-flex justify-center items-center px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="inline-flex justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    className="inline-flex justify-center items-center px-6 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-green-600 to-blue-600 rounded-lg shadow-sm hover:from-green-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200"
                   >
+                    <CheckCircle className="h-4 w-4 mr-2" />
                     Update User
                   </button>
                 </div>

@@ -1,51 +1,70 @@
 // middleware/checkPermission.js
-const db = require("../db"); // <-- yaha apna MySQL connection import karo
+const { UserRole, RolePermission, Permission } = require('../models');
 
 function checkPermission(requiredPermission) {
     return async function (req, res, next) {
         try {
-            const userId = req.user.id;       // JWT ya session se
-            const hotelId = req.user.hotelId; // JWT ya session se
-            const userRole = req.user.role;   // superadmin/admin/user
+            const userId = req.user?.id;
+            const hotelId = req.user?.hotelId;
+            const topLevelRole = req.user?.role; // 'superadmin' | 'admin' | 'user'
 
-            // 🔹 Agar SuperAdmin hai to sab allow
-            if (userRole === "superadmin") {
+            if (!userId) {
+                return res.status(401).json({ message: 'Unauthorized' });
+            }
+
+            // Super admins bypass all checks
+            if (topLevelRole === 'superadmin') {
                 return next();
             }
 
-            // 🔹 User ke roles nikaalo hotel ke andar
-            const [roles] = await db.query(
-                "SELECT role_id FROM user_roles WHERE user_id = ? AND hotel_id = ?",
-                [userId, hotelId]
-            );
-
-            if (!roles.length) {
-                return res.status(403).json({ message: "No role assigned for this hotel" });
+            if (!hotelId) {
+                return res.status(400).json({ message: 'Hotel context required' });
             }
 
-            const roleIds = roles.map(r => r.role_id);
+            // Find roles for this user in the current hotel
+            const userRoles = await UserRole.findAll({
+                where: { userId, hotelId },
+                attributes: ['roleId']
+            });
 
-            // 🔹 Role ke permissions nikaalo
-            const [permissions] = await db.query(
-                `SELECT p.name 
-         FROM role_permissions rp
-         JOIN permissions p ON rp.permission_id = p.id
-         WHERE rp.role_id IN (?)`,
-                [roleIds]
-            );
-
-            const userPermissions = permissions.map(p => p.name);
-
-            // 🔹 Check karo user ke paas required permission hai ya nahi
-            if (!userPermissions.includes(requiredPermission)) {
-                return res.status(403).json({ message: "Access denied" });
+            if (!userRoles.length) {
+                return res.status(403).json({ message: 'No role assigned for this hotel' });
             }
 
-            // 🔹 Permission mili → proceed
-            next();
+            const roleIds = userRoles.map(r => r.roleId);
+
+            // Collect permissions across roles
+            const rolePermissions = await RolePermission.findAll({
+                where: { roleId: roleIds },
+                include: [{ model: Permission, as: 'permission' }]
+            });
+
+            // If include alias didn't resolve, fallback query to permissions list
+            let permissionNames;
+            if (rolePermissions.length && rolePermissions[0].permission) {
+                permissionNames = rolePermissions.map(rp => rp.permission.name);
+            } else {
+                const directPermissions = await Permission.findAll({
+                    include: [
+                        {
+                            association: 'roles',
+                            where: { id: roleIds },
+                            attributes: []
+                        }
+                    ],
+                    attributes: ['name']
+                });
+                permissionNames = directPermissions.map(p => p.name);
+            }
+
+            if (!permissionNames.includes(requiredPermission)) {
+                return res.status(403).json({ message: 'Access denied' });
+            }
+
+            return next();
         } catch (err) {
-            console.error("checkPermission error:", err);
-            res.status(500).json({ message: "Server error" });
+            console.error('checkPermission error:', err);
+            return res.status(500).json({ message: 'Server error' });
         }
     };
 }

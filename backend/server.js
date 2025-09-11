@@ -7,22 +7,26 @@ require('dotenv').config();
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use(express.json());
+const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
 app.use(cors({
-    origin: 'http://localhost:5173',  // ya '*' agar sab allow karna hai (dev mein)
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        return callback(new Error('Not allowed by CORS'));
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    credentials: true,  // agar cookies/session use kar rahe ho toh
+    credentials: true,
 }));
 
 // Routes
 const authRoutes = require("./routes/authRoutes")
-const bookingRoutes = require('./routes/bookingRoutes');
 const roomRoute = require("./routes/roomRoutes")
 const superAdminRoutes = require('./routes/superAdminRoutes');
 const hotelRoutes = require("./routes/hotelRoutes");
-// const hotelUserRoutes = require("./routes/hotelUserRoutes")
+
 
 app.use('/api/auth', authRoutes);
-app.use('/api/bookings', bookingRoutes);
 app.use('/api/rooms', roomRoute);
 app.use('/api/superadmin', superAdminRoutes);
 app.use('/api/hotels', hotelRoutes);

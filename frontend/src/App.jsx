@@ -113,7 +113,7 @@ export default function App() {
         <Route path="/admin/create-hotel" element={<CreateHotel />} />
       </Route>
 
-      <Route element={<ProtectedRoute roles={["admin"]} />}>
+      <Route element={<ProtectedRoute roles={["admin", "user"]} />}>
         <Route element={<AdminLayout />}>
           <Route path="/admin/hotel/:hotelId" element={<AdminDashboard />} />
           <Route path="/admin" element={<AdminDashboard />} />

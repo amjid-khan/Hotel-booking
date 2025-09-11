@@ -4,6 +4,7 @@ const generateToken = require('../utils/generateToken');
 const fs = require('fs');
 const path = require('path');
 
+
 // ====================== REGISTER USER ======================
 exports.registerUser = async (req, res) => {
     const { full_name, email, password, role, hotelId, phone, status } = req.body;
@@ -59,19 +60,22 @@ exports.loginUser = async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
+        // For non-admins, use hotelId from User directly
+        let effectiveHotelId = user.role === 'admin' ? null : (user.hotelId || null);
+
         // Token payload
         const tokenPayload = {
             id: user.id,
             email: user.email,
             role: user.role,
-            hotelId: user.role === 'admin' ? null : user.hotelId
+            hotelId: effectiveHotelId
         };
         const token = generateToken(tokenPayload);
 
         // Fetch hotel details if user is not admin
         let hotelDetails = null;
-        if (user.role !== 'admin' && user.hotelId) {
-            hotelDetails = await Hotel.findByPk(user.hotelId);
+        if (user.role !== 'admin' && effectiveHotelId) {
+            hotelDetails = await Hotel.findByPk(effectiveHotelId);
         }
 
         res.json({
@@ -80,7 +84,7 @@ exports.loginUser = async (req, res) => {
                 full_name: user.name,
                 email: user.email,
                 role: user.role,
-                hotelId: user.role === 'admin' ? null : user.hotelId,
+                hotelId: effectiveHotelId,
                 phone: user.phone || null,
                 profile_image: user.profile_image || null,
                 status: user.status || 'active',
@@ -159,7 +163,33 @@ exports.getHotelUsers = async (req, res) => {
 
     try {
         const users = await User.findAll({ where: { hotelId } });
-        res.json({ users });
+
+        // Enrich with assigned hotel role name (first role if multiple)
+        const db = require('../models');
+        const userIds = users.map(u => u.id);
+        let userIdToRoleName = {};
+        if (userIds.length) {
+            const userRoles = await db.UserRole.findAll({ where: { hotelId, userId: userIds }, attributes: ['userId', 'roleId'] });
+            const roleIds = Array.from(new Set(userRoles.map(ur => ur.roleId)));
+            let roleIdToName = {};
+            if (roleIds.length) {
+                const roles = await db.Role.findAll({ where: { id: roleIds }, attributes: ['id', 'name'] });
+                roleIdToName = roles.reduce((acc, r) => { acc[r.id] = r.name; return acc; }, {});
+            }
+            userRoles.forEach(ur => {
+                if (!userIdToRoleName[ur.userId]) {
+                    userIdToRoleName[ur.userId] = roleIdToName[ur.roleId] || null;
+                }
+            });
+        }
+
+        const enriched = users.map(u => ({
+            ...u.toJSON(),
+            role: userIdToRoleName[u.id] || u.role, // show hotel role name if assigned
+            hotelRoleName: userIdToRoleName[u.id] || null
+        }));
+
+        res.json({ users: enriched });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Server error" });

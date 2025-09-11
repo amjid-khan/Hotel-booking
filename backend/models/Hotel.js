@@ -33,6 +33,7 @@ module.exports = (sequelize, DataTypes) => {
     Hotel.associate = function (models) {
         Hotel.belongsTo(models.User, { as: 'admin', foreignKey: 'adminId' });
         Hotel.hasMany(models.Room, { foreignKey: 'hotelId' });
+        Hotel.hasMany(models.Role, { foreignKey: 'hotelId', as: 'roles' });
     };
     return Hotel;
 };
