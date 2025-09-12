@@ -1,5 +1,11 @@
 // src/contexts/AuthContext.jsx
-import React, { createContext, useState, useEffect, useCallback, useRef } from "react";
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -19,8 +25,6 @@ export function AuthProvider({ children }) {
   const [hotels, setHotels] = useState([]);
   const [hotelName, setHotelName] = useState("");
   const [selectedHotelId, setSelectedHotelId] = useState(null);
-  const [permissionsByHotel, setPermissionsByHotel] = useState({});
-  const [permissions, setPermissions] = useState([]);
 
   // Superadmin scoped states
   const [allHotels, setAllHotels] = useState([]);
@@ -48,70 +52,82 @@ export function AuthProvider({ children }) {
   }, []);
 
   // ---------------- Per-hotel data ----------------
-  const fetchRooms = useCallback(async (hotelId) => {
-    if (!token) return;
-    try {
-      let url;
-      if (user?.role === "user") {
-        url = `${BASE_URL}/api/rooms/user`; // user-specific route
-      } else {
-        if (!hotelId) return;
-        url = `${BASE_URL}/api/rooms?hotelId=${hotelId}`;
+  const fetchRooms = useCallback(
+    async (hotelId) => {
+      if (!token) return;
+      try {
+        let url;
+        if (user?.role === "user") {
+          url = `${BASE_URL}/api/rooms/user`; // user-specific route
+        } else {
+          if (!hotelId) return;
+          url = `${BASE_URL}/api/rooms?hotelId=${hotelId}`;
+        }
+
+        const res = await axios.get(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = Array.isArray(res.data) ? res.data : res.data.rooms || [];
+        setRooms(data);
+      } catch (err) {
+        console.error("Error fetching rooms:", err);
+        setRooms([]);
       }
+    },
+    [token, user]
+  );
 
-      const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = Array.isArray(res.data) ? res.data : res.data.rooms || [];
-      setRooms(data);
-    } catch (err) {
-      console.error("Error fetching rooms:", err);
-      setRooms([]);
-    }
-  }, [token, user]);
-
-  const fetchUsers = useCallback(async (hotelId) => {
-    if (!hotelId || !token) return;
-    try {
-      const res = await axios.get(`${BASE_URL}/api/auth/users?hotelId=${hotelId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = Array.isArray(res.data) ? res.data : res.data.users || [];
-      setUsers(data);
-    } catch (err) {
-      console.error("Error fetching users:", err);
-      setUsers([]);
-    }
-  }, [token]);
-
-  const fetchHotelName = useCallback(async (hotelId) => {
-    if (!hotelId || !token) return;
-
-    // Normal user ke liye skip karna hai
-    if (user?.role === "user") {
-      return; // User ke case me API hit nahi karni
-    }
-
-    try {
-      const res = await axios.get(`${BASE_URL}/api/hotels/${hotelId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const hotelData = res.data.hotel || res.data;
-      if (hotelData) {
-        setHotelName(hotelData.name || "");
-        setHotels(prev =>
-          prev.map(h => h.id === hotelId ? { ...h, ...hotelData } : h)
+  const fetchUsers = useCallback(
+    async (hotelId) => {
+      if (!hotelId || !token) return;
+      try {
+        const res = await axios.get(
+          `${BASE_URL}/api/auth/users?hotelId=${hotelId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
         );
+        const data = Array.isArray(res.data) ? res.data : res.data.users || [];
+        setUsers(data);
+      } catch (err) {
+        console.error("Error fetching users:", err);
+        setUsers([]);
       }
-    } catch (err) {
-      console.error("Error fetching hotel name:", err);
-      setHotelName("");
-    }
-  }, [token, user]);
+    },
+    [token]
+  );
+
+  const fetchHotelName = useCallback(
+    async (hotelId) => {
+      if (!hotelId || !token) return;
+
+      // Normal user ke liye skip karna hai
+      if (user?.role === "user") {
+        return; // User ke case me API hit nahi karni
+      }
+
+      try {
+        const res = await axios.get(`${BASE_URL}/api/hotels/${hotelId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const hotelData = res.data.hotel || res.data;
+        if (hotelData) {
+          setHotelName(hotelData.name || "");
+          setHotels((prev) =>
+            prev.map((h) => (h.id === hotelId ? { ...h, ...hotelData } : h))
+          );
+        }
+      } catch (err) {
+        console.error("Error fetching hotel name:", err);
+        setHotelName("");
+      }
+    },
+    [token, user]
+  );
 
   const fetchHotels = useCallback(async () => {
     if (!token || user?.role === "user") return; // normal user ke liye skip karo
-    
+
     try {
       const res = await axios.get(`${BASE_URL}/api/hotels/my-hotels`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -134,46 +150,13 @@ export function AuthProvider({ children }) {
     if (!hotelId) return;
     setSelectedHotelId(hotelId);
     localStorage.setItem("selectedHotelId", hotelId);
-    const selectedHotel = hotels.find(h => h.id === hotelId);
+    const selectedHotel = hotels.find((h) => h.id === hotelId);
     if (selectedHotel) setHotelName(selectedHotel.name || "");
     fetchRooms(hotelId);
     fetchUsers(hotelId);
     fetchHotelName(hotelId);
     // loadPermissions(hotelId);
   };
-
-  // ---------------- Permissions (per-hotel) ----------------
-  // const loadPermissions = useCallback(async (hotelIdParam) => {
-  //   if (!token) return;
-  //   const hotelIdToUse = hotelIdParam || selectedHotelId || user?.hotelId;
-  //   if (!hotelIdToUse && user?.role !== 'superadmin') return;
-  //   try {
-  //     const res = await axios.get(`${BASE_URL}/api/me/permissions`, {
-  //       params: user?.role === 'superadmin' ? {} : { hotelId: hotelIdToUse },
-  //       headers: { Authorization: `Bearer ${token}` },
-  //     });
-  //     const perms = res.data?.permissions || [];
-  //     setPermissions(perms);
-  //     if (hotelIdToUse) {
-  //       setPermissionsByHotel(prev => ({ ...prev, [hotelIdToUse]: perms }));
-  //     }
-  //   } catch (err) {
-  //     console.error('Error loading permissions:', err);
-  //     // keep previous permissions if error
-  //   }
-  // }, [token, selectedHotelId, user]);
-
-  // const hasPermission = useCallback((name) => {
-  //   if (user?.role === 'superadmin') return true;
-  //   if (!name) return true;
-  //   return permissions.includes(name);
-  // }, [permissions, user]);
-
-  // const hasAnyPermission = useCallback((names = []) => {
-  //   if (user?.role === 'superadmin') return true;
-  //   if (!Array.isArray(names) || names.length === 0) return true;
-  //   return names.some(n => permissions.includes(n));
-  // }, [permissions, user]);
 
   // ---------------- Superadmin data ----------------
   const fetchAllHotels = async () => {
@@ -205,9 +188,13 @@ export function AuthProvider({ children }) {
   // ---------------- Super Admin Hotel Management ----------------
   const updateHotelSuperAdmin = async (hotelId, hotelData) => {
     try {
-      await axios.put(`${BASE_URL}/api/hotels/superadmin/hotel/${hotelId}`, hotelData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.put(
+        `${BASE_URL}/api/hotels/superadmin/hotel/${hotelId}`,
+        hotelData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       fetchAllHotels();
     } catch (err) {
       console.error("Error updating hotel (superadmin):", err);
@@ -229,9 +216,12 @@ export function AuthProvider({ children }) {
 
   const getHotelByIdSuperAdmin = async (hotelId) => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/hotels/superadmin/hotel/${hotelId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axios.get(
+        `${BASE_URL}/api/hotels/superadmin/hotel/${hotelId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       return res.data.hotel;
     } catch (err) {
       console.error("Error fetching hotel by ID (superadmin):", err);
@@ -288,7 +278,8 @@ export function AuthProvider({ children }) {
     localStorage.setItem("token", tokenData);
 
     fetchHotels().then(() => {
-      const lastHotel = localStorage.getItem("selectedHotelId") || updatedUser.hotelId;
+      const lastHotel =
+        localStorage.getItem("selectedHotelId") || updatedUser.hotelId;
       if (lastHotel) selectHotel(lastHotel);
 
       // For normal hotel user → prefetch data; navigation handled by effect to avoid throttling
@@ -387,6 +378,8 @@ export function AuthProvider({ children }) {
     }
   }, [user, token]);
 
+  
+
   return (
     <AuthContext.Provider
       value={{
@@ -407,11 +400,6 @@ export function AuthProvider({ children }) {
         fetchUsers,
         fetchHotels,
         fetchHotelName,
-        // permissions
-        // permissions,
-        // permissionsByHotel,
-        // hasPermission,
-        // hasAnyPermission,
 
         // user management actions
         createUser,
@@ -423,7 +411,7 @@ export function AuthProvider({ children }) {
         allUsers,
         fetchAllHotels,
         fetchAllUsers,
-        
+
         // superadmin hotel management
         updateHotelSuperAdmin,
         deleteHotelSuperAdmin,
@@ -432,8 +420,8 @@ export function AuthProvider({ children }) {
         // superadmin user management
         updateUserSuperAdmin,
         deleteUserSuperAdmin,
-        
         setUser,
+
       }}
     >
       {children}

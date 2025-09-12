@@ -1,32 +1,22 @@
 'use strict';
+const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
-    const RolePermission = sequelize.define('RolePermission', {
-        roleId: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            field: 'role_id',
-            references: { model: 'roles', key: 'id' },
-            onUpdate: 'CASCADE',
-            onDelete: 'CASCADE'
-        },
-        permissionId: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            field: 'permission_id',
-            references: { model: 'permissions', key: 'id' },
-            onUpdate: 'CASCADE',
-            onDelete: 'CASCADE'
-        }
-    }, {
-        tableName: 'role_permissions',
-        underscored: false,
-        timestamps: false
-    });
-    RolePermission.associate = function(models) {
-        RolePermission.belongsTo(models.Role, { foreignKey: 'roleId', as: 'role' });
-        RolePermission.belongsTo(models.Permission, { foreignKey: 'permissionId', as: 'permission' });
-    };
-    return RolePermission;
+  class RolePermission extends Model {
+    static associate(models) {
+      // this is join table, no direct association needed
+    }
+  }
+  RolePermission.init(
+    {
+      roleId: DataTypes.INTEGER,
+      permissionId: DataTypes.INTEGER
+    },
+    {
+      sequelize,
+      modelName: 'RolePermission',
+      tableName: 'role_permissions',
+      underscored: true
+    }
+  );
+  return RolePermission;
 };
-
-

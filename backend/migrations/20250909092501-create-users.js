@@ -23,12 +23,17 @@ module.exports = {
         type: Sequelize.STRING(255),
         allowNull: false
       },
-      role: {
-        type: Sequelize.ENUM('user', 'admin', 'superadmin'),
+      roleId: {  // ✅ replace role enum with roleId
+        type: Sequelize.INTEGER,
         allowNull: false,
-        defaultValue: 'user'
+        defaultValue: 1, // default role admin (change if needed)
+        references: {
+          model: 'roles',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
       },
-
       created_at: {
         allowNull: false,
         type: Sequelize.DATE,

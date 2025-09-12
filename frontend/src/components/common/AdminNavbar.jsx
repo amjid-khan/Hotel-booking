@@ -70,7 +70,6 @@ const AdminNavbar = () => {
     { name: "Booking Orders", path: "/bookings", icon: <MdBookOnline /> },
     { name: "Users", path: "/users", icon: <HiUsers /> },
     { name: "Settings", path: "/settings", icon: <HiCog /> },
-    { name: "Reports", path: "/reports", icon: <MdAnalytics /> },
   ];
 
   // --- For USER ROLE: Find the hotel name assigned ---

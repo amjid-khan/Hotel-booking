@@ -1,17 +1,17 @@
-const { User, Hotel } = require('../models');
+const { User, Hotel, Role } = require('../models');
 const bcrypt = require('bcryptjs');
 const generateToken = require('../utils/generateToken');
 const fs = require('fs');
 const path = require('path');
 
-
 // ====================== REGISTER USER ======================
 exports.registerUser = async (req, res) => {
-    const { full_name, email, password, role, hotelId, phone, status } = req.body;
+    const { full_name, email, password, phone, status } = req.body;
     const profile_image = req.file ? req.file.filename : null;
+    const defaultRoleId = 14; // admin role ID in your roles table
 
-    if (!full_name || !email || !password || !role) {
-        return res.status(400).json({ message: 'Full name, email, password, and role are required' });
+    if (!full_name || !email || !password) {
+        return res.status(400).json({ message: 'Full name, email, and password are required' });
     }
 
     try {
@@ -24,28 +24,46 @@ exports.registerUser = async (req, res) => {
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Get the role from roles table
+        const role = await Role.findByPk(defaultRoleId);
+        if (!role) return res.status(500).json({ message: 'Default role not found' });
+
+        // Use hotelId from the logged-in user if role is not admin
+        let creatorHotelId = null;
+        if (req.user && role.name !== 'admin' && req.user.hotelId) {
+            creatorHotelId = req.user.hotelId;
+        }
+
+        // Prepare user data
         let userData = {
             name: full_name,
             email,
             password: hashedPassword,
-            role,
+            roleId: defaultRoleId,
             phone: phone || null,
             profile_image,
-            status: status || 'active'
+            status: status || 'active',
+            hotelId: role.name !== 'admin' ? creatorHotelId : null
         };
-        if (role !== 'admin') userData.hotelId = hotelId || null;
 
-        const user = await User.create(userData);
+        const user = await User.create(userData, { include: [{ model: Role, as: 'role' }] });
 
-        const token = generateToken(user.toJSON());
+        const token = generateToken({
+            id: user.id,
+            email: user.email,
+            role: role.name,
+            hotelId: user.hotelId
+        });
+
         res.status(201).json({ user, token });
-
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 };
 
+// ====================== LOGIN USER ======================
+// ====================== LOGIN USER ======================
 exports.loginUser = async (req, res) => {
     const { email, password } = req.body;
 
@@ -54,27 +72,37 @@ exports.loginUser = async (req, res) => {
     }
 
     try {
-        const user = await User.findOne({ where: { email } });
-        if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+        const user = await User.findOne({
+            where: { email },
+            include: [{ model: Role, as: 'role' }]
+        });
+
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
 
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
 
-        // For non-admins, use hotelId from User directly
-        let effectiveHotelId = user.role === 'admin' ? null : (user.hotelId || null);
+        // ✅ Safe check for role
+        if (!user.role) {
+            return res.status(400).json({ message: 'User role not assigned or invalid' });
+        }
 
-        // Token payload
+        let effectiveHotelId = user.role.name === 'admin' ? null : (user.hotelId || null);
+
         const tokenPayload = {
             id: user.id,
             email: user.email,
-            role: user.role,
+            role: user.role.name,
             hotelId: effectiveHotelId
         };
         const token = generateToken(tokenPayload);
 
-        // Fetch hotel details if user is not admin
         let hotelDetails = null;
-        if (user.role !== 'admin' && effectiveHotelId) {
+        if (user.role.name !== 'admin' && effectiveHotelId) {
             hotelDetails = await Hotel.findByPk(effectiveHotelId);
         }
 
@@ -83,7 +111,7 @@ exports.loginUser = async (req, res) => {
                 id: user.id,
                 full_name: user.name,
                 email: user.email,
-                role: user.role,
+                role: user.role.name,
                 hotelId: effectiveHotelId,
                 phone: user.phone || null,
                 profile_image: user.profile_image || null,
@@ -101,11 +129,11 @@ exports.loginUser = async (req, res) => {
 // ====================== UPDATE USER ======================
 exports.updateUser = async (req, res) => {
     const { id } = req.params;
-    const { full_name, email, password, role, hotelId, phone, status } = req.body;
+    const { full_name, email, password, roleId, hotelId, phone, status } = req.body;
     const profile_image = req.file ? req.file.filename : null;
 
     try {
-        const user = await User.findByPk(id);
+        const user = await User.findByPk(id, { include: [{ model: Role, as: 'role' }] });
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         const hashedPassword = password ? await bcrypt.hash(password, 10) : user.password;
@@ -115,18 +143,23 @@ exports.updateUser = async (req, res) => {
             if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
         }
 
+        let role = roleId ? await Role.findByPk(roleId) : user.role;
+        if (!role) return res.status(400).json({ message: 'Invalid roleId' });
+
         let updateData = {
             name: full_name || user.name,
             email: email || user.email,
             password: hashedPassword,
-            role: role || user.role,
+            roleId: role.id,
             phone: phone || user.phone,
             profile_image: profile_image || user.profile_image,
             status: status || user.status
         };
-        if (role !== 'admin') updateData.hotelId = hotelId || user.hotelId;
+
+        if (role.name !== 'admin') updateData.hotelId = hotelId || user.hotelId;
 
         await user.update(updateData);
+
         res.json({ message: 'User updated successfully' });
     } catch (error) {
         console.error(error);
@@ -162,31 +195,18 @@ exports.getHotelUsers = async (req, res) => {
     if (!hotelId) return res.status(400).json({ message: "hotelId is required" });
 
     try {
-        const users = await User.findAll({ where: { hotelId } });
+        const users = await User.findAll({
+            where: { hotelId },
+            include: [{ model: Role, as: 'role' }]
+        });
 
-        // Enrich with assigned hotel role name (first role if multiple)
-        const db = require('../models');
-        const userIds = users.map(u => u.id);
-        let userIdToRoleName = {};
-        if (userIds.length) {
-            const userRoles = await db.UserRole.findAll({ where: { hotelId, userId: userIds }, attributes: ['userId', 'roleId'] });
-            const roleIds = Array.from(new Set(userRoles.map(ur => ur.roleId)));
-            let roleIdToName = {};
-            if (roleIds.length) {
-                const roles = await db.Role.findAll({ where: { id: roleIds }, attributes: ['id', 'name'] });
-                roleIdToName = roles.reduce((acc, r) => { acc[r.id] = r.name; return acc; }, {});
-            }
-            userRoles.forEach(ur => {
-                if (!userIdToRoleName[ur.userId]) {
-                    userIdToRoleName[ur.userId] = roleIdToName[ur.roleId] || null;
-                }
-            });
-        }
+        const hotels = await Hotel.findAll({ where: { id: hotelId } });
+        const hotelMap = hotels.reduce((acc, h) => { acc[h.id] = h; return acc; }, {});
 
         const enriched = users.map(u => ({
             ...u.toJSON(),
-            role: userIdToRoleName[u.id] || u.role, // show hotel role name if assigned
-            hotelRoleName: userIdToRoleName[u.id] || null
+            role: u.role.name,
+            hotel: hotelMap[u.hotelId] || null
         }));
 
         res.json({ users: enriched });
@@ -199,8 +219,9 @@ exports.getHotelUsers = async (req, res) => {
 // ====================== GET ALL USERS (SUPERADMIN ONLY) ======================
 exports.getAllUsers = async (req, res) => {
     try {
-        const users = await User.findAll();
-        res.json({ success: true, users });
+        const users = await User.findAll({ include: [{ model: Role, as: 'role' }] });
+        const enriched = users.map(u => ({ ...u.toJSON(), role: u.role.name }));
+        res.json({ success: true, users: enriched });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
@@ -210,11 +231,11 @@ exports.getAllUsers = async (req, res) => {
 // ====================== UPDATE ANY USER (SUPERADMIN ONLY) ======================
 exports.updateAnyUser = async (req, res) => {
     const { id } = req.params;
-    const { full_name, email, password, role, hotelId, phone, status } = req.body;
+    const { full_name, email, password, roleId, hotelId, phone, status } = req.body;
     const profile_image = req.file ? req.file.filename : null;
 
     try {
-        const user = await User.findByPk(id);
+        const user = await User.findByPk(id, { include: [{ model: Role, as: 'role' }] });
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         const hashedPassword = password ? await bcrypt.hash(password, 10) : user.password;
@@ -224,16 +245,20 @@ exports.updateAnyUser = async (req, res) => {
             if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
         }
 
+        let role = roleId ? await Role.findByPk(roleId) : user.role;
+        if (!role) return res.status(400).json({ message: 'Invalid roleId' });
+
         let updateData = {
             name: full_name || user.name,
             email: email || user.email,
             password: hashedPassword,
-            role: role || user.role,
+            roleId: role.id,
             phone: phone || user.phone,
             profile_image: profile_image || user.profile_image,
             status: status || user.status
         };
-        if ((role || user.role) !== 'admin' && (role || user.role) !== 'superadmin') {
+
+        if (role.name !== 'admin' && role.name !== 'superadmin') {
             updateData.hotelId = hotelId || user.hotelId;
         }
 
