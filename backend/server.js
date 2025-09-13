@@ -27,6 +27,9 @@ const roomRoute = require("./routes/roomRoutes")
 const superAdminRoutes = require('./routes/superAdminRoutes');
 const hotelRoutes = require("./routes/hotelRoutes");
 const roleRoutes = require("./routes/roleRoutes");
+const permissionRoutes = require("./routes/permissionsRoutes")
+
+
 
 
 app.use('/api/auth', authRoutes);
@@ -34,6 +37,8 @@ app.use('/api/rooms', roomRoute);
 app.use('/api/superadmin', superAdminRoutes);
 app.use('/api/hotels', hotelRoutes);
 app.use("/api/roles", roleRoutes);
+app.use("/api/permissions", permissionRoutes);
+
 
 
 // ====Creating the Super Admin=====

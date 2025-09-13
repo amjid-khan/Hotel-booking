@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 module.exports = (sequelize, DataTypes) => {
   const Role = sequelize.define(
     "Role",
@@ -17,11 +17,10 @@ module.exports = (sequelize, DataTypes) => {
   Role.associate = function (models) {
     // One-to-many: one Role can have many Users
     Role.hasMany(models.User, { foreignKey: "roleId", as: "users" });
-  };
-  Role.associate = function (models) {
-    Role.hasMany(models.User, { foreignKey: "roleId", as: "users" });
+
+    // Many-to-many: Role ↔ Permission
     Role.belongsToMany(models.Permission, {
-      through: "role_permissions",
+      through: models.RolePermission,
       foreignKey: "roleId",
       otherKey: "permissionId",
       as: "permissions",
@@ -30,3 +29,4 @@ module.exports = (sequelize, DataTypes) => {
 
   return Role;
 };
+

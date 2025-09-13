@@ -31,6 +31,10 @@ export function AuthProvider({ children }) {
   const [allUsers, setAllUsers] = useState([]);
   const navigationDoneRef = useRef(false);
 
+  // Roles & Permissions
+  const [roles, setRoles] = useState([]);
+  const [permissions, setPermissions] = useState([]);
+
   // ---------------- Restore saved session ----------------
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
@@ -58,7 +62,7 @@ export function AuthProvider({ children }) {
       try {
         let url;
         if (user?.role === "user") {
-          url = `${BASE_URL}/api/rooms/user`; // user-specific route
+          url = `${BASE_URL}/api/rooms/user`;
         } else {
           if (!hotelId) return;
           url = `${BASE_URL}/api/rooms?hotelId=${hotelId}`;
@@ -100,11 +104,7 @@ export function AuthProvider({ children }) {
   const fetchHotelName = useCallback(
     async (hotelId) => {
       if (!hotelId || !token) return;
-
-      // Normal user ke liye skip karna hai
-      if (user?.role === "user") {
-        return; // User ke case me API hit nahi karni
-      }
+      if (user?.role === "user") return;
 
       try {
         const res = await axios.get(`${BASE_URL}/api/hotels/${hotelId}`, {
@@ -126,7 +126,7 @@ export function AuthProvider({ children }) {
   );
 
   const fetchHotels = useCallback(async () => {
-    if (!token || user?.role === "user") return; // normal user ke liye skip karo
+    if (!token || user?.role === "user") return;
 
     try {
       const res = await axios.get(`${BASE_URL}/api/hotels/my-hotels`, {
@@ -155,7 +155,6 @@ export function AuthProvider({ children }) {
     fetchRooms(hotelId);
     fetchUsers(hotelId);
     fetchHotelName(hotelId);
-    // loadPermissions(hotelId);
   };
 
   // ---------------- Superadmin data ----------------
@@ -257,6 +256,64 @@ export function AuthProvider({ children }) {
     }
   };
 
+  /// ---------------- Roles & Permissions ----------------
+  const createRole = async (formData) => {
+    if (!token) throw new Error("No token found");
+    try {
+      const payload = {
+        name: formData.name,
+        description: formData.description,
+        permissionIds: formData.permissions, // <--- match backend field name
+      };
+
+      await axios.post(`${BASE_URL}/api/roles`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      fetchRoles(); // Refresh roles after creation
+    } catch (err) {
+      console.error("Error creating role:", err);
+      throw err;
+    }
+  };
+
+  const fetchRoles = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await axios.get(`${BASE_URL}/api/roles`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = Array.isArray(res.data) ? res.data : res.data.roles || [];
+      setRoles(data.filter((r) => r.name.toLowerCase() !== "superadmin"));
+    } catch (err) {
+      console.error("Error fetching roles:", err);
+      setRoles([]);
+    }
+  }, [token]);
+
+  const fetchPermissions = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await axios.get(`${BASE_URL}/api/permissions`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      let data = [];
+      if (res.data.success && Array.isArray(res.data.data)) {
+        data = res.data.data;
+      } else if (Array.isArray(res.data)) {
+        data = res.data;
+      } else if (res.data.permissions && Array.isArray(res.data.permissions)) {
+        data = res.data.permissions;
+      }
+
+      setPermissions(data);
+    } catch (err) {
+      console.error("Error fetching permissions:", err);
+      setPermissions([]);
+    }
+  }, [token]);
+
   // ---------------- Authentication ----------------
   const login = (userData, tokenData) => {
     const updatedUser = {
@@ -266,11 +323,6 @@ export function AuthProvider({ children }) {
       role: userData.role,
       hotelId: userData.hotelId || null,
     };
-
-    // YAHAN hotel data console mein print karenge
-    if (userData.hotel) {
-      console.log("Hotel Data on Login:", userData.hotel);
-    }
 
     setUser(updatedUser);
     setToken(tokenData);
@@ -282,7 +334,6 @@ export function AuthProvider({ children }) {
         localStorage.getItem("selectedHotelId") || updatedUser.hotelId;
       if (lastHotel) selectHotel(lastHotel);
 
-      // For normal hotel user → prefetch data; navigation handled by effect to avoid throttling
       if (updatedUser.role === "user" && updatedUser.hotelId) {
         fetchHotelName(updatedUser.hotelId);
         fetchRooms(updatedUser.hotelId);
@@ -292,6 +343,8 @@ export function AuthProvider({ children }) {
     if (updatedUser.role === "superadmin") {
       fetchAllHotels();
       fetchAllUsers();
+      fetchRoles();
+      fetchPermissions();
     }
   };
 
@@ -305,6 +358,8 @@ export function AuthProvider({ children }) {
     setHotelName("");
     setAllHotels([]);
     setAllUsers([]);
+    setRoles([]);
+    setPermissions([]);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     localStorage.removeItem("selectedHotelId");
@@ -356,15 +411,18 @@ export function AuthProvider({ children }) {
 
   // ---------------- Auto fetch on login ----------------
   useEffect(() => {
-    if (token) fetchHotels();
-  }, [token, fetchHotels]);
+    if (token) {
+      fetchHotels();
+      fetchRoles();
+      fetchPermissions();
+    }
+  }, [token, fetchHotels, fetchRoles, fetchPermissions]);
 
   useEffect(() => {
     if (!selectedHotelId) return;
     fetchRooms(selectedHotelId);
     fetchUsers(selectedHotelId);
     fetchHotelName(selectedHotelId);
-    // loadPermissions(selectedHotelId);
     if (user?.role === "user" && !navigationDoneRef.current) {
       navigate(`/admin/hotel/${selectedHotelId}`);
       navigationDoneRef.current = true;
@@ -375,10 +433,10 @@ export function AuthProvider({ children }) {
     if (user?.role === "superadmin") {
       fetchAllHotels();
       fetchAllUsers();
+      fetchRoles();
+      fetchPermissions();
     }
   }, [user, token]);
-
-  
 
   return (
     <AuthContext.Provider
@@ -422,6 +480,12 @@ export function AuthProvider({ children }) {
         deleteUserSuperAdmin,
         setUser,
 
+        // roles & permissions
+        roles,
+        permissions,
+        fetchRoles,
+        fetchPermissions,
+        createRole,
       }}
     >
       {children}

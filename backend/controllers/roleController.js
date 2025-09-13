@@ -1,4 +1,4 @@
-const { Role, Permission } = require("../models");
+const { Role, Permission, RolePermission } = require("../models");
 
 // Create new role + assign permissions
 exports.createRole = async (req, res) => {
@@ -12,14 +12,17 @@ exports.createRole = async (req, res) => {
         // Create role
         const role = await Role.create({ name });
 
-        // Assign permissions (if provided)
+        // Assign permissions manually in role_permissions table
         if (permissionIds && Array.isArray(permissionIds)) {
-            const permissions = await Permission.findAll({
-                where: { id: permissionIds },
-            });
-            await role.setPermissions(permissions);
+            const rolePermissions = permissionIds.map(permissionId => ({
+                roleId: role.id,
+                permissionId,
+            }));
+
+            await RolePermission.bulkCreate(rolePermissions);
         }
 
+        // Fetch role with permissions
         const roleWithPermissions = await Role.findByPk(role.id, {
             include: { model: Permission, as: "permissions" },
         });
@@ -28,7 +31,7 @@ exports.createRole = async (req, res) => {
             message: "Role created successfully",
             role: roleWithPermissions,
         });
-    } catch (error) { 
+    } catch (error) {
         console.error("Error creating role:", error);
         res.status(500).json({ message: "Server error" });
     }

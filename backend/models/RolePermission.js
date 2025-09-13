@@ -3,7 +3,7 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class RolePermission extends Model {
     static associate(models) {
-      // this is join table, no direct association needed
+      // join table, no direct association needed
     }
   }
   RolePermission.init(
