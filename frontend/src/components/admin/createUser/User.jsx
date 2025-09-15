@@ -7,7 +7,7 @@ import "react-toastify/dist/ReactToastify.css";
 
 const User = () => {
   const BASE_URL = import.meta.env.VITE_BASE_URL;
-  const { token, users, fetchUsers, selectedHotelId, createUser, updateUser, deleteUser } = useContext(AuthContext);
+  const { token, users, fetchUsers, selectedHotelId, createUser, updateUser, deleteUser, roles, fetchRoles } = useContext(AuthContext);
   
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -17,6 +17,7 @@ const User = () => {
     phone: "",
     password: "",
     role: "user",
+    hotel_role: "", // for role dropdown
     status: "active",
     profile_image: null,
     profile_image_url: null,
@@ -29,6 +30,10 @@ const User = () => {
     if (selectedHotelId) fetchUsers(selectedHotelId);
   }, [selectedHotelId, fetchUsers]);
 
+  useEffect(() => {
+    fetchRoles();
+  }, [fetchRoles]);
+
   const handleOpenModal = () => setShowModal(true);
 
   const handleCloseModal = () => {
@@ -40,6 +45,7 @@ const User = () => {
       phone: "",
       password: "",
       role: "user",
+      hotel_role: "",
       status: "active",
       profile_image: null,
       profile_image_url: null,
@@ -96,6 +102,7 @@ const User = () => {
       phone: user.phone || "",
       password: "",
       role: user.role || "user",
+      hotel_role: user.hotel_role || user.role || "admin", // Load existing hotel role
       status: user.status || "active",
       profile_image: null,
       profile_image_url: user.profile_image ? `${BASE_URL}/uploads/${user.profile_image}` : null,
@@ -154,6 +161,9 @@ const User = () => {
   const getStatusColor = (status) =>
     status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800";
 
+  // Filter roles to exclude superadmin
+  const availableRoles = roles.filter(role => role.name.toLowerCase() !== "superadmin");
+
   return (
     <div className="min-h-screen bg-gray-50 md:pl-64 pt-16 md:pt-0">
       <ToastContainer position="top-right" autoClose={3000} />
@@ -178,7 +188,7 @@ const User = () => {
       {showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center p-4 md:p-6 border-b border-gray-200 sticky top-0 bg-white">
+            <div className="flex justify-between items-center p-4 md:p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
               <h2 className="text-xl md:text-2xl font-bold text-gray-900">
                 {formData.id ? "Update User" : "Create New User"}
               </h2>
@@ -189,7 +199,7 @@ const User = () => {
 
             <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-4 md:space-y-6">
               {/* Profile Image */}
-              <div className="text-center">
+              <div className="text-center relative z-0">
                 <label className="block text-sm font-medium text-gray-700 mb-4">Profile Picture</label>
                 <div className="flex flex-col items-center">
                   <div className="relative w-20 md:w-24 h-20 md:h-24 rounded-full overflow-hidden shadow-md border-2 border-gray-200">
@@ -265,6 +275,24 @@ const User = () => {
                     placeholder={formData.id ? "Leave blank to keep current password" : "Enter password"}
                     className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Hotel Role *</label>
+                  <select
+                    name="hotel_role"
+                    value={formData.hotel_role}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
+                  >
+                    <option value="">Select Role</option>
+                    <option value="admin">Admin</option>
+                    {availableRoles.map((role) => (
+                      <option key={role.id} value={role.name}>
+                        {role.name.charAt(0).toUpperCase() + role.name.slice(1)}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Status *</label>
@@ -345,8 +373,8 @@ const User = () => {
                         <td className="py-4 px-6 text-gray-600">{user.email}</td>
                         <td className="py-4 px-6 text-gray-600">{user.phone || "-"}</td>
                         <td className="py-4 px-6">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(user.role)}`}>
-                            {user.role}
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(user.hotel_role || user.role)}`}>
+                            {(user.hotel_role || user.role)?.charAt(0).toUpperCase() + (user.hotel_role || user.role)?.slice(1)}
                           </span>
                         </td>
                         <td className="py-4 px-6">
@@ -405,8 +433,8 @@ const User = () => {
                             <p className="text-xs md:text-sm text-gray-600">{user.email}</p>
                           </div>
                           <div className="flex flex-col gap-1">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${getRoleColor(user.role)}`}>
-                              {user.role}
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${getRoleColor(user.hotel_role || user.role)}`}>
+                              {(user.hotel_role || user.role)?.charAt(0).toUpperCase() + (user.hotel_role || user.role)?.slice(1)}
                             </span>
                             <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(user.status)}`}>
                               {user.status.charAt(0).toUpperCase() + user.status.slice(1)}

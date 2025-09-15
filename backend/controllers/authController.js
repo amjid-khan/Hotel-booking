@@ -62,7 +62,7 @@ exports.registerUser = async (req, res) => {
     }
 };
 
-// ====================== LOGIN USER ======================
+
 // ====================== LOGIN USER ======================
 exports.loginUser = async (req, res) => {
     const { email, password } = req.body;
