@@ -1,4 +1,4 @@
-const { User, Hotel, Role } = require('../models');
+const { User, Hotel, Role, Permission } = require('../models');
 const bcrypt = require('bcryptjs');
 const generateToken = require('../utils/generateToken');
 const fs = require('fs');
@@ -135,7 +135,7 @@ exports.loginUser = async (req, res) => {
     try {
         const user = await User.findOne({
             where: { email },
-            include: [{ model: Role, as: 'role' }]
+            include: [{ model: Role, as: 'role', include: [{ model: Permission, as: 'permissions' }] }]
         });
 
         if (!user) {
@@ -152,21 +152,24 @@ exports.loginUser = async (req, res) => {
             return res.status(400).json({ message: 'User role not assigned or invalid' });
         }
 
+        // ✅ Collect permissions
+        const permissions = user.role.permissions
+            ? user.role.permissions.map(p => p.name)
+            : [];
+
         let effectiveHotelId = user.role.name === 'admin' ? null : (user.hotelId || null);
 
+        // ✅ Add permissions in token payload
         const tokenPayload = {
             id: user.id,
             email: user.email,
             role: user.role.name,
-            hotelId: effectiveHotelId
+            hotelId: effectiveHotelId,
+            permissions // 👈 add permissions here
         };
         const token = generateToken(tokenPayload);
 
-        let hotelDetails = null;
-        if (user.role.name !== 'admin' && effectiveHotelId) {
-            hotelDetails = await Hotel.findByPk(effectiveHotelId);
-        }
-
+        // ✅ Return user data + permissions (no hotelDetails)
         res.json({
             user: {
                 id: user.id,
@@ -177,7 +180,7 @@ exports.loginUser = async (req, res) => {
                 phone: user.phone || null,
                 profile_image: user.profile_image || null,
                 status: user.status || 'active',
-                hotel: hotelDetails || null
+                permissions // 👈 return permissions also
             },
             token
         });

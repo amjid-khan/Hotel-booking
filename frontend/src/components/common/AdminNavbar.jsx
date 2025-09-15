@@ -10,6 +10,8 @@ import {
   FaCheck,
   FaBed,
   FaUserTag,
+  FaSearch,
+  FaShieldAlt,
 } from "react-icons/fa";
 import { MdDashboard, MdBookOnline, MdAnalytics } from "react-icons/md";
 import { HiPlus, HiUsers, HiCog } from "react-icons/hi";
@@ -25,6 +27,8 @@ const AdminNavbar = () => {
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [loadingHotel, setLoadingHotel] = useState(false);
   const [switchingHotelName, setSwitchingHotelName] = useState("");
+  const [permissionSearch, setPermissionSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [roleFormData, setRoleFormData] = useState({
     name: "",
     description: "",
@@ -48,6 +52,64 @@ const AdminNavbar = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showDropdown]);
+
+  // Filter out super admin permissions for regular admins
+  const getFilteredPermissions = () => {
+    return permissions.filter(permission => {
+      // Filter out super admin specific permissions
+      const superAdminKeywords = ['super', 'system', 'global', 'master', 'root'];
+      const isSuperAdminPermission = superAdminKeywords.some(keyword => 
+        permission.name.toLowerCase().includes(keyword) || 
+        permission.description?.toLowerCase().includes(keyword)
+      );
+      
+      // Only show super admin permissions if current user is super admin
+      if (isSuperAdminPermission && user?.role !== 'super_admin') {
+        return false;
+      }
+      
+      return true;
+    });
+  };
+
+  // Group permissions by category for better organization
+  const getGroupedPermissions = () => {
+    const filteredPermissions = getFilteredPermissions();
+    const grouped = {};
+    
+    filteredPermissions.forEach(permission => {
+      const category = permission.category || 'General';
+      if (!grouped[category]) {
+        grouped[category] = [];
+      }
+      grouped[category].push(permission);
+    });
+    
+    return grouped;
+  };
+
+  // Filter permissions based on search and category
+  const getSearchFilteredPermissions = () => {
+    const filteredPermissions = getFilteredPermissions();
+    
+    return filteredPermissions.filter(permission => {
+      const matchesSearch = !permissionSearch || 
+        permission.name.toLowerCase().includes(permissionSearch.toLowerCase()) ||
+        permission.description?.toLowerCase().includes(permissionSearch.toLowerCase());
+      
+      const matchesCategory = selectedCategory === 'all' || 
+        (permission.category || 'General') === selectedCategory;
+      
+      return matchesSearch && matchesCategory;
+    });
+  };
+
+  // Get unique categories for filter
+  const getCategories = () => {
+    const filteredPermissions = getFilteredPermissions();
+    const categories = [...new Set(filteredPermissions.map(p => p.category || 'General'))];
+    return ['all', ...categories.sort()];
+  };
 
   const handleLogout = () => {
     logout();
@@ -73,6 +135,8 @@ const AdminNavbar = () => {
 
   const handleCreateRole = () => {
     setShowRoleModal(true);
+    setPermissionSearch("");
+    setSelectedCategory("all");
     setRoleFormData({
       name: "",
       description: "",
@@ -94,6 +158,30 @@ const AdminNavbar = () => {
         ? prev.permissions.filter(id => id !== permissionId)
         : [...prev.permissions, permissionId]
     }));
+  };
+
+  const handleSelectAllInCategory = (category) => {
+    const categoryPermissions = getSearchFilteredPermissions()
+      .filter(p => (p.category || 'General') === category)
+      .map(p => p.id);
+    
+    const allSelected = categoryPermissions.every(id => 
+      roleFormData.permissions.includes(id)
+    );
+    
+    if (allSelected) {
+      // Deselect all in category
+      setRoleFormData(prev => ({
+        ...prev,
+        permissions: prev.permissions.filter(id => !categoryPermissions.includes(id))
+      }));
+    } else {
+      // Select all in category
+      setRoleFormData(prev => ({
+        ...prev,
+        permissions: [...new Set([...prev.permissions, ...categoryPermissions])]
+      }));
+    }
   };
 
   const handleSubmitRole = async () => {
@@ -135,6 +223,10 @@ const AdminNavbar = () => {
     user?.role === "user"
       ? hotels.find((h) => h.id === user.hotelId)?.name || "Assigned Hotel"
       : null;
+
+  const filteredPermissions = getSearchFilteredPermissions();
+  const groupedPermissions = getGroupedPermissions();
+  const categories = getCategories();
 
   return (
     <>
@@ -354,7 +446,7 @@ const AdminNavbar = () => {
       {/* Create Role Modal */}
       {showRoleModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-blue-50">
               <div className="flex items-center justify-between">
@@ -380,7 +472,7 @@ const AdminNavbar = () => {
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
               {/* Role Basic Info */}
               <div className="mb-6">
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Role Name <span className="text-red-500">*</span>
@@ -411,56 +503,139 @@ const AdminNavbar = () => {
 
               {/* Permissions Section */}
               <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <h4 className="text-sm font-semibold text-gray-900">Role Permissions</h4>
-                  <div className="h-px bg-gray-300 flex-1"></div>
-                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                    {roleFormData.permissions.length} selected
-                  </span>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <FaShieldAlt className="w-4 h-4 text-green-600" />
+                    <h4 className="text-lg font-semibold text-gray-900">Role Permissions</h4>
+                    <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
+                      {roleFormData.permissions.length} selected
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {filteredPermissions.length} available permissions
+                  </div>
                 </div>
 
-                {permissions.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <FaUserTag className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p>No permissions available</p>
+                {/* Search and Filter Controls */}
+                <div className="mb-4 space-y-3">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search permissions..."
+                      value={permissionSearch}
+                      onChange={(e) => setPermissionSearch(e.target.value)}
+                      className="w-full pl-4 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    />
+                    <FaSearch className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  </div>
+                  
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                    {categories.map(category => (
+                      <button
+                        key={category}
+                        onClick={() => setSelectedCategory(category)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                          selectedCategory === category
+                            ? 'bg-green-100 text-green-800 border border-green-300'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                        }`}
+                      >
+                        {category === 'all' ? 'All Categories' : category}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {filteredPermissions.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <FaShieldAlt className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p className="text-lg font-medium mb-1">No permissions found</p>
+                    <p className="text-sm">Try adjusting your search or filter criteria</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-4">
-                    {permissions.map((permission) => (
-                      <div
-                        key={permission.id}
-                        className={`relative flex items-start p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
-                          roleFormData.permissions.includes(permission.id)
-                            ? 'border-green-500 bg-green-50'
-                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                        }`}
-                        onClick={() => handlePermissionToggle(permission.id)}
-                      >
-                        <div className="flex items-center h-5">
-                          <input
-                            type="checkbox"
-                            checked={roleFormData.permissions.includes(permission.id)}
-                            onChange={() => handlePermissionToggle(permission.id)}
-                            className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                          />
-                        </div>
-                        <div className="ml-3 flex-1">
-                          <label className="text-sm font-medium text-gray-900 cursor-pointer">
-                            {permission.name}
-                          </label>
-                          {permission.description && (
-                            <p className="text-xs text-gray-600 mt-1">
-                              {permission.description}
-                            </p>
-                          )}
-                        </div>
-                        {roleFormData.permissions.includes(permission.id) && (
-                          <div className="ml-2">
-                            <FaCheck className="w-3 h-3 text-green-600" />
+                  <div className="border border-gray-200 rounded-lg">
+                    {Object.entries(groupedPermissions).map(([category, categoryPermissions]) => {
+                      const filteredCategoryPerms = categoryPermissions.filter(permission => 
+                        getSearchFilteredPermissions().includes(permission)
+                      );
+                      
+                      if (filteredCategoryPerms.length === 0) return null;
+                      
+                      const allSelected = filteredCategoryPerms.every(p => 
+                        roleFormData.permissions.includes(p.id)
+                      );
+                      const someSelected = filteredCategoryPerms.some(p => 
+                        roleFormData.permissions.includes(p.id)
+                      );
+
+                      return (
+                        <div key={category} className="border-b border-gray-200 last:border-b-0">
+                          {/* Category Header */}
+                          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <FaShieldAlt className="w-4 h-4 text-gray-600" />
+                                <h5 className="font-semibold text-gray-900">{category}</h5>
+                                <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
+                                  {filteredCategoryPerms.length}
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => handleSelectAllInCategory(category)}
+                                className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
+                                  allSelected
+                                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                }`}
+                              >
+                                {allSelected ? 'Deselect All' : 'Select All'}
+                              </button>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    ))}
+
+                          {/* Category Permissions */}
+                          <div className="p-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {filteredCategoryPerms.map((permission) => (
+                                <div
+                                  key={permission.id}
+                                  className={`relative flex items-start p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-sm ${
+                                    roleFormData.permissions.includes(permission.id)
+                                      ? 'border-green-500 bg-green-50 shadow-sm'
+                                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                  }`}
+                                  onClick={() => handlePermissionToggle(permission.id)}
+                                >
+                                  <div className="flex items-center h-5">
+                                    <input
+                                      type="checkbox"
+                                      checked={roleFormData.permissions.includes(permission.id)}
+                                      onChange={() => handlePermissionToggle(permission.id)}
+                                      className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                                    />
+                                  </div>
+                                  <div className="ml-3 flex-1">
+                                    <label className="text-sm font-medium text-gray-900 cursor-pointer">
+                                      {permission.name}
+                                    </label>
+                                    {permission.description && (
+                                      <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                                        {permission.description}
+                                      </p>
+                                    )}
+                                  </div>
+                                  {roleFormData.permissions.includes(permission.id) && (
+                                    <div className="ml-2">
+                                      <FaCheck className="w-4 h-4 text-green-600" />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -470,24 +645,24 @@ const AdminNavbar = () => {
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3">
               <button
                 onClick={() => setShowRoleModal(false)}
-                className="flex-1 bg-white hover:bg-gray-50 text-gray-700 py-2.5 px-4 rounded-lg text-sm font-medium border border-gray-300 hover:border-gray-400 transition-colors duration-200"
+                className="flex-1 bg-white hover:bg-gray-50 text-gray-700 py-3 px-4 rounded-lg text-sm font-medium border border-gray-300 hover:border-gray-400 transition-colors duration-200"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmitRole}
                 disabled={isCreatingRole || !roleFormData.name.trim()}
-                className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+                className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white py-3 px-4 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2"
               >
                 {isCreatingRole ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Creating...
+                    Creating Role...
                   </>
                 ) : (
                   <>
                     <FaUserTag className="w-4 h-4" />
-                    Create Role
+                    Create Role ({roleFormData.permissions.length} permissions)
                   </>
                 )}
               </button>

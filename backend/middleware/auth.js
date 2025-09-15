@@ -19,6 +19,7 @@ exports.protect = (req, res, next) => {
             email: decoded.email,
             role: decoded.role,
             hotelId: decoded.hotelId || null,
+            permissions: decoded.permissions || []
         };
 
         next();

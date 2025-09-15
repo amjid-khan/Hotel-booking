@@ -1,6 +1,8 @@
 const { Room } = require("../models");
 const fs = require("fs");
 const path = require("path");
+const { Op } = require("sequelize");
+
 
 // ------------------- ADD NEW ROOM -------------------
 exports.addRoom = async (req, res) => {
@@ -70,13 +72,12 @@ exports.updateRoom = async (req, res) => {
             return res.status(404).json({ message: "Room not found" });
         }
 
-        // Prevent duplicate roomNumber in same hotel
         if (roomNumber && hotelId) {
             const duplicate = await Room.findOne({
                 where: {
                     roomNumber,
                     hotelId,
-                    id: { [Room.sequelize.Op.ne]: id }
+                    id: { [Op.ne]: id }   // ✅ use imported Op here
                 }
             });
             if (duplicate) {
