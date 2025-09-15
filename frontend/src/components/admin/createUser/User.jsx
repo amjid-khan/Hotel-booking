@@ -66,33 +66,55 @@ const User = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!token) return toast.error("No token found — please log in first.");
-    if (!selectedHotelId) return toast.error("Select a hotel first!");
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!token) return toast.error("No token found — please log in first.");
+  if (!selectedHotelId) return toast.error("Select a hotel first!");
 
-    setSubmitting(true);
-    try {
-      const data = { ...formData, hotelId: selectedHotelId };
-      if (!formData.id) data.role = 'user'; // default platform role for new staff
-
-      if (formData.id) {
-        await updateUser(formData.id, data);
-        toast.success("User updated successfully!");
-      } else {
-        await createUser(data);
-        toast.success("User created successfully!");
-      }
-
-      fetchUsers(selectedHotelId);
-      handleCloseModal();
-    } catch (error) {
-      console.error(error.response?.data || error.message);
-      toast.error(error.response?.data?.message || "Error saving user");
-    } finally {
-      setSubmitting(false);
+  setSubmitting(true);
+  try {
+    // Create FormData for file upload
+    const formDataToSend = new FormData();
+    
+    // Add all form fields
+    formDataToSend.append('full_name', formData.full_name);
+    formDataToSend.append('email', formData.email);
+    formDataToSend.append('phone', formData.phone || '');
+    formDataToSend.append('status', formData.status);
+    formDataToSend.append('hotelId', selectedHotelId);
+    
+    // Add password only if it's not empty
+    if (formData.password) {
+      formDataToSend.append('password', formData.password);
     }
-  };
+    
+    // Add the selected hotel role - this is the key fix
+    if (formData.hotel_role) {
+      formDataToSend.append('hotel_role', formData.hotel_role);
+    }
+    
+    // Add profile image if selected
+    if (formData.profile_image) {
+      formDataToSend.append('profile_image', formData.profile_image);
+    }
+
+    if (formData.id) {
+      await updateUser(formData.id, formDataToSend);
+      toast.success("User updated successfully!");
+    } else {
+      await createUser(formDataToSend);
+      toast.success("User created successfully!");
+    }
+
+    fetchUsers(selectedHotelId);
+    handleCloseModal();
+  } catch (error) {
+    console.error(error.response?.data || error.message);
+    toast.error(error.response?.data?.message || "Error saving user");
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const handleEdit = (user) => {
     setFormData({

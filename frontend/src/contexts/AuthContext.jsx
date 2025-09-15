@@ -367,20 +367,27 @@ export function AuthProvider({ children }) {
   };
 
   // ---------------- User management (per-hotel) ----------------
-  const createUser = async (formData) => {
-    try {
-      await axios.post(`${BASE_URL}/api/auth/register`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      if (selectedHotelId) fetchUsers(selectedHotelId);
-    } catch (err) {
-      console.error("Error creating user:", err);
-      throw err;
+// Update the createUser function in AuthContext
+const createUser = async (formData) => {
+  try {
+    const response = await axios.post(`${BASE_URL}/api/auth/register`, formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    
+    // Refresh users list after successful creation
+    if (selectedHotelId) {
+      await fetchUsers(selectedHotelId);
     }
-  };
+    
+    return response.data;
+  } catch (err) {
+    console.error("Error creating user:", err);
+    throw err;
+  }
+};
 
   const updateUser = async (id, formData) => {
     try {
