@@ -244,17 +244,22 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const deleteUserSuperAdmin = async (id) => {
-    try {
-      await axios.delete(`${BASE_URL}/api/auth/superadmin/users/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      fetchAllUsers();
-    } catch (err) {
-      console.error("Error deleting user (superadmin):", err);
-      throw err;
-    }
-  };
+ const deleteUserSuperAdmin = async (id) => {
+  console.log("deleteUserSuperAdmin called with ID:", id); 
+  console.log("Current token:", token); // check if token is available
+
+  try {
+    const res = await axios.delete(`${BASE_URL}/api/auth/superadmin/users/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    console.log("User deleted successfully, API response:", res.data); // log API response
+    fetchAllUsers(); // refresh list
+  } catch (err) {
+    console.error("Error deleting user (superadmin):", err.response || err); // log error
+    throw err;
+  }
+};
 
   /// ---------------- Roles & Permissions ----------------
   const createRole = async (formData) => {
@@ -481,6 +486,7 @@ const createUser = async (formData) => {
         updateHotelSuperAdmin,
         deleteHotelSuperAdmin,
         getHotelByIdSuperAdmin,
+        
 
         // superadmin user management
         updateUserSuperAdmin,

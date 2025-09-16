@@ -157,7 +157,9 @@ exports.loginUser = async (req, res) => {
             ? user.role.permissions.map(p => p.name)
             : [];
 
-        let effectiveHotelId = user.role.name === 'admin' ? null : (user.hotelId || null);
+        // let effectiveHotelId = user.role.name === 'admin' ? null : (user.hotelId || null);
+        let effectiveHotelId = user.hotelId || null;
+
 
         // ✅ Add permissions in token payload
         const tokenPayload = {

@@ -100,7 +100,7 @@ export default function CreateHotel() {
       <div className="w-full max-w-3xl">
         {/* Success Loader Overlay */}
         {loading && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-white/50 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl">
               <div className="relative mb-6">
                 <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-green-600 mx-auto"></div>
@@ -140,7 +140,7 @@ export default function CreateHotel() {
                   onChange={onChange}
                   placeholder="Enter hotel name"
                   required
-                  className="border border-gray-300 rounded-lg p-2 w-full shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="border border-gray-300 rounded-lg p-3 w-full shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                 />
               </div>
               <div>
@@ -152,7 +152,7 @@ export default function CreateHotel() {
                   onChange={onChange}
                   placeholder="hotel@example.com"
                   required
-                  className="border border-gray-300 rounded-lg p-2 w-full shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="border border-gray-300 rounded-lg p-3 w-full shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                 />
               </div>
             </div>
@@ -166,7 +166,7 @@ export default function CreateHotel() {
                 onChange={onChange}
                 placeholder="Enter full street address"
                 required
-                className="border border-gray-300 rounded-lg p-2 w-full shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="border border-gray-300 rounded-lg p-3 w-full shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
               />
             </div>
 
@@ -183,7 +183,7 @@ export default function CreateHotel() {
                     onChange={onChange}
                     placeholder={field}
                     required
-                    className="border border-gray-300 rounded-lg p-2 w-full shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="border border-gray-300 rounded-lg p-3 w-full shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                   />
                 </div>
               ))}
@@ -191,8 +191,7 @@ export default function CreateHotel() {
 
             {/* Zip & Phone */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {[
-                { name: "zip", label: "Zip Code *", placeholder: "12345" },
+              {[{ name: "zip", label: "Zip Code *", placeholder: "12345" },
                 { name: "phone", label: "Phone Number *", placeholder: "+1 (555) 123-4567" }
               ].map((f, idx) => (
                 <div key={idx}>
@@ -203,7 +202,7 @@ export default function CreateHotel() {
                     onChange={onChange}
                     placeholder={f.placeholder}
                     required
-                    className="border border-gray-300 rounded-lg p-2 w-full shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="border border-gray-300 rounded-lg p-3 w-full shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                   />
                 </div>
               ))}
@@ -219,7 +218,7 @@ export default function CreateHotel() {
                 placeholder="Describe your hotel's amenities..."
                 rows={3}
                 required
-                className="border border-gray-300 rounded-lg p-2 w-full shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                className="border border-gray-300 rounded-lg p-3 w-full shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition"
               />
             </div>
 
@@ -228,7 +227,7 @@ export default function CreateHotel() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-2.5 px-6 rounded-lg shadow-lg transition duration-200 transform hover:scale-[1.02] disabled:scale-100 disabled:cursor-not-allowed text-lg"
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition duration-200 transform hover:scale-[1.02] disabled:scale-100 disabled:cursor-not-allowed text-lg"
               >
                 {loading ? (
                   <span className="flex items-center justify-center">

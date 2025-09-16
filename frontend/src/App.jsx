@@ -79,6 +79,7 @@ function LoginRedirect() {
         ) : (
           <Navigate to="/admin" replace />
         );
+        
       } else {
         return <Navigate to="/admin/create-hotel" replace />;
       }

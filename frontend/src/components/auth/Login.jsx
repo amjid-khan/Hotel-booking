@@ -1,15 +1,15 @@
+// src/components/auth/LoginRegister.jsx
 import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import './Login.css';
 
 function LoginRegister() {
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const [isRegister, setIsRegister] = useState(false);
-  const [formData, setFormData] = useState({ full_name: '', email: '', password: '', role: 'admin' }); // role default admin
+  const [formData, setFormData] = useState({ full_name: '', email: '', password: '', role: 'admin' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -27,9 +27,8 @@ function LoginRegister() {
     const full_name = formData.full_name.trim();
     const email = formData.email.trim();
     const password = formData.password.trim();
-    const role = formData.role; // will always be "admin"
+    const role = formData.role;
 
-    // Validation
     if (isRegister && !full_name) {
       setError('Full name is required');
       return;
@@ -46,7 +45,6 @@ function LoginRegister() {
     setLoading(true);
     try {
       if (isRegister) {
-        // Registration (role is always "admin")
         await axios.post(`${BASE_URL}/api/auth/register`, {
           full_name,
           email,
@@ -57,21 +55,15 @@ function LoginRegister() {
         setIsRegister(false);
         setFormData({ full_name: '', email: '', password: '', role: 'admin' });
       } else {
-        // Login
         const response = await axios.post(`${BASE_URL}/api/auth/login`, { email, password });
         const { user, token } = response.data;
-
-        // Save to AuthContext & localStorage
         login(user, token);
 
-        // Navigate based on role
         if (user.role === 'admin') {
-          // Fetch admin hotels
           const hotelRes = await axios.get(`${BASE_URL}/api/hotels/admin/${user.id}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           const hotels = hotelRes.data || [];
-
           if (hotels.length > 0) navigate('/admin', { replace: true });
           else navigate('/admin/create-hotel', { replace: true });
         } else if (user.role === 'superadmin') {
@@ -91,26 +83,28 @@ function LoginRegister() {
   };
 
   return (
-    <div className="login-page">
-      <div className="left-side">
-        <div className="decorative-shape"></div>
-        <h1>Find Your Perfect Stay</h1>
-        <p>Book hotels with best deals and comfort.</p>
-        <div className="hotel-icon" aria-hidden="true">
+    <div className="flex flex-col md:flex-row h-screen font-poppins">
+      {/* Left Side */}
+      <div className="flex-1 relative flex flex-col justify-center p-12 bg-gradient-to-br from-[#2b5876] to-[#4e4376] text-white">
+        <div className="absolute top-0 right-[-80px] w-[200px] h-[96%] bg-white [clip-path:ellipse(60%_100%_at_0%_50%)] hidden md:block"></div>
+        <h1 className="text-5xl mb-2.5">Find Your Perfect Stay</h1>
+        <p className="text-lg opacity-90">Book hotels with best deals and comfort.</p>
+        <div className="mt-10" aria-hidden="true">
           <svg width="64" height="64" fill="white" viewBox="0 0 24 24">
             <path d="M3 12l7-8 7 8v8H3v-8z" />
           </svg>
         </div>
       </div>
 
-      <div className="right-side">
-        <h2 className="login-title">{isRegister ? 'Create Account' : 'Welcome Back'}</h2>
-        <p className="login-subtitle">Book your perfect stay with us</p>
+      {/* Right Side */}
+      <div className="flex-1 flex flex-col justify-center p-12 bg-[#f9f9f9]">
+        <h2 className="text-2xl mb-1.5 text-center text-[#333]">{isRegister ? 'Create Account' : 'Welcome Back'}</h2>
+        <p className="text-sm text-[#777] mb-7.5 text-center">Book your perfect stay with us</p>
 
-        <form onSubmit={handleSubmit} noValidate>
+        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           {isRegister && (
-            <div className="form-group">
-              <label htmlFor="full_name">Full Name *</label>
+            <div className="flex flex-col">
+              <label htmlFor="full_name" className="mb-1.5 font-medium">Full Name *</label>
               <input
                 id="full_name"
                 type="text"
@@ -119,12 +113,13 @@ function LoginRegister() {
                 onChange={onChange}
                 placeholder="Your full name"
                 autoComplete="name"
+                className="w-full p-3 rounded-lg border border-gray-300 text-base focus:outline-none focus:border-[#4e4376] focus:shadow-md"
               />
             </div>
           )}
 
-          <div className="form-group">
-            <label htmlFor="email">Email *</label>
+          <div className="flex flex-col">
+            <label htmlFor="email" className="mb-1.5 font-medium">Email *</label>
             <input
               id="email"
               type="email"
@@ -133,11 +128,12 @@ function LoginRegister() {
               onChange={onChange}
               placeholder="Enter your email"
               autoComplete="email"
+              className="w-full p-3 rounded-lg border border-gray-300 text-base focus:outline-none focus:border-[#4e4376] focus:shadow-md"
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="password">Password *</label>
+          <div className="flex flex-col">
+            <label htmlFor="password" className="mb-1.5 font-medium">Password *</label>
             <input
               id="password"
               type="password"
@@ -146,17 +142,22 @@ function LoginRegister() {
               onChange={onChange}
               placeholder="Enter your password"
               autoComplete={isRegister ? 'new-password' : 'current-password'}
+              className="w-full p-3 rounded-lg border border-gray-300 text-base focus:outline-none focus:border-[#4e4376] focus:shadow-md"
             />
           </div>
 
-          <button type="submit" disabled={loading} className="btn-submit">
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full p-3 bg-gradient-to-br from-[#2b5876] to-[#4e4376] text-white rounded-lg font-medium text-base transition-transform duration-200 disabled:opacity-50"
+          >
             {loading ? (isRegister ? 'Registering...' : 'Logging in...') : isRegister ? 'Register' : 'Login'}
           </button>
         </form>
 
-        {error && <p className="error-msg">{error}</p>}
+        {error && <p className="mt-2.5 text-red-500 text-sm">{error}</p>}
 
-        <p className="toggle-text">
+        <p className="mt-5 text-sm text-center text-gray-600">
           {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
           <button
             type="button"
@@ -165,7 +166,7 @@ function LoginRegister() {
               setError('');
               setFormData({ full_name: '', email: '', password: '', role: 'admin' });
             }}
-            className="toggle-link"
+            className="underline font-semibold text-[#4e4376] hover:text-[#2b5876] bg-none border-none cursor-pointer"
           >
             {isRegister ? 'Login here' : 'Register here'}
           </button>
