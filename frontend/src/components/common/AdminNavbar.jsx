@@ -53,7 +53,7 @@ const AdminNavbar = () => {
     };
   }, [showDropdown]);
 
-  // Filter out super admin permissions for regular admins
+  // Enhanced filtering to remove permissions ending with "any" and super admin permissions
   const getFilteredPermissions = () => {
     return permissions.filter(permission => {
       // Filter out super admin specific permissions
@@ -63,8 +63,14 @@ const AdminNavbar = () => {
         permission.description?.toLowerCase().includes(keyword)
       );
       
+      // Filter out permissions ending with "any" or similar patterns
+      const endsWithAny = permission.name.toLowerCase().endsWith('any') ||
+                         permission.name.toLowerCase().endsWith('all') ||
+                         permission.name.toLowerCase().includes('_any') ||
+                         permission.name.toLowerCase().includes('any_');
+      
       // Only show super admin permissions if current user is super admin
-      if (isSuperAdminPermission && user?.role !== 'super_admin') {
+      if ((isSuperAdminPermission || endsWithAny) && user?.role !== 'super_admin') {
         return false;
       }
       
@@ -443,101 +449,118 @@ const AdminNavbar = () => {
         </div>
       </aside>
 
-      {/* Create Role Modal */}
+      {/* Create Role Modal - Modern Design */}
       {showRoleModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-blue-50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                    <FaUserTag className="w-5 h-5 text-green-600" />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-hidden border border-gray-100">
+            
+            {/* Modal Header - Modern Gradient */}
+            <div className="relative px-8 py-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-black/10 to-transparent"></div>
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-lg">
+                    <FaUserTag className="w-7 h-7 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Create New Role</h3>
-                    <p className="text-sm text-gray-600">Define role permissions and access levels</p>
+                    <h3 className="text-2xl font-bold text-white">Create New Role</h3>
+                    <p className="text-emerald-100 font-medium mt-1">Define permissions and access levels</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowRoleModal(false)}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-3 text-white/80 hover:text-white hover:bg-white/20 rounded-2xl transition-all duration-200 backdrop-blur-sm"
                 >
-                  <FaTimes className="w-4 h-4" />
+                  <FaTimes className="w-6 h-6" />
                 </button>
               </div>
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-              {/* Role Basic Info */}
-              <div className="mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Role Name <span className="text-red-500">*</span>
+            <div className="p-8 overflow-y-auto max-h-[calc(95vh-280px)] bg-gradient-to-br from-gray-50/50 to-white">
+              
+              {/* Role Basic Info - Modern Cards */}
+              <div className="mb-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="group">
+                    <label className="block text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                      Role Name 
+                      <span className="text-red-500 text-lg">*</span>
                     </label>
-                    <input
-                      type="text"
-                      value={roleFormData.name}
-                      onChange={(e) => handleRoleFormChange('name', e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                      placeholder="Enter role name (e.g., Manager, Receptionist)"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={roleFormData.name}
+                        onChange={(e) => handleRoleFormChange('name', e.target.value)}
+                        className="w-full px-6 py-4 bg-white border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-300 font-semibold text-gray-800 shadow-sm group-hover:shadow-md"
+                        placeholder="Enter role name (e.g., Manager, Receptionist)"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-teal-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                    </div>
                   </div>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <div className="group">
+                    <label className="block text-sm font-bold text-gray-800 mb-3">
                       Description
                     </label>
-                    <textarea
-                      value={roleFormData.description}
-                      onChange={(e) => handleRoleFormChange('description', e.target.value)}
-                      rows={3}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors resize-none"
-                      placeholder="Describe the role and its responsibilities"
-                    />
+                    <div className="relative">
+                      <textarea
+                        value={roleFormData.description}
+                        onChange={(e) => handleRoleFormChange('description', e.target.value)}
+                        rows={4}
+                        className="w-full px-6 py-4 bg-white border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-300 resize-none font-medium text-gray-800 shadow-sm group-hover:shadow-md"
+                        placeholder="Describe the role and its responsibilities..."
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-teal-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Permissions Section */}
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <FaShieldAlt className="w-4 h-4 text-green-600" />
-                    <h4 className="text-lg font-semibold text-gray-900">Role Permissions</h4>
-                    <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
-                      {roleFormData.permissions.length} selected
-                    </span>
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {filteredPermissions.length} available permissions
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg">
+                      <FaShieldAlt className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="text-2xl font-bold text-gray-900">Role Permissions</h4>
+                      <div className="flex items-center gap-3 mt-2">
+                        <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-bold px-4 py-2 rounded-full shadow-md">
+                          {roleFormData.permissions.length} selected
+                        </div>
+                        <div className="text-sm text-gray-600 font-medium bg-gray-100 px-3 py-2 rounded-full">
+                          {filteredPermissions.length} available
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Search and Filter Controls */}
-                <div className="mb-4 space-y-3">
-                  <div className="relative">
+                {/* Enhanced Search and Filter Controls */}
+                <div className="mb-8 space-y-6">
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <input
                       type="text"
                       placeholder="Search permissions..."
                       value={permissionSearch}
                       onChange={(e) => setPermissionSearch(e.target.value)}
-                      className="w-full pl-4 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      className="relative w-full pl-6 pr-14 py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-300 text-sm font-medium bg-white shadow-sm group-hover:shadow-md"
                     />
-                    <FaSearch className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <FaSearch className="absolute right-5 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   </div>
                   
-                  <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                  <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
                     {categories.map(category => (
                       <button
                         key={category}
                         onClick={() => setSelectedCategory(category)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                        className={`px-6 py-3 rounded-2xl text-sm font-bold whitespace-nowrap transition-all duration-300 shadow-sm hover:shadow-md transform hover:scale-105 ${
                           selectedCategory === category
-                            ? 'bg-green-100 text-green-800 border border-green-300'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                            ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg scale-105'
+                            : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-gray-300'
                         }`}
                       >
                         {category === 'all' ? 'All Categories' : category}
@@ -546,14 +569,17 @@ const AdminNavbar = () => {
                   </div>
                 </div>
 
+                {/* Permissions Display */}
                 {filteredPermissions.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <FaShieldAlt className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p className="text-lg font-medium mb-1">No permissions found</p>
-                    <p className="text-sm">Try adjusting your search or filter criteria</p>
+                  <div className="text-center py-20 text-gray-500">
+                    <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl flex items-center justify-center shadow-lg">
+                      <FaShieldAlt className="w-12 h-12 text-gray-400" />
+                    </div>
+                    <p className="text-2xl font-bold mb-3">No permissions found</p>
+                    <p className="text-lg">Try adjusting your search or filter criteria</p>
                   </div>
                 ) : (
-                  <div className="border border-gray-200 rounded-lg">
+                  <div className="border-2 border-gray-200 rounded-3xl overflow-hidden shadow-lg bg-white">
                     {Object.entries(groupedPermissions).map(([category, categoryPermissions]) => {
                       const filteredCategoryPerms = categoryPermissions.filter(permission => 
                         getSearchFilteredPermissions().includes(permission)
@@ -564,28 +590,28 @@ const AdminNavbar = () => {
                       const allSelected = filteredCategoryPerms.every(p => 
                         roleFormData.permissions.includes(p.id)
                       );
-                      const someSelected = filteredCategoryPerms.some(p => 
-                        roleFormData.permissions.includes(p.id)
-                      );
 
                       return (
-                        <div key={category} className="border-b border-gray-200 last:border-b-0">
-                          {/* Category Header */}
-                          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                        <div key={category} className="border-b-2 border-gray-200 last:border-b-0">
+                          
+                          {/* Category Header - Modern Gradient */}
+                          <div className="bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 px-8 py-6 border-b border-gray-200">
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <FaShieldAlt className="w-4 h-4 text-gray-600" />
-                                <h5 className="font-semibold text-gray-900">{category}</h5>
-                                <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
+                              <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
+                                  <FaShieldAlt className="w-5 h-5 text-white" />
+                                </div>
+                                <h5 className="font-bold text-gray-900 text-xl">{category}</h5>
+                                <div className="bg-white text-gray-700 text-sm font-bold px-4 py-2 rounded-full border-2 border-gray-200 shadow-sm">
                                   {filteredCategoryPerms.length}
-                                </span>
+                                </div>
                               </div>
                               <button
                                 onClick={() => handleSelectAllInCategory(category)}
-                                className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
+                                className={`text-sm font-bold px-6 py-3 rounded-2xl transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105 ${
                                   allSelected
-                                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                    ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white'
+                                    : 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white'
                                 }`}
                               >
                                 {allSelected ? 'Deselect All' : 'Select All'}
@@ -593,42 +619,56 @@ const AdminNavbar = () => {
                             </div>
                           </div>
 
-                          {/* Category Permissions */}
-                          <div className="p-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {/* Category Permissions - Modern Grid with Radio Button Style */}
+                          <div className="p-8">
+                            <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-4">
                               {filteredCategoryPerms.map((permission) => (
                                 <div
                                   key={permission.id}
-                                  className={`relative flex items-start p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-sm ${
+                                  className={`group relative flex items-start p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${
                                     roleFormData.permissions.includes(permission.id)
-                                      ? 'border-green-500 bg-green-50 shadow-sm'
-                                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                      ? 'border-emerald-500 bg-gradient-to-br from-emerald-50 to-teal-50 shadow-lg scale-102'
+                                      : 'border-gray-200 hover:border-gray-300 hover:bg-gradient-to-br hover:from-white hover:to-gray-50 shadow-sm'
                                   }`}
                                   onClick={() => handlePermissionToggle(permission.id)}
                                 >
-                                  <div className="flex items-center h-5">
-                                    <input
-                                      type="checkbox"
-                                      checked={roleFormData.permissions.includes(permission.id)}
-                                      onChange={() => handlePermissionToggle(permission.id)}
-                                      className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                                    />
+                                  {/* Custom Radio Button Style */}
+                                  <div className="flex items-center h-6 mr-4">
+                                    <div className={`relative w-6 h-6 rounded-full border-2 transition-all duration-300 ${
+                                      roleFormData.permissions.includes(permission.id)
+                                        ? 'border-emerald-500 bg-emerald-500'
+                                        : 'border-gray-300 bg-white group-hover:border-gray-400'
+                                    }`}>
+                                      {roleFormData.permissions.includes(permission.id) && (
+                                        <div className="absolute inset-1 bg-white rounded-full flex items-center justify-center">
+                                          <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
-                                  <div className="ml-3 flex-1">
-                                    <label className="text-sm font-medium text-gray-900 cursor-pointer">
+                                  
+                                  <div className="flex-1 min-w-0">
+                                    <label className="text-sm font-bold text-gray-900 cursor-pointer block mb-2">
                                       {permission.name}
                                     </label>
                                     {permission.description && (
-                                      <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                                      <p className="text-xs text-gray-600 leading-relaxed font-medium">
                                         {permission.description}
                                       </p>
                                     )}
                                   </div>
+                                  
+                                  {/* Check Icon */}
                                   {roleFormData.permissions.includes(permission.id) && (
-                                    <div className="ml-2">
-                                      <FaCheck className="w-4 h-4 text-green-600" />
+                                    <div className="ml-4 flex-shrink-0">
+                                      <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center shadow-lg">
+                                        <FaCheck className="w-4 h-4 text-white" />
+                                      </div>
                                     </div>
                                   )}
+                                  
+                                  {/* Hover Effect Overlay */}
+                                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-teal-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                                 </div>
                               ))}
                             </div>
@@ -641,27 +681,27 @@ const AdminNavbar = () => {
               </div>
             </div>
 
-            {/* Modal Footer */}
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3">
+            {/* Modal Footer - Modern Gradient */}
+            <div className="px-8 py-6 bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 border-t-2 border-gray-200 flex gap-4">
               <button
                 onClick={() => setShowRoleModal(false)}
-                className="flex-1 bg-white hover:bg-gray-50 text-gray-700 py-3 px-4 rounded-lg text-sm font-medium border border-gray-300 hover:border-gray-400 transition-colors duration-200"
+                className="flex-1 bg-white hover:bg-gray-50 text-gray-700 py-4 px-8 rounded-2xl text-sm font-bold border-2 border-gray-300 hover:border-gray-400 transition-all duration-300 hover:shadow-lg transform hover:scale-105"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmitRole}
                 disabled={isCreatingRole || !roleFormData.name.trim()}
-                className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white py-3 px-4 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+                className="flex-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white py-4 px-8 rounded-2xl text-sm font-bold transition-all duration-300 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 disabled:transform-none"
               >
                 {isCreatingRole ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     Creating Role...
                   </>
                 ) : (
                   <>
-                    <FaUserTag className="w-4 h-4" />
+                    <FaUserTag className="w-5 h-5" />
                     Create Role ({roleFormData.permissions.length} permissions)
                   </>
                 )}

@@ -21,6 +21,7 @@ function LoginRegister() {
   };
 
   const handleSubmit = async (e) => {
+  
     e.preventDefault();
     setError('');
 
@@ -58,6 +59,7 @@ function LoginRegister() {
         const response = await axios.post(`${BASE_URL}/api/auth/login`, { email, password });
         const { user, token } = response.data;
         login(user, token);
+        console.log("User login", response.data);
 
         if (user.role === 'admin') {
           const hotelRes = await axios.get(`${BASE_URL}/api/hotels/admin/${user.id}`, {

@@ -1,51 +1,58 @@
 const express = require('express');
 const router = express.Router();
 
-const { authenticateToken, authorizeRoles } = require('../middleware/authMiddleware');
+const { authenticateToken } = require('../middleware/authMiddleware');
 const upload = require('../middleware/upload');
+const { hasPermission } = require('../middleware/permissions'); // 👈 add this
+
 const {
     addRoom,
     getAllRooms,
     updateRoom,
     deleteRoom,
     getUserRooms
-} = require('../controllers/roomControllers'); // Ensure correct file path
+} = require('../controllers/roomControllers');
 
-// Add new room (with image upload)
+// Add new room (permission: room_create)
 router.post(
     '/',
     authenticateToken,
-    authorizeRoles('admin', 'superadmin'),
-    upload.single('image'),   // Handle image upload
+    hasPermission("room_create"),   // 👈 check permission
+    upload.single('image'),
     addRoom
 );
 
-// Get all rooms (optionally filter by hotelId)
+// Get all rooms (permission: room_view_any)
 router.get(
     '/',
     authenticateToken,
-    authorizeRoles('admin', 'superadmin'),
+    hasPermission("room_view_any"), // 👈 check permission
     getAllRooms
 );
 
-// Update room (with image upload)
+// Update room (permission: room_update)
 router.put(
     '/:id',
     authenticateToken,
-    authorizeRoles('admin', 'superadmin'),
-    upload.single('image'),   // Handle image upload
+    hasPermission("room_update"),   // 👈 check permission
+    upload.single('image'),
     updateRoom
 );
 
-// Delete room
+// Delete room (permission: room_delete)
 router.delete(
     '/:id',
     authenticateToken,
-    authorizeRoles('admin', 'superadmin'),
+    hasPermission("room_delete"),   // 👈 check permission
     deleteRoom
 );
 
-router.get('/user', authenticateToken, authorizeRoles('user'), getUserRooms); // http://localhost:5000/api/rooms/user
-
+// Get rooms for the logged-in user (permission: room_view_self)
+router.get(
+    '/user',
+    authenticateToken,
+    hasPermission("room_view_self"), // 👈 check permission
+    getUserRooms
+);
 
 module.exports = router;

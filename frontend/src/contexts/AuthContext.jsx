@@ -244,22 +244,25 @@ export function AuthProvider({ children }) {
     }
   };
 
- const deleteUserSuperAdmin = async (id) => {
-  console.log("deleteUserSuperAdmin called with ID:", id); 
-  console.log("Current token:", token); // check if token is available
+  const deleteUserSuperAdmin = async (id) => {
+    console.log("deleteUserSuperAdmin called with ID:", id);
+    console.log("Current token:", token); // check if token is available
 
-  try {
-    const res = await axios.delete(`${BASE_URL}/api/auth/superadmin/users/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    try {
+      const res = await axios.delete(
+        `${BASE_URL}/api/auth/superadmin/users/${id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-    console.log("User deleted successfully, API response:", res.data); // log API response
-    fetchAllUsers(); // refresh list
-  } catch (err) {
-    console.error("Error deleting user (superadmin):", err.response || err); // log error
-    throw err;
-  }
-};
+      console.log("User deleted successfully, API response:", res.data); // log API response
+      fetchAllUsers(); // refresh list
+    } catch (err) {
+      console.error("Error deleting user (superadmin):", err.response || err); // log error
+      throw err;
+    }
+  };
 
   /// ---------------- Roles & Permissions ----------------
   const createRole = async (formData) => {
@@ -325,8 +328,10 @@ export function AuthProvider({ children }) {
       id: userData.id,
       full_name: userData.full_name || userData.name,
       email: userData.email,
-      role: userData.role,
+      // 👇 normalize role
+      role: (userData.role || "").toLowerCase(),
       hotelId: userData.hotelId || null,
+      permissions: userData.permissions || [],
     };
 
     setUser(updatedUser);
@@ -339,9 +344,19 @@ export function AuthProvider({ children }) {
         localStorage.getItem("selectedHotelId") || updatedUser.hotelId;
       if (lastHotel) selectHotel(lastHotel);
 
-      if (updatedUser.role === "user" && updatedUser.hotelId) {
+      // if (updatedUser.role === "user" || updatedUser.role === "staff") {
+      //   // 👈 staff treated same as user
+      //   if (updatedUser.hotelId) {
+      //     fetchHotelName(updatedUser.hotelId);
+      //     fetchRooms(updatedUser.hotelId);
+      //   }
+      // }
+
+      // ✅ For all hotel-based roles (except superadmin), load their hotel data
+      if (updatedUser.role !== "superadmin" && updatedUser.hotelId) {
         fetchHotelName(updatedUser.hotelId);
         fetchRooms(updatedUser.hotelId);
+        fetchUsers(updatedUser.hotelId);
       }
     });
 
@@ -372,27 +387,31 @@ export function AuthProvider({ children }) {
   };
 
   // ---------------- User management (per-hotel) ----------------
-// Update the createUser function in AuthContext
-const createUser = async (formData) => {
-  try {
-    const response = await axios.post(`${BASE_URL}/api/auth/register`, formData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "multipart/form-data",
-      },
-    });
-    
-    // Refresh users list after successful creation
-    if (selectedHotelId) {
-      await fetchUsers(selectedHotelId);
+  // Update the createUser function in AuthContext
+  const createUser = async (formData) => {
+    try {
+      const response = await axios.post(
+        `${BASE_URL}/api/auth/register`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      // Refresh users list after successful creation
+      if (selectedHotelId) {
+        await fetchUsers(selectedHotelId);
+      }
+
+      return response.data;
+    } catch (err) {
+      console.error("Error creating user:", err);
+      throw err;
     }
-    
-    return response.data;
-  } catch (err) {
-    console.error("Error creating user:", err);
-    throw err;
-  }
-};
+  };
 
   const updateUser = async (id, formData) => {
     try {
@@ -486,7 +505,6 @@ const createUser = async (formData) => {
         updateHotelSuperAdmin,
         deleteHotelSuperAdmin,
         getHotelByIdSuperAdmin,
-        
 
         // superadmin user management
         updateUserSuperAdmin,

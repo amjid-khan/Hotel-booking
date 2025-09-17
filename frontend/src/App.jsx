@@ -48,14 +48,17 @@ function HomeRedirect() {
       }
     case "superadmin":
       return <Navigate to="/superadmin" replace />;
-    case "user":
-      return <Navigate to="/userdashboard" replace />;
     default:
-      return <Navigate to="/login" replace />;
+      // ✅ Any dynamic role (staff, manager, receptionist, etc.) with hotelId
+      return user.hotelId ? (
+        <Navigate to={`/admin/hotel/${user.hotelId}`} replace />
+      ) : (
+        <Navigate to="/login" replace />
+      );
   }
 }
 
-// --- Block login page if user already logged in ---
+// Updated LoginRedirect function in App.jsx
 function LoginRedirect() {
   const { user, loading } = useContext(AuthContext);
   const {
@@ -72,23 +75,29 @@ function LoginRedirect() {
 
   switch (user.role) {
     case "admin":
-      if (hasHotel) {
-        const firstHotelId = hotels?.[0]?._id;
-        return firstHotelId ? (
-          <Navigate to={`/admin/hotel/${firstHotelId}`} replace />
-        ) : (
-          <Navigate to="/admin" replace />
-        );
-        
+      if (user.hotelId) {
+        return <Navigate to={`/admin/hotel/${user.hotelId}`} replace />;
       } else {
-        return <Navigate to="/admin/create-hotel" replace />;
+        if (hasHotel) {
+          const firstHotelId = hotels?.[0]?._id;
+          return firstHotelId ? (
+            <Navigate to={`/admin/hotel/${firstHotelId}`} replace />
+          ) : (
+            <Navigate to="/admin" replace />
+          );
+        } else {
+          return <Navigate to="/admin/create-hotel" replace />;
+        }
       }
     case "superadmin":
       return <Navigate to="/superadmin" replace />;
-    case "user":
-      return <Navigate to="/admin" replace />;
     default:
-      return <Navigate to="/" replace />;
+      // ✅ Any dynamic role (staff, manager, etc.) redirect to their assigned hotel
+      return user.hotelId ? (
+        <Navigate to={`/admin/hotel/${user.hotelId}`} replace />
+      ) : (
+        <Navigate to="/login" replace />
+      );
   }
 }
 
@@ -101,20 +110,13 @@ export default function App() {
       {/* Login */}
       <Route path="/login" element={<LoginRedirect />} />
 
-      {/* User Routes - Fixed Structure */}
-      {/* <Route element={<ProtectedRoute roles={["user"]} />}>
-        <Route element={<UserLayout />}>
-          <Route path="/browserooms" element={<BrowseRoom />} />
-          <Route path="/userdashboard" element={<UserDashbaord />} />
-        </Route>
-      </Route> */}
-
-      {/* Admin Routes */}
+      {/* Admin Create Hotel (only admins allowed) */}
       <Route element={<ProtectedRoute roles={["admin"]} />}>
         <Route path="/admin/create-hotel" element={<CreateHotel />} />
       </Route>
 
-      <Route element={<ProtectedRoute roles={["admin", "user"]} />}>
+      {/* All Hotel Roles - Admin + Dynamic Roles (staff, manager, receptionist, etc.) */}
+      <Route element={<ProtectedRoute allowHotelRoles={true} />}>
         <Route element={<AdminLayout />}>
           <Route path="/admin/hotel/:hotelId" element={<AdminDashboard />} />
           <Route path="/admin" element={<AdminDashboard />} />

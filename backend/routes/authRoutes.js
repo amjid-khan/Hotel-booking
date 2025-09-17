@@ -15,11 +15,18 @@ const { protect, isSuperAdmin } = require('../middleware/auth');
 const { hasPermission } = require('../middleware/permissions'); // 👈 import middleware
 
 // Routes
+// router.post(
+//     '/register',
+//     hasPermission("user_create"),   // 👈 only users with this permission can create
+//     upload.single('profile_image'),
+//     registerUser
+// );
+
 router.post(
-    '/register',
-    protect,
-    hasPermission("user_create"),   // 👈 only users with this permission can create
-    upload.single('profile_image'),
+    "/register",
+    protect,                      // 👈 pehle login check
+    hasPermission("user_create"), // 👈 fir permission check
+    upload.single("profile_image"),
     registerUser
 );
 
