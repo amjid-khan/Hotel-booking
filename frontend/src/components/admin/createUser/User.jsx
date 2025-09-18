@@ -4,11 +4,15 @@ import { FaUser, FaEdit, FaTrash, FaTimes, FaUserPlus, FaSync } from "react-icon
 import { AuthContext } from "../../../contexts/AuthContext";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import useUserPermissions from "../../../contexts/useUserPermissions";
 
 const User = () => {
+  const { user } = useContext(AuthContext); // logged-in user
+  const perms = useUserPermissions(); // logged-in user's permissions
+
   const BASE_URL = import.meta.env.VITE_BASE_URL;
   const { token, users, fetchUsers, selectedHotelId, createUser, updateUser, deleteUser, roles, fetchRoles } = useContext(AuthContext);
-  
+
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
     id: null,
@@ -17,12 +21,11 @@ const User = () => {
     phone: "",
     password: "",
     role: "user",
-    hotel_role: "", // for role dropdown
+    hotel_role: "",
     status: "active",
     profile_image: null,
     profile_image_url: null,
   });
-  const [selectedHotelRoleId, setSelectedHotelRoleId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
 
@@ -35,7 +38,6 @@ const User = () => {
   }, [fetchRoles]);
 
   const handleOpenModal = () => setShowModal(true);
-
   const handleCloseModal = () => {
     setShowModal(false);
     setFormData({
@@ -50,7 +52,6 @@ const User = () => {
       profile_image: null,
       profile_image_url: null,
     });
-    setSelectedHotelRoleId("");
   };
 
   const handleChange = (e) => {
@@ -66,70 +67,55 @@ const User = () => {
     }
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!token) return toast.error("No token found — please log in first.");
-  if (!selectedHotelId) return toast.error("Select a hotel first!");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!token) return toast.error("No token found — please log in first.");
+    if (!selectedHotelId) return toast.error("Select a hotel first!");
 
-  setSubmitting(true);
-  try {
-    // Create FormData for file upload
-    const formDataToSend = new FormData();
-    
-    // Add all form fields
-    formDataToSend.append('full_name', formData.full_name);
-    formDataToSend.append('email', formData.email);
-    formDataToSend.append('phone', formData.phone || '');
-    formDataToSend.append('status', formData.status);
-    formDataToSend.append('hotelId', selectedHotelId);
-    
-    // Add password only if it's not empty
-    if (formData.password) {
-      formDataToSend.append('password', formData.password);
-    }
-    
-    // Add the selected hotel role - this is the key fix
-    if (formData.hotel_role) {
-      formDataToSend.append('hotel_role', formData.hotel_role);
-    }
-    
-    // Add profile image if selected
-    if (formData.profile_image) {
-      formDataToSend.append('profile_image', formData.profile_image);
-    }
+    setSubmitting(true);
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append("full_name", formData.full_name);
+      formDataToSend.append("email", formData.email);
+      formDataToSend.append("phone", formData.phone || "");
+      formDataToSend.append("status", formData.status);
+      formDataToSend.append("hotelId", selectedHotelId);
 
-    if (formData.id) {
-      await updateUser(formData.id, formDataToSend);
-      toast.success("User updated successfully!");
-    } else {
-      await createUser(formDataToSend);
-      toast.success("User created successfully!");
+      if (formData.password) formDataToSend.append("password", formData.password);
+      if (formData.hotel_role) formDataToSend.append("hotel_role", formData.hotel_role);
+      if (formData.profile_image) formDataToSend.append("profile_image", formData.profile_image);
+
+      if (formData.id) {
+        await updateUser(formData.id, formDataToSend);
+        toast.success("User updated successfully!");
+      } else {
+        await createUser(formDataToSend);
+        toast.success("User created successfully!");
+      }
+
+      fetchUsers(selectedHotelId);
+      handleCloseModal();
+    } catch (error) {
+      console.error(error.response?.data || error.message);
+      toast.error(error.response?.data?.message || "Error saving user");
+    } finally {
+      setSubmitting(false);
     }
+  };
 
-    fetchUsers(selectedHotelId);
-    handleCloseModal();
-  } catch (error) {
-    console.error(error.response?.data || error.message);
-    toast.error(error.response?.data?.message || "Error saving user");
-  } finally {
-    setSubmitting(false);
-  }
-};
-
-  const handleEdit = (user) => {
+  const handleEdit = (userItem) => {
     setFormData({
-      id: user.id,
-      full_name: user.full_name || user.name,
-      email: user.email,
-      phone: user.phone || "",
+      id: userItem.id,
+      full_name: userItem.full_name || userItem.name,
+      email: userItem.email,
+      phone: userItem.phone || "",
       password: "",
-      role: user.role || "user",
-      hotel_role: user.hotel_role || user.role || "admin", // Load existing hotel role
-      status: user.status || "active",
+      role: userItem.role || "user",
+      hotel_role: userItem.hotel_role || userItem.role || "admin",
+      status: userItem.status || "active",
       profile_image: null,
-      profile_image_url: user.profile_image ? `${BASE_URL}/uploads/${user.profile_image}` : null,
+      profile_image_url: userItem.profile_image ? `${BASE_URL}/uploads/${userItem.profile_image}` : null,
     });
-    setSelectedHotelRoleId("");
     handleOpenModal();
   };
 
@@ -183,7 +169,6 @@ const handleSubmit = async (e) => {
   const getStatusColor = (status) =>
     status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800";
 
-  // Filter roles to exclude superadmin
   const availableRoles = roles.filter(role => role.name.toLowerCase() !== "superadmin");
 
   return (
@@ -197,12 +182,14 @@ const handleSubmit = async (e) => {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">User Management</h1>
             <p className="text-gray-600 text-sm md:text-base">Manage hotel staff and user accounts efficiently.</p>
           </div>
-          <button
-            onClick={handleOpenModal}
-            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm"
-          >
-            <FaUserPlus className="text-sm" /> Create User
-          </button>
+          {(user?.role === "admin" || user?.role === "superadmin" || perms?.user?.create) && (
+            <button
+              onClick={handleOpenModal}
+              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm"
+            >
+              <FaUserPlus className="text-sm" /> Create User
+            </button>
+          )}
         </div>
       </div>
 
@@ -344,9 +331,7 @@ const handleSubmit = async (e) => {
                   disabled={submitting}
                   className="w-full sm:w-auto px-6 md:px-8 py-2.5 md:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium text-sm md:text-base"
                 >
-                  {submitting
-                    ? formData.id ? "Updating..." : "Creating..."
-                    : formData.id ? "Update User" : "Create User"}
+                  {submitting ? (formData.id ? "Updating..." : "Creating...") : (formData.id ? "Update User" : "Create User")}
                 </button>
               </div>
             </form>
@@ -374,16 +359,12 @@ const handleSubmit = async (e) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {users.map((user) => (
-                      <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                    {users.map((u) => (
+                      <tr key={u.id} className="hover:bg-gray-50 transition-colors">
                         <td className="py-4 px-6">
                           <div className="w-12 h-12 rounded-full overflow-hidden shadow-sm">
-                            {user.profile_image ? (
-                              <img
-                                src={`${BASE_URL}/uploads/${user.profile_image}`}
-                                alt={user.full_name || user.name}
-                                className="w-full h-full object-cover"
-                              />
+                            {u.profile_image ? (
+                              <img src={`${BASE_URL}/uploads/${u.profile_image}`} alt={u.full_name || u.name} className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full bg-gray-200 flex items-center justify-center">
                                 <FaUser className="text-gray-500" size={20} />
@@ -391,35 +372,39 @@ const handleSubmit = async (e) => {
                             )}
                           </div>
                         </td>
-                        <td className="py-4 px-6 font-semibold">{user.full_name || user.name}</td>
-                        <td className="py-4 px-6 text-gray-600">{user.email}</td>
-                        <td className="py-4 px-6 text-gray-600">{user.phone || "-"}</td>
+                        <td className="py-4 px-6 font-semibold">{u.full_name || u.name}</td>
+                        <td className="py-4 px-6 text-gray-600">{u.email}</td>
+                        <td className="py-4 px-6 text-gray-600">{u.phone || "-"}</td>
                         <td className="py-4 px-6">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(user.hotel_role || user.role)}`}>
-                            {(user.hotel_role || user.role)?.charAt(0).toUpperCase() + (user.hotel_role || user.role)?.slice(1)}
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(u.hotel_role || u.role)}`}>
+                            {(u.hotel_role || u.role)?.charAt(0).toUpperCase() + (u.hotel_role || u.role)?.slice(1)}
                           </span>
                         </td>
                         <td className="py-4 px-6">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(user.status)}`}>
-                            {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(u.status)}`}>
+                            {u.status.charAt(0).toUpperCase() + u.status.slice(1)}
                           </span>
                         </td>
                         <td className="py-4 px-6 text-center">
                           <div className="flex justify-center gap-2">
-                            <button 
-                              onClick={() => handleEdit(user)} 
-                              className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
-                              title="Edit User"
-                            >
-                              <FaEdit size={16} />
-                            </button>
-                            <button 
-                              onClick={() => confirmDelete(user.id)} 
-                              className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                              title="Delete User"
-                            >
-                              <FaTrash size={16} />
-                            </button>
+                            {(user?.role === "admin" || user?.role === "superadmin" || perms?.user?.updateAny) && (
+                              <button
+                                onClick={() => handleEdit(u)}
+                                className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                                title="Edit User"
+                              >
+                                <FaEdit size={16} />
+                              </button>
+                            )}
+                            {(user?.role === "admin" || user?.role === "superadmin" || perms?.user?.deleteAny) && (
+                              <button
+                                onClick={() => confirmDelete(u.id)}
+                                className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                                title="Delete User"
+                              >
+                                <FaTrash size={16} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -430,16 +415,12 @@ const handleSubmit = async (e) => {
 
               {/* Mobile Cards */}
               <div className="lg:hidden divide-y divide-gray-200">
-                {users.map((user) => (
-                  <div key={user.id} className="p-4 md:p-6">
+                {users.map((u) => (
+                  <div key={u.id} className="p-4 md:p-6">
                     <div className="flex items-start gap-3 md:gap-4">
                       <div className="w-16 md:w-20 h-16 md:h-20 rounded-full overflow-hidden shadow-sm flex-shrink-0">
-                        {user.profile_image ? (
-                          <img
-                            src={`${BASE_URL}/uploads/${user.profile_image}`}
-                            alt={user.full_name || user.name}
-                            className="w-full h-full object-cover"
-                          />
+                        {u.profile_image ? (
+                          <img src={`${BASE_URL}/uploads/${u.profile_image}`} alt={u.full_name || u.name} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full bg-gray-200 flex items-center justify-center">
                             <FaUser className="text-gray-500" size={24} />
@@ -449,42 +430,32 @@ const handleSubmit = async (e) => {
                       <div className="flex-grow min-w-0">
                         <div className="flex items-start justify-between mb-2">
                           <div>
-                            <h4 className="font-semibold text-gray-900 text-sm md:text-base">
-                              {user.full_name || user.name}
-                            </h4>
-                            <p className="text-xs md:text-sm text-gray-600">{user.email}</p>
+                            <h4 className="font-semibold text-gray-900 text-sm md:text-base">{u.full_name || u.name}</h4>
+                            <p className="text-xs md:text-sm text-gray-600">{u.email}</p>
                           </div>
                           <div className="flex flex-col gap-1">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${getRoleColor(user.hotel_role || user.role)}`}>
-                              {(user.hotel_role || user.role)?.charAt(0).toUpperCase() + (user.hotel_role || user.role)?.slice(1)}
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${getRoleColor(u.hotel_role || u.role)}`}>
+                              {(u.hotel_role || u.role)?.charAt(0).toUpperCase() + (u.hotel_role || u.role)?.slice(1)}
                             </span>
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(user.status)}`}>
-                              {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(u.status)}`}>
+                              {u.status.charAt(0).toUpperCase() + u.status.slice(1)}
                             </span>
                           </div>
                         </div>
-                        
                         <div className="text-xs md:text-sm text-gray-600 mb-3">
-                          <p><span className="font-medium">Phone:</span> {user.phone || "Not provided"}</p>
+                          <p><span className="font-medium">Phone:</span> {u.phone || "Not provided"}</p>
                         </div>
-
                         <div className="flex items-center gap-2">
-                          <button 
-                            onClick={() => handleEdit(user)}
-                            className="flex-1 sm:flex-none px-3 py-1.5 text-green-600 border border-green-600 rounded text-xs md:text-sm hover:bg-green-50 transition-colors"
-                            title="Edit User"
-                          >
-                            <FaEdit className="inline mr-1" size={12} />
-                            Edit
-                          </button>
-                          <button 
-                            onClick={() => confirmDelete(user.id)}
-                            className="flex-1 sm:flex-none px-3 py-1.5 text-red-600 border border-red-600 rounded text-xs md:text-sm hover:bg-red-50 transition-colors"
-                            title="Delete User"
-                          >
-                            <FaTrash className="inline mr-1" size={12} />
-                            Delete
-                          </button>
+                          {(user?.role === "admin" || user?.role === "superadmin" || perms?.user?.updateAny) && (
+                            <button onClick={() => handleEdit(u)} className="flex-1 sm:flex-none px-3 py-1.5 text-green-600 border border-green-600 rounded text-xs md:text-sm hover:bg-green-50 transition-colors" title="Edit User">
+                              <FaEdit className="inline mr-1" size={12} /> Edit
+                            </button>
+                          )}
+                          {(user?.role === "admin" || user?.role === "superadmin" || perms?.user?.deleteAny) && (
+                            <button onClick={() => confirmDelete(u.id)} className="flex-1 sm:flex-none px-3 py-1.5 text-red-600 border border-red-600 rounded text-xs md:text-sm hover:bg-red-50 transition-colors" title="Delete User">
+                              <FaTrash className="inline mr-1" size={12} /> Delete
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>

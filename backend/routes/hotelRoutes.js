@@ -108,7 +108,7 @@ router.delete(
 router.get(
     '/dashboard',
     protect,
-    // hasPermission("hotel_dashboard_view"), // 👈 receptionist, manager, etc.
+    hasPermission("hotel_dashboard_view"), // 👈 receptionist, manager, etc.
     getRoleHotelDashboard
 );
 

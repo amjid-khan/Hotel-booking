@@ -379,13 +379,21 @@ exports.getHotelUsers = async (req, res) => {
         });
 
         const hotels = await Hotel.findAll({ where: { id: hotelId } });
-        const hotelMap = hotels.reduce((acc, h) => { acc[h.id] = h; return acc; }, {});
+        const hotelMap = hotels.reduce((acc, h) => {
+            acc[h.id] = h;
+            return acc;
+        }, {});
 
-        const enriched = users.map(u => ({
-            ...u.toJSON(),
-            role: u.role.name,
-            hotel: hotelMap[u.hotelId] || null
-        }));
+        const enriched = users.map(u => {
+            const userJson = u.toJSON();
+
+            return {
+                ...userJson,
+                full_name: `${userJson.first_name || ''} ${userJson.last_name || ''}`.trim(),
+                role: u.role?.name || null,   // ✅ safe access
+                hotel: hotelMap[u.hotelId] || null
+            };
+        });
 
         res.json({ users: enriched });
     } catch (error) {
@@ -393,6 +401,7 @@ exports.getHotelUsers = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
+
 
 // ====================== GET ALL USERS (SUPERADMIN ONLY) ======================
 exports.getAllUsers = async (req, res) => {

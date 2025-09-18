@@ -1,16 +1,14 @@
-// const express = require('express');
-// const router = express.Router();
+const express = require('express');
+const router = express.Router();
+const bookingController = require('../controllers/bookingController');
 
-// const {
-//     bookRoom,
-//     getUserBookings,
-//     cancelBooking,
-// } = require('../controllers/bookingController');
+// Create booking
+router.post('/', bookingController.createBooking);
 
-// const { authenticateToken, authorizeRoles } = require('../middleware/authMiddleware');
+// Get bookings for a hotel
+router.get('/hotel/:hotelId', bookingController.getHotelBookings);
 
-// router.post('/', authenticateToken, authorizeRoles('user', 'admin', 'superadmin'), bookRoom);
-// router.get('/', authenticateToken, authorizeRoles('user', 'admin', 'superadmin'), getUserBookings);
-// router.delete('/:id', authenticateToken, authorizeRoles('user', 'admin', 'superadmin'), cancelBooking);
+// Cancel booking (optional)
+router.put('/cancel/:bookingId', bookingController.cancelBooking);
 
-// module.exports = router;
+module.exports = router;

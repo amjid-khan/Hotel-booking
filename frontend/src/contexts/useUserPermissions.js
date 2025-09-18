@@ -1,5 +1,5 @@
 import { useContext, useMemo } from "react";
-import AuthContext from "../contexts/AuthContext";
+import { AuthContext } from "../contexts/AuthContext";
 
 // Permissions reference
 const permissionsMap = {
@@ -30,6 +30,10 @@ const permissionsMap = {
         update: "room_update",
         delete: "room_delete",
     },
+    role: {
+        create: "role_create",   // ✅ add role_create
+        viewAny: "role_view_any", // ✅ add role_view_any
+    },
 };
 
 export default function useUserPermissions() {
@@ -37,12 +41,16 @@ export default function useUserPermissions() {
 
     const userPerms = user?.permissions || [];
 
-    // Generate boolean flags for each permission
     const perms = useMemo(() => {
-        const result = {};
+        // prefill result so it's never undefined
+        const result = {
+            user: {},
+            hotel: {},
+            room: {},
+            role: {}, // ✅ include role
+        };
 
         for (const category in permissionsMap) {
-            result[category] = {};
             for (const key in permissionsMap[category]) {
                 const permName = permissionsMap[category][key];
                 result[category][key] = userPerms.includes(permName);

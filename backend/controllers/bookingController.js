@@ -1,76 +1,86 @@
-// const pool = require('../config/db');
+const { Booking, Room, Hotel } = require('../models');
 
-// exports.bookRoom = async (req, res) => {
-//     const userId = req.user.id;
-//     const { roomId, fromDate, toDate } = req.body;
+module.exports = {
+    // Create a new booking
+    createBooking: async (req, res) => {
+        try {
+            const {
+                hotelId,
+                roomId,
+                guestName,
+                guestEmail,
+                guestPhone,
+                checkIn,
+                checkOut,
+                guests,
+                totalAmount
+            } = req.body;
 
-//     if (!roomId || !fromDate || !toDate) {
-//         return res.status(400).json({ message: 'All fields are required' });
-//     }
+            if (!hotelId || !roomId || !guestName || !guestEmail || !checkIn || !checkOut || !totalAmount) {
+                return res.status(400).json({ message: "Required fields missing" });
+            }
 
-//     if (new Date(fromDate) > new Date(toDate)) {
-//         return res.status(400).json({ message: 'Invalid date range' });
-//     }
+            const booking = await Booking.create({
+                hotelId,
+                roomId,
+                guestName,
+                guestEmail,
+                guestPhone,
+                checkIn,
+                checkOut,
+                guests,
+                totalAmount,
+                status: "confirmed"
+            });
 
-//     try {
-//         const [rooms] = await pool.query('SELECT * FROM rooms WHERE id = ?', [roomId]);
-//         if (rooms.length === 0) {
-//             return res.status(404).json({ message: 'Room not found' });
-//         }
+            res.status(201).json({ message: "Booking created successfully", booking });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: "Server error", error });
+        }
+    },
 
-//         await pool.query(
-//             'INSERT INTO bookings (userId, roomId, fromDate, toDate, status) VALUES (?, ?, ?, ?, ?)',
-//             [userId, roomId, fromDate, toDate, 'booked']
-//         );
+    // Fetch all bookings for a specific hotel (fixed)
+    getHotelBookings: async (req, res) => {
+        try {
+            const { hotelId } = req.params;
 
-//         res.status(201).json({ message: 'Room booked successfully' });
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({ message: 'Server error' });
-//     }
-// };
+            if (!hotelId) {
+                return res.status(400).json({ message: "Hotel ID is required" });
+            }
 
-// exports.getUserBookings = async (req, res) => {
-//     const userId = req.user.id;
+            // Convert hotelId to integer to avoid type mismatch
+            const bookings = await Booking.findAll({
+                where: { hotelId: parseInt(hotelId) },
+                include: [
+                    { model: Room, attributes: ['id', 'type', 'roomNumber', 'price'] },
+                    { model: Hotel, attributes: ['id', 'name'] }
+                ],
+                order: [['createdAt', 'DESC']]
+            });
 
-//     try {
-//         const [bookings] = await pool.query(
-//             `SELECT b.id, b.fromDate, b.toDate, b.status, r.roomNumber, r.type, r.price
-//             FROM bookings b
-//             JOIN rooms r ON b.roomId = r.id
-//             WHERE b.userId = ?`,
-//             [userId]
-//         );
-//         res.json(bookings);
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({ message: 'Server error' });
-//     }
-// };
+            res.status(200).json({ bookings });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: "Server error", error });
+        }
+    },
 
-// exports.cancelBooking = async (req, res) => {
-//     const userId = req.user.id;
-//     const bookingId = req.params.id;
+    // Cancel a booking
+    cancelBooking: async (req, res) => {
+        try {
+            const { bookingId } = req.params;
 
-//     try {
-//         const [bookings] = await pool.query('SELECT * FROM bookings WHERE id = ? AND userId = ?', [
-//             bookingId,
-//             userId,
-//         ]);
+            const booking = await Booking.findByPk(bookingId);
+            if (!booking) return res.status(404).json({ message: "Booking not found" });
 
-//         if (bookings.length === 0) {
-//             return res.status(404).json({ message: 'Booking not found or unauthorized' });
-//         }
+            booking.status = "cancelled";
+            await booking.save();
 
-//         await pool.query('UPDATE bookings SET status = ? WHERE id = ? AND userId = ?', [
-//             'cancelled',
-//             bookingId,
-//             userId,
-//         ]);
-
-//         res.json({ message: 'Booking cancelled successfully' });
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({ message: 'Server error' });
-//     }
-// };
+            res.status(200).json({ message: "Booking cancelled successfully", booking });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: "Server error", error });
+        }
+    }
+};

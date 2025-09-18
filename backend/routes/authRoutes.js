@@ -23,9 +23,7 @@ const { hasPermission } = require('../middleware/permissions'); // 👈 import m
 // );
 
 router.post(
-    "/register",
-    protect,                      // 👈 pehle login check
-    hasPermission("user_create"), // 👈 fir permission check
+    "/register",                     // 👈 pehle login check // 👈 fir permission check
     upload.single("profile_image"),
     registerUser
 );
@@ -35,7 +33,7 @@ router.post('/login', loginUser);
 router.get(
     '/users',
     protect,
-    hasPermission("user_view_any"), // 👈 permission check
+    hasPermission("user_view_all"), // 👈 permission check
     getHotelUsers
 );
 

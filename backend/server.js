@@ -27,7 +27,9 @@ const roomRoute = require("./routes/roomRoutes")
 const superAdminRoutes = require('./routes/superAdminRoutes');
 const hotelRoutes = require("./routes/hotelRoutes");
 const roleRoutes = require("./routes/roleRoutes");
-const permissionRoutes = require("./routes/permissionsRoutes")
+const permissionRoutes = require("./routes/permissionsRoutes");
+const bookingRoutes = require('./routes/bookingRoutes');
+
 
 
 
@@ -38,6 +40,7 @@ app.use('/api/superadmin', superAdminRoutes);
 app.use('/api/hotels', hotelRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/permissions", permissionRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 
 
