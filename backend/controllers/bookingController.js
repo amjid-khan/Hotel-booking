@@ -30,7 +30,7 @@ module.exports = {
                 checkOut,
                 guests,
                 totalAmount,
-                status: "confirmed"
+                status: "Pending" // Default status
             });
 
             res.status(201).json({ message: "Booking created successfully", booking });
@@ -82,5 +82,69 @@ module.exports = {
             console.error(error);
             res.status(500).json({ message: "Server error", error });
         }
-    }
+    },
+    getMyBookings: async (req, res) => {
+        try {
+            // auth middleware se user ka email aya hoga
+            const userEmail = req.user.email;
+
+            const bookings = await Booking.findAll({
+                where: { guestEmail: userEmail },
+                include: [
+                    { model: Room, attributes: ['id', 'type', 'roomNumber', 'price'] },
+                    { model: Hotel, attributes: ['id', 'name'] },
+                ],
+                order: [['createdAt', 'DESC']],
+            });
+
+            res.status(200).json({ bookings });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: "Server error", error });
+        }
+    },
+    deleteBooking: async (req, res) => {
+        try {
+            const { bookingId } = req.params;
+
+            const booking = await Booking.findByPk(bookingId);
+            if (!booking) {
+                return res.status(404).json({ message: "Booking not found" });
+            }
+
+            await booking.destroy(); // ✅ DB se record delete hoga
+
+            res.status(200).json({ message: "Booking deleted successfully" });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: "Server error", error });
+        }
+    },
+
+    // Admin: Update booking status
+    updateStatus: async (req, res) => {
+        try {
+            const { bookingId } = req.params;
+            const { status } = req.body; // expected: "confirmed" | "cancelled"
+
+            const booking = await Booking.findByPk(bookingId);
+            if (!booking) {
+                return res.status(404).json({ message: "Booking not found" });
+            }
+
+            // Only allow valid statuses
+            if (!["confirmed", "cancelled", "pending"].includes(status)) {
+                return res.status(400).json({ message: "Invalid status" });
+            }
+
+            booking.status = status;
+            await booking.save();
+
+            res.status(200).json({ message: `Booking ${status} successfully`, booking });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: "Server error", error });
+        }
+    },
+
 };

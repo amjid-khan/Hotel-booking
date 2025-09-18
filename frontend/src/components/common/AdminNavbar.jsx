@@ -241,6 +241,11 @@ const AdminNavbar = () => {
       icon: <MdBookOnline />,
       permission: () => perms?.room?.viewAny || perms?.room?.viewSelf || user?.role === "admin" || user?.role === "superadmin"
     },
+        {
+      "name": "My Bookings",
+      path: "/my-bookings",
+      permission: () =>  user?.role === "admin" || user?.role === "superadmin"
+    },
     { 
       name: "Users", 
       path: "/users", 

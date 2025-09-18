@@ -499,18 +499,37 @@ export function AuthProvider({ children }) {
       throw err;
     }
   };
+const cancelBooking = async (bookingId) => {
+  if (!token) throw new Error("No token found");
+  try {
+    await axios.delete(
+      `${BASE_URL}/api/bookings/${bookingId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-  const cancelBooking = async (bookingId) => {
+    // Refresh list after delete
+    if (user?.role === "user") fetchMyBookings();
+    if (selectedHotelId) fetchHotelBookings(selectedHotelId);
+  } catch (err) {
+    console.error("Error deleting booking:", err.response || err);
+    throw err;
+  }
+};
+  
+  // ✅ Admin: update booking status (pending → confirmed/cancelled)
+  const updateBookingStatus = async (bookingId, status) => {
     if (!token) throw new Error("No token found");
     try {
-      await axios.delete(`${BASE_URL}/api/bookings/${bookingId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.put(
+        `${BASE_URL}/api/bookings/status/${bookingId}`,
+        { status },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-      if (user?.role === "user") fetchMyBookings();
       if (selectedHotelId) fetchHotelBookings(selectedHotelId);
+      if (user?.role === "user") fetchMyBookings();
     } catch (err) {
-      console.error("Error cancelling booking:", err.response || err);
+      console.error("Error updating booking status:", err.response || err);
       throw err;
     }
   };
@@ -579,6 +598,7 @@ export function AuthProvider({ children }) {
         fetchMyBookings,
         createBooking,
         cancelBooking,
+        updateBookingStatus,
 
         // user management actions
         createUser,

@@ -19,7 +19,7 @@ import {
   TrendingUp,
   DollarSign,
 } from "lucide-react";
-
+ 
 const BookingOrders = () => {
   const {
     user,
