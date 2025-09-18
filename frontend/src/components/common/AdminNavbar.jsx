@@ -217,57 +217,82 @@ const AdminNavbar = () => {
 
   // Define all possible links with their permission requirements
   const allLinks = [
-    { 
-      name: "Dashboard", 
-      path: "/admin", 
+    {
+      name: "Dashboard",
+      path: "/admin",
       icon: <MdDashboard />,
-      permission: () => perms?.hotel?.dashboardView || user?.role === "admin" || user?.role === "superadmin"
+      permission: () =>
+        perms?.hotel?.dashboardView ||
+        user?.role === "admin" ||
+        user?.role === "superadmin",
     },
-    { 
-      name: "Add Room", 
-      path: "/add-room", 
+    {
+      name: "Add Room",
+      path: "/add-room",
       icon: <HiPlus />,
-      permission: () => perms?.room?.create || user?.role === "admin" || user?.role === "superadmin"
+      permission: () =>
+        perms?.room?.create ||
+        user?.role === "admin" ||
+        user?.role === "superadmin",
     },
-    { 
-      name: "Room Booking", 
-      path: "/room-booking", 
+    {
+      name: "Room Booking",
+      path: "/room-booking",
       icon: <FaBed />,
-      permission: () => perms?.room?.viewAny || perms?.room?.viewSelf || user?.role === "admin" || user?.role === "superadmin"
+      permission: () =>
+        perms?.room?.viewAny ||
+        perms?.room?.viewSelf ||
+        user?.role === "admin" ||
+        user?.role === "superadmin",
     },
-    { 
-      name: "Booking Orders", 
-      path: "/bookings", 
+    {
+      name: "Booking Orders",
+      path: "/bookings",
       icon: <MdBookOnline />,
-      permission: () => perms?.room?.viewAny || perms?.room?.viewSelf || user?.role === "admin" || user?.role === "superadmin"
+      // ✅ only for those who have booking_view_any OR admin/superadmin
+      permission: () =>
+        perms?.booking?.viewAny ||
+        user?.role === "admin" ||
+        user?.role === "superadmin",
     },
-        {
-      "name": "My Bookings",
+    {
+      name: "My Bookings",
       path: "/my-bookings",
-      permission: () =>  user?.role === "admin" || user?.role === "superadmin"
+      // ✅ user with booking_create OR booking_view_self OR admin/superadmin
+      permission: () =>
+        perms?.booking?.create ||
+        perms?.booking?.viewSelf ||
+        user?.role === "admin" ||
+        user?.role === "superadmin",
     },
-    { 
-      name: "Users", 
-      path: "/users", 
+    {
+      name: "Users",
+      path: "/users",
       icon: <HiUsers />,
-      permission: () => perms?.user?.viewAll || user?.role === "admin" || user?.role === "superadmin"
+      permission: () =>
+        perms?.user?.viewAll ||
+        user?.role === "admin" ||
+        user?.role === "superadmin",
     },
-    { 
-      name: "Settings", 
-      path: "/settings", 
+    {
+      name: "Settings",
+      path: "/settings",
       icon: <HiCog />,
-      permission: () => true // Settings should be available to all users
+      permission: () => user?.role === "admin" || user?.role === "superadmin",
     },
-    { 
-      name: "Reports", 
-      path: "/reports", 
+    {
+      name: "Reports",
+      path: "/reports",
       icon: <MdAnalytics />,
-      permission: () => perms?.hotel?.dashboardView || user?.role === "admin" || user?.role === "superadmin"
+      permission: () =>
+        perms?.hotel?.dashboardView ||
+        user?.role === "admin" ||
+        user?.role === "superadmin",
     },
   ];
 
   // Filter links based on user permissions
-  const links = allLinks.filter(link => link.permission());
+  const links = allLinks.filter((link) => link.permission());
 
   // --- For USER ROLE: Find the hotel name assigned ---
   const assignedHotelName =

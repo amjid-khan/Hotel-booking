@@ -2,23 +2,56 @@ const express = require('express');
 const router = express.Router();
 const bookingController = require('../controllers/bookingController');
 const { protect } = require('../middleware/auth');
-// Create booking
-router.post('/', bookingController.createBooking);
+const { hasPermission } = require('../middleware/permissions');
 
-// Get bookings for a hotel
-router.get('/hotel/:hotelId', bookingController.getHotelBookings);
+// ==================== BOOKING ROUTES ====================
 
-// Cancel booking (optional)
-router.put('/cancel/:bookingId', bookingController.cancelBooking);
+// Create booking (Customer / Role user)
+router.post(
+    '/',
+    protect,
+    hasPermission("booking_create"),
+    bookingController.createBooking
+);
 
-router.get('/my', protect, bookingController.getMyBookings);
-// Delete booking
-router.delete('/:bookingId', bookingController.deleteBooking);
+// Get bookings for a hotel (Admin / Manager)
+router.get(
+    '/hotel/:hotelId',
+    protect,
+    hasPermission("booking_view_any"),  // 👈 Admin/Manager
+    bookingController.getHotelBookings
+);
 
-// Admin update booking status
-router.put('/status/:bookingId', bookingController.updateStatus);
+// Cancel booking (Customer / Role user)
+router.put(
+    '/cancel/:bookingId',
+    protect,
+    hasPermission("booking_cancel"),
+    bookingController.cancelBooking
+);
 
+// Get my own bookings (Customer)
+router.get(
+    '/my',
+    protect,
+    hasPermission("booking_view_self"),  // 👈 only their own bookings
+    bookingController.getMyBookings
+);
 
+// Delete booking (Admin / Manager)
+router.delete(
+    '/:bookingId',
+    protect,
+    hasPermission("booking_delete"),
+    bookingController.deleteBooking
+);
 
+// Admin update booking status (Admin / Manager)
+router.put(
+    '/status/:bookingId',
+    protect,
+    hasPermission("booking_update"),
+    bookingController.updateStatus
+);
 
 module.exports = router;

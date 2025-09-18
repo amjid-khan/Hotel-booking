@@ -31,8 +31,16 @@ const permissionsMap = {
         delete: "room_delete",
     },
     role: {
-        create: "role_create",   // ✅ add role_create
-        viewAny: "role_view_any", // ✅ add role_view_any
+        create: "role_create",
+        viewAny: "role_view_any",
+    },
+    booking: {
+        create: "booking_create",
+        viewSelf: "booking_view_self",
+        viewAny: "booking_view_any",
+        cancel: "booking_cancel",
+        update: "booking_update",
+        delete: "booking_delete",
     },
 };
 
@@ -47,7 +55,8 @@ export default function useUserPermissions() {
             user: {},
             hotel: {},
             room: {},
-            role: {}, // ✅ include role
+            role: {},
+            booking: {},
         };
 
         for (const category in permissionsMap) {
