@@ -1,5 +1,11 @@
 // src/contexts/AuthContext.jsx
-import React, { createContext, useState, useEffect, useCallback, useRef } from "react";
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -426,29 +432,40 @@ export function AuthProvider({ children }) {
   };
 
   // ---------------- Bookings ----------------
-  const fetchHotelBookings = async (hotelId) => {
-  if (!token || !hotelId) return;
-  try {
-    const res = await axios.get(`${BASE_URL}/api/bookings/hotel/${hotelId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  const fetchHotelBookings = useCallback(
+    async (hotelId) => {
+      if (!token || !hotelId) return;
+      try {
+        const res = await axios.get(
+          `${BASE_URL}/api/bookings/hotel/${hotelId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
 
-    const data = Array.isArray(res.data) ? res.data : res.data.bookings || [];
+        const data = Array.isArray(res.data)
+          ? res.data
+          : res.data.bookings || [];
 
-    const mappedData = data.map((b) => ({
-      ...b,
-      roomName: b.Room ? `${b.Room.type} (#${b.Room.roomNumber})` : b.roomId,
-      hotelName: b.Hotel ? b.Hotel.name : "",
-    }));
+        const mappedData = data.map((b) => ({
+          ...b,
+          roomName: b.Room
+            ? `${b.Room.type} (#${b.Room.roomNumber})`
+            : b.roomId,
+          hotelName: b.Hotel ? b.Hotel.name : "",
+        }));
 
-    setHotelBookings(mappedData);
-  } catch (err) {
-    console.error("Error fetching hotel bookings:", err);
-    setHotelBookings([]);
-  }
-};
+        setHotelBookings(mappedData);
+        console.log("Hotel bookings fetched:", mappedData.length); // Debug log
+      } catch (err) {
+        console.error("Error fetching hotel bookings:", err);
+        setHotelBookings([]);
+      }
+    },
+    [token]
+  );
 
-  const fetchMyBookings = async () => {
+  const fetchMyBookings = useCallback(async () => {
     if (!token) return;
     try {
       const res = await axios.get(`${BASE_URL}/api/bookings/my`, {
@@ -467,8 +484,7 @@ export function AuthProvider({ children }) {
       console.error("Error fetching my bookings:", err);
       setMyBookings([]);
     }
-  };
-
+  }, [token]);
   const createBooking = async (bookingData) => {
     if (!token) throw new Error("No token found");
     if (!selectedHotelId) throw new Error("No hotel selected");
@@ -499,23 +515,22 @@ export function AuthProvider({ children }) {
       throw err;
     }
   };
-const cancelBooking = async (bookingId) => {
-  if (!token) throw new Error("No token found");
-  try {
-    await axios.delete(
-      `${BASE_URL}/api/bookings/${bookingId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+  const cancelBooking = async (bookingId) => {
+    if (!token) throw new Error("No token found");
+    try {
+      await axios.delete(`${BASE_URL}/api/bookings/${bookingId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    // Refresh list after delete
-    if (user?.role === "user") fetchMyBookings();
-    if (selectedHotelId) fetchHotelBookings(selectedHotelId);
-  } catch (err) {
-    console.error("Error deleting booking:", err.response || err);
-    throw err;
-  }
-};
-  
+      // Refresh list after delete
+      if (user?.role === "user") fetchMyBookings();
+      if (selectedHotelId) fetchHotelBookings(selectedHotelId);
+    } catch (err) {
+      console.error("Error deleting booking:", err.response || err);
+      throw err;
+    }
+  };
+
   // ✅ Admin: update booking status (pending → confirmed/cancelled)
   const updateBookingStatus = async (bookingId, status) => {
     if (!token) throw new Error("No token found");

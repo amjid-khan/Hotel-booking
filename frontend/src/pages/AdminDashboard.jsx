@@ -13,7 +13,7 @@ import {
 } from "recharts";
 
 const AdminDashboard = () => {
-  const { token, hotelName, rooms = [], users = [] } = useContext(AuthContext);
+  const { token, hotelName, rooms = [], users = [], hotelBookings = [] } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
 
   // Simple loading state management
@@ -24,30 +24,53 @@ const AdminDashboard = () => {
     } else {
       setLoading(false);
     }
-  }, [token, rooms, users]);
+  }, [token, rooms, users, hotelBookings]);
 
-  // Calculate real metrics from actual data
+  // Calculate real metrics from actual booking data
   const metrics = useMemo(() => {
     const totalRooms = rooms.length;
-    const availableRooms = rooms.filter(r => r.isAvailable).length;
-    const occupiedRooms = totalRooms - availableRooms;
+    
+    // Get current date for comparison
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Filter active bookings (confirmed and within current dates)
+    const activeBookings = hotelBookings.filter(booking => {
+      const checkIn = new Date(booking.checkIn);
+      const checkOut = new Date(booking.checkOut);
+      checkIn.setHours(0, 0, 0, 0);
+      checkOut.setHours(0, 0, 0, 0);
+      
+      return (
+        booking.status === 'confirmed' &&
+        checkIn <= today &&
+        checkOut > today
+      );
+    });
+
+    const occupiedRooms = activeBookings.length;
+    const availableRooms = totalRooms - occupiedRooms;
     const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
 
     const totalUsers = users.length;
     const activeUsers = users.filter(u => u.status === "active").length;
     const inactiveUsers = totalUsers - activeUsers;
 
-    // Calculate actual revenue from occupied rooms
-    const totalRevenue = rooms.reduce((sum, room) => {
-      if (!room.isAvailable && room.price) {
-        return sum + Number(room.price);
-      }
-      return sum;
+    // Calculate actual revenue from active bookings
+    const totalRevenue = activeBookings.reduce((sum, booking) => {
+      return sum + (Number(booking.totalAmount) || 0);
     }, 0);
 
-    // Calculate average room price
-    const totalRoomValue = rooms.reduce((sum, room) => sum + (Number(room.price) || 0), 0);
-    const avgRoomPrice = totalRooms > 0 ? Math.round(totalRoomValue / totalRooms) : 0;
+    // Calculate average booking amount
+    const avgBookingAmount = activeBookings.length > 0 
+      ? Math.round(totalRevenue / activeBookings.length) 
+      : 0;
+
+    // Total bookings count
+    const totalBookings = hotelBookings.length;
+    const confirmedBookings = hotelBookings.filter(b => b.status === 'confirmed').length;
+    const pendingBookings = hotelBookings.filter(b => b.status === 'pending').length;
+    const cancelledBookings = hotelBookings.filter(b => b.status === 'cancelled').length;
 
     return {
       totalRooms,
@@ -58,39 +81,80 @@ const AdminDashboard = () => {
       activeUsers,
       inactiveUsers,
       totalRevenue,
-      avgRoomPrice
+      avgBookingAmount,
+      totalBookings,
+      confirmedBookings,
+      pendingBookings,
+      cancelledBookings,
+      activeBookings: activeBookings.length
     };
-  }, [rooms, users]);
+  }, [rooms, users, hotelBookings]);
 
-  // Generate realistic monthly data based on current occupancy
+  // Generate monthly data based on actual bookings
   const monthlyData = useMemo(() => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const currentYear = new Date().getFullYear();
+    
     return months.map((month, index) => {
-      // Create realistic seasonal variation
-      const seasonalMultiplier = index >= 5 && index <= 8 ? 1.3 : // Summer peak
-                               index >= 11 || index <= 1 ? 1.1 : // Winter holidays
-                               0.8; // Off season
-      
-      const baseOccupancy = Math.max(0, Math.min(100, metrics.occupancyRate + (Math.random() - 0.5) * 20));
-      const monthlyOccupancy = Math.round(baseOccupancy * seasonalMultiplier);
-      const monthlyRevenue = Math.round((metrics.totalRevenue * seasonalMultiplier) + (Math.random() - 0.5) * 10000);
+      // Filter bookings for each month
+      const monthBookings = hotelBookings.filter(booking => {
+        const bookingDate = new Date(booking.checkIn);
+        return (
+          bookingDate.getFullYear() === currentYear &&
+          bookingDate.getMonth() === index &&
+          booking.status === 'confirmed'
+        );
+      });
+
+      // Calculate monthly revenue
+      const monthlyRevenue = monthBookings.reduce((sum, booking) => {
+        return sum + (Number(booking.totalAmount) || 0);
+      }, 0);
+
+      // Calculate monthly occupancy based on bookings
+      const monthlyOccupancy = metrics.totalRooms > 0 
+        ? Math.min(100, Math.round((monthBookings.length / metrics.totalRooms) * 100))
+        : 0;
       
       return {
         month,
-        occupancy: Math.min(100, monthlyOccupancy),
-        revenue: Math.max(0, monthlyRevenue),
-        bookings: Math.round((metrics.occupiedRooms * seasonalMultiplier) + Math.random() * 5)
+        occupancy: monthlyOccupancy,
+        revenue: monthlyRevenue,
+        bookings: monthBookings.length
       };
     });
-  }, [metrics]);
+  }, [hotelBookings, metrics.totalRooms]);
 
-  // Real room type distribution
+  // Real room type distribution from bookings
   const roomTypeData = useMemo(() => {
     const types = {};
-    rooms.forEach(room => {
-      const type = room.type || 'Standard';
-      types[type] = (types[type] || 0) + 1;
+    
+    // Count room types from active bookings
+    const activeBookings = hotelBookings.filter(booking => {
+      const today = new Date();
+      const checkIn = new Date(booking.checkIn);
+      const checkOut = new Date(booking.checkOut);
+      return (
+        booking.status === 'confirmed' &&
+        checkIn <= today &&
+        checkOut > today
+      );
     });
+
+    activeBookings.forEach(booking => {
+      if (booking.Room && booking.Room.type) {
+        const type = booking.Room.type;
+        types[type] = (types[type] || 0) + 1;
+      }
+    });
+    
+    // If no active bookings, use room inventory
+    if (Object.keys(types).length === 0) {
+      rooms.forEach(room => {
+        const type = room.type || 'Standard';
+        types[type] = (types[type] || 0) + 1;
+      });
+    }
     
     const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
     return Object.entries(types).map(([name, value], index) => ({
@@ -98,24 +162,42 @@ const AdminDashboard = () => {
       value,
       color: colors[index % colors.length]
     }));
-  }, [rooms]);
+  }, [hotelBookings, rooms]);
 
-  // Weekly occupancy based on real data
+  // Weekly occupancy based on actual bookings
   const weeklyData = useMemo(() => {
     const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    return days.map(day => {
-      // Weekend typically has higher occupancy
-      const isWeekend = day === "Sat" || day === "Sun";
-      const baseOccupied = metrics.occupiedRooms;
-      const weekendBoost = isWeekend ? Math.ceil(baseOccupied * 0.2) : 0;
+    const today = new Date();
+    
+    return days.map((day, index) => {
+      // Get date for each day of current week
+      const dayDate = new Date(today);
+      const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Calculate offset to Monday
+      dayDate.setDate(today.getDate() + mondayOffset + index);
+      
+      // Count bookings for this specific day
+      const dayBookings = hotelBookings.filter(booking => {
+        const checkIn = new Date(booking.checkIn);
+        const checkOut = new Date(booking.checkOut);
+        
+        return (
+          booking.status === 'confirmed' &&
+          checkIn <= dayDate &&
+          checkOut > dayDate
+        );
+      });
+      
+      const occupied = dayBookings.length;
+      const available = Math.max(0, metrics.totalRooms - occupied);
       
       return {
         day,
-        occupied: Math.min(metrics.totalRooms, baseOccupied + weekendBoost),
-        available: Math.max(0, metrics.totalRooms - (baseOccupied + weekendBoost))
+        occupied,
+        available
       };
     });
-  }, [metrics]);
+  }, [hotelBookings, metrics.totalRooms]);
 
   if (loading) {
     return (
@@ -172,7 +254,7 @@ const AdminDashboard = () => {
       <div className="p-4 md:p-8">
         {/* Main KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
-          {/* Total Revenue */}
+          {/* Total Revenue from Bookings */}
           <div className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -180,16 +262,16 @@ const AdminDashboard = () => {
                   <div className="w-6 h-6 md:w-8 md:h-8 bg-green-100 rounded-lg flex items-center justify-center">
                     <MdCurrencyRupee className="text-green-600 text-sm md:text-base" />
                   </div>
-                  <p className="text-xs md:text-sm font-semibold text-gray-600">Current Revenue</p>
+                  <p className="text-xs md:text-sm font-semibold text-gray-600">Booking Revenue</p>
                 </div>
                 <p className="text-xl md:text-3xl font-bold text-gray-900 mb-2">
                   PKR {metrics.totalRevenue.toLocaleString()}
                 </p>
                 <div className="flex items-center">
-                  {metrics.totalRevenue > 0 ? (
+                  {metrics.activeBookings > 0 ? (
                     <>
                       <FaArrowUp className="text-green-500 text-xs md:text-sm mr-2" />
-                      <span className="text-green-600 text-xs md:text-sm font-medium">Active earnings</span>
+                      <span className="text-green-600 text-xs md:text-sm font-medium">{metrics.activeBookings} active bookings</span>
                     </>
                   ) : (
                     <span className="text-gray-500 text-xs md:text-sm">No active bookings</span>
@@ -199,7 +281,7 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Room Occupancy */}
+          {/* Room Occupancy from Bookings */}
           <div className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -229,7 +311,7 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Room Management */}
+          {/* Room Status */}
           <div className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -254,26 +336,26 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Staff Management */}
+          {/* Booking Statistics */}
           <div className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-2">
                   <div className="w-6 h-6 md:w-8 md:h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
-                    <FaUsers className="text-indigo-600 text-sm md:text-base" />
+                    <FaCalendarAlt className="text-indigo-600 text-sm md:text-base" />
                   </div>
-                  <p className="text-xs md:text-sm font-semibold text-gray-600">Team Members</p>
+                  <p className="text-xs md:text-sm font-semibold text-gray-600">Total Bookings</p>
                 </div>
-                <p className="text-xl md:text-3xl font-bold text-gray-900 mb-2">{metrics.totalUsers}</p>
+                <p className="text-xl md:text-3xl font-bold text-gray-900 mb-2">{metrics.totalBookings}</p>
                 <div className="flex items-center space-x-2 md:space-x-4">
                   <div className="flex items-center">
                     <FaUserCheck className="text-green-500 text-xs mr-1" />
-                    <span className="text-green-600 text-xs md:text-sm font-medium">{metrics.activeUsers}</span>
+                    <span className="text-green-600 text-xs md:text-sm font-medium">{metrics.confirmedBookings}</span>
                   </div>
-                  {metrics.inactiveUsers > 0 && (
+                  {metrics.pendingBookings > 0 && (
                     <div className="flex items-center">
-                      <FaUserTimes className="text-gray-400 text-xs mr-1" />
-                      <span className="text-gray-500 text-xs md:text-sm">{metrics.inactiveUsers}</span>
+                      <FaClock className="text-orange-400 text-xs mr-1" />
+                      <span className="text-orange-500 text-xs md:text-sm">{metrics.pendingBookings}</span>
                     </div>
                   )}
                 </div>
@@ -287,13 +369,13 @@ const AdminDashboard = () => {
           {/* Performance Summary */}
           <div className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-4 md:mb-6">
-              <h3 className="text-lg font-bold text-gray-900">Performance Overview</h3>
+              <h3 className="text-lg font-bold text-gray-900">Booking Overview</h3>
               <FaChartLine className="text-gray-400" />
             </div>
             <div className="space-y-3 md:space-y-4">
               <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
-                <span className="text-gray-700 font-medium text-sm">Average Room Rate</span>
-                <span className="font-bold text-gray-900 text-sm">PKR {metrics.avgRoomPrice.toLocaleString()}</span>
+                <span className="text-gray-700 font-medium text-sm">Average Booking</span>
+                <span className="font-bold text-gray-900 text-sm">PKR {metrics.avgBookingAmount.toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-blue-50 rounded-xl">
                 <span className="text-gray-700 font-medium text-sm">Revenue per Room</span>
@@ -302,9 +384,9 @@ const AdminDashboard = () => {
                 </span>
               </div>
               <div className="flex justify-between items-center p-3 bg-green-50 rounded-xl">
-                <span className="text-gray-700 font-medium text-sm">Staff Efficiency</span>
+                <span className="text-gray-700 font-medium text-sm">Active Bookings</span>
                 <span className="font-bold text-green-600 text-sm">
-                  {metrics.totalUsers > 0 ? Math.round((metrics.totalRooms / metrics.totalUsers) * 10) / 10 : 0} rooms/staff
+                  {metrics.activeBookings} current
                 </span>
               </div>
             </div>
@@ -327,37 +409,37 @@ const AdminDashboard = () => {
               </ResponsiveContainer>
             </div>
             <div className="text-center mt-2">
-              <p className="text-xs md:text-sm text-gray-600">Current occupancy level</p>
+              <p className="text-xs md:text-sm text-gray-600">Based on confirmed bookings</p>
             </div>
           </div>
 
-          {/* Quick Actions */}
+          {/* Booking Status */}
           <div className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-4 md:mb-6">
-              <h3 className="text-lg font-bold text-gray-900">Quick Stats</h3>
+              <h3 className="text-lg font-bold text-gray-900">Booking Status</h3>
               <FaCog className="text-gray-400" />
             </div>
             <div className="space-y-3 md:space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-                  <span className="text-gray-700 text-sm">Available Now</span>
+                  <span className="text-gray-700 text-sm">Confirmed</span>
                 </div>
-                <span className="font-bold text-green-600 text-sm">{metrics.availableRooms} rooms</span>
+                <span className="font-bold text-green-600 text-sm">{metrics.confirmedBookings}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
+                  <span className="text-gray-700 text-sm">Pending</span>
+                </div>
+                <span className="font-bold text-orange-600 text-sm">{metrics.pendingBookings}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
-                  <span className="text-gray-700 text-sm">Currently Occupied</span>
+                  <span className="text-gray-700 text-sm">Cancelled</span>
                 </div>
-                <span className="font-bold text-red-600 text-sm">{metrics.occupiedRooms} rooms</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
-                  <span className="text-gray-700 text-sm">Active Staff</span>
-                </div>
-                <span className="font-bold text-blue-600 text-sm">{metrics.activeUsers} members</span>
+                <span className="font-bold text-red-600 text-sm">{metrics.cancelledBookings}</span>
               </div>
             </div>
           </div>
@@ -365,10 +447,10 @@ const AdminDashboard = () => {
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
-          {/* Revenue Trend */}
+          {/* Revenue Trend from Bookings */}
           <div className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 lg:col-span-2">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-6 gap-3">
-              <h3 className="text-lg md:text-xl font-bold text-gray-900">Monthly Performance Trends</h3>
+              <h3 className="text-lg md:text-xl font-bold text-gray-900">Monthly Booking Performance</h3>
               <div className="flex flex-wrap items-center space-x-4">
                 <div className="flex items-center">
                   <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
@@ -376,7 +458,7 @@ const AdminDashboard = () => {
                 </div>
                 <div className="flex items-center">
                   <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                  <span className="text-xs md:text-sm text-gray-600">Occupancy (%)</span>
+                  <span className="text-xs md:text-sm text-gray-600">Bookings Count</span>
                 </div>
               </div>
             </div>
@@ -400,20 +482,20 @@ const AdminDashboard = () => {
                       boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
                     }}
                     formatter={(value, name) => [
-                      name === 'revenue' ? `PKR ${value.toLocaleString()}` : `${value}%`,
-                      name === 'revenue' ? 'Revenue' : 'Occupancy'
+                      name === 'revenue' ? `PKR ${value.toLocaleString()}` : `${value} bookings`,
+                      name === 'revenue' ? 'Revenue' : 'Bookings'
                     ]}
                   />
                   <Area type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={3} fill="url(#colorRevenue)" />
-                  <Line type="monotone" dataKey="occupancy" stroke="#10b981" strokeWidth={2} />
+                  <Line type="monotone" dataKey="bookings" stroke="#10b981" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Room Types Distribution */}
+          {/* Room Types from Bookings */}
           <div className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
-            <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-4 md:mb-6">Room Type Distribution</h3>
+            <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-4 md:mb-6">Booked Room Types</h3>
             {roomTypeData.length > 0 ? (
               <div className="h-48 md:h-64">
                 <ResponsiveContainer width="100%" height="100%">
@@ -428,7 +510,7 @@ const AdminDashboard = () => {
                     >
                       {roomTypeData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
                     </Pie>
-                    <Tooltip formatter={(value) => [value, 'Rooms']} />
+                    <Tooltip formatter={(value) => [value, 'Bookings']} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -436,15 +518,15 @@ const AdminDashboard = () => {
               <div className="h-48 md:h-64 flex items-center justify-center text-gray-500">
                 <div className="text-center">
                   <FaBed className="text-2xl md:text-4xl mb-4 mx-auto" />
-                  <p className="text-sm">No rooms data available</p>
+                  <p className="text-sm">No booking data available</p>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Weekly Occupancy */}
+          {/* Weekly Occupancy from Bookings */}
           <div className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
-            <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-4 md:mb-6">Weekly Room Status</h3>
+            <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-4 md:mb-6">Weekly Occupancy (Bookings)</h3>
             <div className="h-48 md:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={weeklyData}>
@@ -459,7 +541,7 @@ const AdminDashboard = () => {
                       boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
                     }}
                   />
-                  <Bar dataKey="occupied" fill="#ef4444" radius={[4,4,0,0]} name="Occupied"/>
+                  <Bar dataKey="occupied" fill="#ef4444" radius={[4,4,0,0]} name="Booked"/>
                   <Bar dataKey="available" fill="#10b981" radius={[4,4,0,0]} name="Available"/>
                 </BarChart>
               </ResponsiveContainer>
@@ -470,43 +552,43 @@ const AdminDashboard = () => {
         {/* Recent Activity */}
         <div className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100">
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-6 gap-3">
-            <h3 className="text-lg md:text-xl font-bold text-gray-900">Hotel Activity Summary</h3>
+            <h3 className="text-lg md:text-xl font-bold text-gray-900">Booking Activity Summary</h3>
             <div className="text-sm text-gray-500">
-              Real-time status
+              Real booking data
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
             <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-800">Room Inventory</p>
-                  <p className="text-xl md:text-2xl font-bold text-blue-600">{metrics.totalRooms}</p>
+                  <p className="text-sm font-medium text-blue-800">Total Bookings</p>
+                  <p className="text-xl md:text-2xl font-bold text-blue-600">{metrics.totalBookings}</p>
                 </div>
-                <FaBed className="text-blue-500 text-xl md:text-2xl" />
+                <FaCalendarAlt className="text-blue-500 text-xl md:text-2xl" />
               </div>
-              <p className="text-xs text-blue-600 mt-2">Total rooms managed</p>
+              <p className="text-xs text-blue-600 mt-2">All time bookings</p>
             </div>
             
             <div className="p-4 bg-green-50 rounded-xl border border-green-100">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-green-800">Active Revenue</p>
+                  <p className="text-sm font-medium text-green-800">Booking Revenue</p>
                   <p className="text-xl md:text-2xl font-bold text-green-600">PKR {(metrics.totalRevenue / 1000).toFixed(0)}K</p>
                 </div>
                 <MdCurrencyRupee className="text-green-500 text-xl md:text-2xl" />
               </div>
-              <p className="text-xs text-green-600 mt-2">From occupied rooms</p>
+              <p className="text-xs text-green-600 mt-2">From confirmed bookings</p>
             </div>
             
             <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-purple-800">Team Size</p>
-                  <p className="text-xl md:text-2xl font-bold text-purple-600">{metrics.activeUsers}</p>
+                  <p className="text-sm font-medium text-purple-800">Active Bookings</p>
+                  <p className="text-xl md:text-2xl font-bold text-purple-600">{metrics.activeBookings}</p>
                 </div>
-                <FaUsers className="text-purple-500 text-xl md:text-2xl" />
+                <FaBed className="text-purple-500 text-xl md:text-2xl" />
               </div>
-              <p className="text-xs text-purple-600 mt-2">Active staff members</p>
+              <p className="text-xs text-purple-600 mt-2">Currently occupied</p>
             </div>
           </div>
         </div>

@@ -19,60 +19,31 @@ import axios from 'axios';
 import { AuthContext } from '../../../contexts/AuthContext';
 
 const Reports = () => {
-  const { hotelName, selectedHotelId, rooms, users, token } = useContext(AuthContext);
+  const { 
+    hotelName, 
+    selectedHotelId, 
+    rooms, 
+    users, 
+    token,
+    hotelBookings, // Use hotelBookings from AuthContext
+    fetchHotelBookings // Function to refresh bookings
+  } = useContext(AuthContext);
+  
   const [selectedReport, setSelectedReport] = useState('overview');
   const [dateRange, setDateRange] = useState('this-month');
   const [loading, setLoading] = useState(false);
-  const [bookingsData, setBookingsData] = useState([]);
-  const [revenueData, setRevenueData] = useState(null);
-  const [guestData, setGuestData] = useState([]);
 
   const BASE_URL = import.meta.env.VITE_BASE_URL;
 
-  // Fetch real booking data
+  // Use hotelBookings from AuthContext instead of separate state
+  const bookingsData = hotelBookings || [];
+
+  // Refresh data when component mounts or filters change
   useEffect(() => {
-    if (selectedHotelId && token) {
-      fetchBookingsData();
-      fetchRevenueData();
-      fetchGuestData();
+    if (selectedHotelId && token && fetchHotelBookings) {
+      fetchHotelBookings(selectedHotelId);
     }
-  }, [selectedHotelId, token, dateRange]);
-
-  const fetchBookingsData = async () => {
-    try {
-      const response = await axios.get(`${BASE_URL}/api/bookings?hotelId=${selectedHotelId}&range=${dateRange}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setBookingsData(response.data.bookings || []);
-    } catch (error) {
-      console.error('Error fetching bookings:', error);
-      setBookingsData([]);
-    }
-  };
-
-  const fetchRevenueData = async () => {
-    try {
-      // const response = await axios.get(`${BASE_URL}/api/analytics/revenue?hotelId=${selectedHotelId}&range=${dateRange}`, {
-      //   headers: { Authorization: `Bearer ${token}` }
-      // });
-      setRevenueData(response.data);
-    } catch (error) {
-      console.error('Error fetching revenue:', error);
-      setRevenueData(null);
-    }
-  };
-
-  const fetchGuestData = async () => {
-    try {
-      // const response = await axios.get(`${BASE_URL}/api/guests?hotelId=${selectedHotelId}&range=${dateRange}`, {
-      //   headers: { Authorization: `Bearer ${token}` }
-      // });
-      setGuestData(response.data.guests || []);
-    } catch (error) {
-      console.error('Error fetching guests:', error);
-      setGuestData([]);
-    }
-  };
+  }, [selectedHotelId, token, dateRange, fetchHotelBookings]);
 
   const reportTypes = [
     {
@@ -116,20 +87,37 @@ const Reports = () => {
     { value: 'custom', label: 'Custom Range' }
   ];
 
-  // Calculate real occupancy rate
+  // Calculate real occupancy rate from actual bookings
   const calculateOccupancyRate = () => {
     if (!rooms.length) return 0;
-    const occupiedRooms = bookingsData.filter(booking => 
-      booking.status === 'checked-in' || booking.status === 'confirmed'
-    ).length;
-    return Math.round((occupiedRooms / rooms.length) * 100);
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Count active bookings (confirmed and within current dates)
+    const activeBookings = bookingsData.filter(booking => {
+      const checkIn = new Date(booking.checkIn);
+      const checkOut = new Date(booking.checkOut);
+      checkIn.setHours(0, 0, 0, 0);
+      checkOut.setHours(0, 0, 0, 0);
+      
+      return (
+        booking.status === 'confirmed' &&
+        checkIn <= today &&
+        checkOut > today
+      );
+    });
+
+    return Math.round((activeBookings.length / rooms.length) * 100);
   };
 
-  // Calculate total revenue
+  // Calculate total revenue from actual bookings
   const calculateTotalRevenue = () => {
-    return bookingsData.reduce((total, booking) => {
-      return total + (booking.totalAmount || 0);
-    }, 0);
+    return bookingsData
+      .filter(booking => booking.status === 'confirmed')
+      .reduce((total, booking) => {
+        return total + (Number(booking.totalAmount) || 0);
+      }, 0);
   };
 
   // Get active staff count
@@ -137,28 +125,59 @@ const Reports = () => {
     return users.filter(user => user.status === 'active' && user.role !== 'admin').length;
   };
 
-  // Get checked-in guests
+  // Get currently checked-in guests from real bookings
   const getCheckedInGuests = () => {
-    return bookingsData.filter(booking => booking.status === 'checked-in').length;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return bookingsData.filter(booking => {
+      const checkIn = new Date(booking.checkIn);
+      const checkOut = new Date(booking.checkOut);
+      checkIn.setHours(0, 0, 0, 0);
+      checkOut.setHours(0, 0, 0, 0);
+      
+      return (
+        booking.status === 'confirmed' &&
+        checkIn <= today &&
+        checkOut > today
+      );
+    }).length;
   };
 
-  // Get today's check-ins and check-outs
+  // Get today's check-ins and check-outs from real data
   const getTodayActivity = () => {
     const today = new Date().toDateString();
-    const todayBookings = bookingsData.filter(booking => 
-      new Date(booking.checkIn).toDateString() === today ||
-      new Date(booking.checkOut).toDateString() === today
-    );
+    
+    const checkIns = bookingsData.filter(booking => {
+      const checkInDate = new Date(booking.checkIn).toDateString();
+      return checkInDate === today && booking.status === 'confirmed';
+    }).length;
 
-    const checkIns = todayBookings.filter(booking => 
-      new Date(booking.checkIn).toDateString() === today
-    ).length;
-
-    const checkOuts = todayBookings.filter(booking => 
-      new Date(booking.checkOut).toDateString() === today
-    ).length;
+    const checkOuts = bookingsData.filter(booking => {
+      const checkOutDate = new Date(booking.checkOut).toDateString();
+      return checkOutDate === today && booking.status === 'confirmed';
+    }).length;
 
     return { checkIns, checkOuts };
+  };
+
+  // Get occupied rooms count
+  const getOccupiedRooms = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return bookingsData.filter(booking => {
+      const checkIn = new Date(booking.checkIn);
+      const checkOut = new Date(booking.checkOut);
+      checkIn.setHours(0, 0, 0, 0);
+      checkOut.setHours(0, 0, 0, 0);
+      
+      return (
+        booking.status === 'confirmed' &&
+        checkIn <= today &&
+        checkOut > today
+      );
+    }).length;
   };
 
   const overviewCards = [
@@ -167,21 +186,21 @@ const Reports = () => {
       value: rooms.length,
       icon: Bed,
       color: 'from-blue-500 to-blue-600',
-      change: `${rooms.length} Available`
+      change: `${rooms.length - getOccupiedRooms()} Available`
     },
     {
       title: 'Occupancy Rate',
       value: `${calculateOccupancyRate()}%`,
       icon: TrendingUp,
       color: 'from-green-500 to-green-600',
-      change: `${bookingsData.filter(b => b.status === 'checked-in').length} Occupied`
+      change: `${getOccupiedRooms()} Occupied`
     },
     {
       title: 'Total Revenue',
-      value: `$${calculateTotalRevenue().toLocaleString()}`,
+      value: `PKR ${calculateTotalRevenue().toLocaleString()}`,
       icon: DollarSign,
       color: 'from-purple-500 to-purple-600',
-      change: `${bookingsData.length} Bookings`
+      change: `${bookingsData.filter(b => b.status === 'confirmed').length} Bookings`
     },
     {
       title: 'Active Staff',
@@ -195,19 +214,36 @@ const Reports = () => {
   const handleExportReport = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${BASE_URL}/api/reports/export?hotelId=${selectedHotelId}&type=${selectedReport}&range=${dateRange}`, {
-        headers: { Authorization: `Bearer ${token}` },
-        responseType: 'blob'
-      });
+      // Create export data from real booking data
+      const exportData = {
+        hotel: hotelName,
+        reportType: selectedReport,
+        dateRange: dateRange,
+        totalRooms: rooms.length,
+        occupancyRate: calculateOccupancyRate(),
+        totalRevenue: calculateTotalRevenue(),
+        totalBookings: bookingsData.length,
+        confirmedBookings: bookingsData.filter(b => b.status === 'confirmed').length,
+        bookings: bookingsData.map(booking => ({
+          guestName: booking.guestName,
+          checkIn: booking.checkIn,
+          checkOut: booking.checkOut,
+          totalAmount: booking.totalAmount,
+          status: booking.status
+        }))
+      };
       
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${selectedReport}-report-${dateRange}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      // For now, create a downloadable JSON file
+      const dataStr = JSON.stringify(exportData, null, 2);
+      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+      
+      const exportFileDefaultName = `${selectedReport}-report-${dateRange}-${new Date().toISOString().split('T')[0]}.json`;
+      
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', exportFileDefaultName);
+      linkElement.click();
+      
     } catch (error) {
       console.error('Export failed:', error);
       alert('Export failed. Please try again.');
@@ -294,15 +330,15 @@ const Reports = () => {
                     <div className="flex items-center gap-4">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                         booking.status === 'confirmed' ? 'bg-blue-100 text-blue-600' :
-                        booking.status === 'checked-in' ? 'bg-green-100 text-green-600' :
-                        booking.status === 'checked-out' ? 'bg-gray-100 text-gray-600' :
-                        'bg-orange-100 text-orange-600'
+                        booking.status === 'pending' ? 'bg-orange-100 text-orange-600' :
+                        booking.status === 'cancelled' ? 'bg-red-100 text-red-600' :
+                        'bg-gray-100 text-gray-600'
                       }`}>
                         <Activity className="w-4 h-4" />
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-800">
-                          {booking.guestName || 'Guest'} - Room {booking.roomNumber || booking.roomId}
+                          {booking.guestName || 'Guest'} - {booking.roomName || `Room ${booking.roomId}`}
                         </p>
                         <p className="text-xs text-gray-500">
                           {new Date(booking.checkIn).toLocaleDateString()} - {new Date(booking.checkOut).toLocaleDateString()}
@@ -310,12 +346,12 @@ const Reports = () => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium text-gray-800">${booking.totalAmount || 0}</p>
+                      <p className="text-sm font-medium text-gray-800">PKR {Number(booking.totalAmount || 0).toLocaleString()}</p>
                       <p className={`text-xs capitalize px-2 py-1 rounded-full ${
                         booking.status === 'confirmed' ? 'bg-blue-50 text-blue-600' :
-                        booking.status === 'checked-in' ? 'bg-green-50 text-green-600' :
-                        booking.status === 'checked-out' ? 'bg-gray-50 text-gray-600' :
-                        'bg-orange-50 text-orange-600'
+                        booking.status === 'pending' ? 'bg-orange-50 text-orange-600' :
+                        booking.status === 'cancelled' ? 'bg-red-50 text-red-600' :
+                        'bg-gray-50 text-gray-600'
                       }`}>
                         {booking.status}
                       </p>
@@ -335,116 +371,136 @@ const Reports = () => {
     );
   };
 
-  const renderOccupancyReport = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Room Status Overview */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-6">Room Status</h3>
-          <div className="space-y-4">
-            {rooms.map((room, index) => {
-              const booking = bookingsData.find(b => b.roomId === room.id && b.status === 'checked-in');
-              const isOccupied = !!booking;
-              
-              return (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                      isOccupied ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
-                    }`}>
-                      <Bed className="w-4 h-4" />
+  const renderOccupancyReport = () => {
+    const occupiedRooms = getOccupiedRooms();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Room Status Overview */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-6">Room Status</h3>
+            <div className="space-y-4">
+              {rooms.map((room, index) => {
+                // Find booking for this room
+                const booking = bookingsData.find(b => {
+                  const checkIn = new Date(b.checkIn);
+                  const checkOut = new Date(b.checkOut);
+                  checkIn.setHours(0, 0, 0, 0);
+                  checkOut.setHours(0, 0, 0, 0);
+                  
+                  return (
+                    b.roomId === room.id && 
+                    b.status === 'confirmed' &&
+                    checkIn <= today &&
+                    checkOut > today
+                  );
+                });
+                
+                const isOccupied = !!booking;
+                
+                return (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                        isOccupied ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
+                      }`}>
+                        <Bed className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800">Room {room.roomNumber || room.id}</p>
+                        <p className="text-sm text-gray-600">{room.type}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-800">Room {room.number}</p>
-                      <p className="text-sm text-gray-600">{room.type}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-sm font-medium px-2 py-1 rounded-full ${
-                      isOccupied ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
-                    }`}>
-                      {isOccupied ? 'Occupied' : 'Available'}
-                    </p>
-                    {booking && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Until {new Date(booking.checkOut).toLocaleDateString()}
+                    <div className="text-right">
+                      <p className={`text-sm font-medium px-2 py-1 rounded-full ${
+                        isOccupied ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+                      }`}>
+                        {isOccupied ? 'Occupied' : 'Available'}
                       </p>
-                    )}
+                      {booking && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Until {new Date(booking.checkOut).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
                   </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Occupancy Statistics */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-6">Occupancy Statistics</h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
+                <span className="text-gray-700">Total Rooms</span>
+                <span className="font-bold text-blue-600">{rooms.length}</span>
+              </div>
+              <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+                <span className="text-gray-700">Available Rooms</span>
+                <span className="font-bold text-green-600">{rooms.length - occupiedRooms}</span>
+              </div>
+              <div className="flex justify-between items-center p-4 bg-red-50 rounded-lg">
+                <span className="text-gray-700">Occupied Rooms</span>
+                <span className="font-bold text-red-600">{occupiedRooms}</span>
+              </div>
+              <div className="flex justify-between items-center p-4 bg-purple-50 rounded-lg">
+                <span className="text-gray-700">Occupancy Rate</span>
+                <span className="font-bold text-purple-600">{calculateOccupancyRate()}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderRevenueReport = () => {
+    const confirmedBookings = bookingsData.filter(b => b.status === 'confirmed');
+    const totalRevenue = calculateTotalRevenue();
+    const avgBookingValue = confirmedBookings.length > 0 ? Math.round(totalRevenue / confirmedBookings.length) : 0;
+    
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+            <h4 className="text-lg font-bold text-gray-800 mb-4">Total Revenue</h4>
+            <p className="text-3xl font-bold text-green-600">PKR {totalRevenue.toLocaleString()}</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+            <h4 className="text-lg font-bold text-gray-800 mb-4">Average Booking Value</h4>
+            <p className="text-3xl font-bold text-blue-600">PKR {avgBookingValue.toLocaleString()}</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+            <h4 className="text-lg font-bold text-gray-800 mb-4">Total Bookings</h4>
+            <p className="text-3xl font-bold text-purple-600">{bookingsData.length}</p>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+          <h3 className="text-lg font-bold text-gray-800 mb-6">Revenue Breakdown by Booking</h3>
+          <div className="space-y-3">
+            {confirmedBookings.map((booking, index) => (
+              <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="font-medium text-gray-800">{booking.guestName || `Booking #${booking.id}`}</p>
+                  <p className="text-sm text-gray-600">{booking.roomName || `Room ${booking.roomId}`}</p>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Occupancy Statistics */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-6">Occupancy Statistics</h3>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
-              <span className="text-gray-700">Total Rooms</span>
-              <span className="font-bold text-blue-600">{rooms.length}</span>
-            </div>
-            <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
-              <span className="text-gray-700">Available Rooms</span>
-              <span className="font-bold text-green-600">
-                {rooms.length - bookingsData.filter(b => b.status === 'checked-in').length}
-              </span>
-            </div>
-            <div className="flex justify-between items-center p-4 bg-red-50 rounded-lg">
-              <span className="text-gray-700">Occupied Rooms</span>
-              <span className="font-bold text-red-600">
-                {bookingsData.filter(b => b.status === 'checked-in').length}
-              </span>
-            </div>
-            <div className="flex justify-between items-center p-4 bg-purple-50 rounded-lg">
-              <span className="text-gray-700">Occupancy Rate</span>
-              <span className="font-bold text-purple-600">{calculateOccupancyRate()}%</span>
-            </div>
+                <div className="text-right">
+                  <p className="font-bold text-green-600">PKR {Number(booking.totalAmount || 0).toLocaleString()}</p>
+                  <p className="text-sm text-gray-500">{new Date(booking.createdAt || booking.checkIn).toLocaleDateString()}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
-    </div>
-  );
-
-  const renderRevenueReport = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
-          <h4 className="text-lg font-bold text-gray-800 mb-4">Total Revenue</h4>
-          <p className="text-3xl font-bold text-green-600">${calculateTotalRevenue().toLocaleString()}</p>
-        </div>
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
-          <h4 className="text-lg font-bold text-gray-800 mb-4">Average Booking Value</h4>
-          <p className="text-3xl font-bold text-blue-600">
-            ${bookingsData.length > 0 ? Math.round(calculateTotalRevenue() / bookingsData.length) : 0}
-          </p>
-        </div>
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
-          <h4 className="text-lg font-bold text-gray-800 mb-4">Total Bookings</h4>
-          <p className="text-3xl font-bold text-purple-600">{bookingsData.length}</p>
-        </div>
-      </div>
-      
-      <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
-        <h3 className="text-lg font-bold text-gray-800 mb-6">Revenue Breakdown by Booking</h3>
-        <div className="space-y-3">
-          {bookingsData.map((booking, index) => (
-            <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-medium text-gray-800">{booking.guestName || `Booking #${booking.id}`}</p>
-                <p className="text-sm text-gray-600">Room {booking.roomNumber || booking.roomId}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-green-600">${booking.totalAmount || 0}</p>
-                <p className="text-sm text-gray-500">{new Date(booking.createdAt || Date.now()).toLocaleDateString()}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderGuestAnalytics = () => (
     <div className="space-y-6">
@@ -459,9 +515,16 @@ const Reports = () => {
                 <p className="text-sm text-gray-600">{booking.guestPhone || 'No phone provided'}</p>
               </div>
               <div className="text-right">
-                <p className="text-sm text-gray-600">Room {booking.roomNumber || booking.roomId}</p>
+                <p className="text-sm text-gray-600">{booking.roomName || `Room ${booking.roomId}`}</p>
                 <p className="text-sm text-gray-600">
                   {new Date(booking.checkIn).toLocaleDateString()} - {new Date(booking.checkOut).toLocaleDateString()}
+                </p>
+                <p className={`text-xs capitalize px-2 py-1 rounded-full mt-1 ${
+                  booking.status === 'confirmed' ? 'bg-blue-50 text-blue-600' :
+                  booking.status === 'pending' ? 'bg-orange-50 text-orange-600' :
+                  'bg-red-50 text-red-600'
+                }`}>
+                  {booking.status}
                 </p>
               </div>
             </div>
@@ -555,7 +618,7 @@ const Reports = () => {
               <button
                 onClick={handleExportReport}
                 disabled={loading}
-                className="px-6 py-3 bg-blue-600  disabled:bg-gray-400 text-white rounded-xl transition-colors font-medium flex items-center gap-2"
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-xl transition-colors font-medium flex items-center gap-2"
               >
                 <Download className="w-4 h-4" />
                 {loading ? 'Exporting...' : 'Export Report'}
