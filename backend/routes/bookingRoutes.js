@@ -54,4 +54,19 @@ router.put(
     bookingController.updateStatus
 );
 
+// Get all bookings (Superadmin)
+router.get(
+    "/all",
+    protect,
+    bookingController.getHotelBookings  // http://localhost:5000/api/bookings/hotel/all
+);
+
+// Get revenue (Superadmin)
+router.get(
+    '/revenue',
+    protect,
+    bookingController.getRevenue   // http://localhost:5000/api/bookings/revenue
+);
+
+
 module.exports = router;

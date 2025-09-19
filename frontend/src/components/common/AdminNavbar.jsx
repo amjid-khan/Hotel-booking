@@ -18,6 +18,7 @@ import { HiPlus, HiUsers, HiCog } from "react-icons/hi";
 import { GiModernCity } from "react-icons/gi";
 import { AuthContext } from "../../contexts/AuthContext";
 import useUserPermissions from "../../contexts/useUserPermissions";
+import { FaClipboardList } from "react-icons/fa";
 
 const AdminNavbar = () => {
   const perms = useUserPermissions(); // logged-in user's permissions
@@ -258,13 +259,12 @@ const AdminNavbar = () => {
     {
       name: "My Bookings",
       path: "/my-bookings",
-      // ✅ user with booking_create OR booking_view_self OR admin/superadmin
+      icon: <FaClipboardList />,
+      // ✅ har role ke liye, kyunki sab apni booking dekh sakte hain
       permission: () =>
-        perms?.booking?.create ||
-        perms?.booking?.viewSelf ||
-        user?.role === "admin" ||
-        user?.role === "superadmin",
+        perms?.booking?.create || perms?.booking?.viewSelf || user?.role,
     },
+
     {
       name: "Users",
       path: "/users",

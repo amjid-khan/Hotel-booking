@@ -139,72 +139,27 @@ const UserList = () => {
     }
   };
 
-  const handleDeleteUser = async (userId) => {
-    // Show toast confirmation instead of alert
-    const confirmDelete = () => {
-      toast.dismiss(); // Clear any existing toasts
-      
-      toast(
-        ({ closeToast }) => (
-          <div className="flex flex-col space-y-3">
-            <div className="flex items-center space-x-2">
-              <AlertTriangle className="h-5 w-5 text-orange-500" />
-              <span className="font-medium text-gray-900">Delete User</span>
-            </div>
-            <p className="text-sm text-gray-600">
-              Are you sure you want to delete this user? This action cannot be undone.
-            </p>
-            <div className="flex space-x-2 justify-end">
-              <button
-                onClick={closeToast}
-                className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors duration-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  closeToast();
-                  setLoading(true);
-                  
-                  try {
-                    await deleteUserSuperAdmin(userId);
-                    toast.success('User deleted successfully!', {
-                      position: "top-right",
-                      autoClose: 3000,
-                    });
-                  } catch (error) {
-                    console.error('Error deleting user:', error);
-                    toast.error('Failed to delete user. Please try again.', {
-                      position: "top-right",
-                      autoClose: 3000,
-                    });
-                  } finally {
-                    setTimeout(() => {
-                      setLoading(false);
-                    }, 1500);
-                  }
-                }}
-                className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors duration-200"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        ),
-        {
-          position: "top-center",
-          autoClose: false,
-          hideProgressBar: true,
-          closeOnClick: false,
-          pauseOnHover: true,
-          draggable: false,
-          closeButton: false,
-        }
-      );
-    };
+const handleDeleteUser = async (userId) => {
+  setLoading(true);
 
-    confirmDelete();
-  };
+  try {
+    await deleteUserSuperAdmin(userId);
+    toast.success('User deleted successfully!', {
+      position: "top-right",
+      autoClose: 3000,
+    });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    toast.error('Failed to delete user. Please try again.', {
+      position: "top-right",
+      autoClose: 3000,
+    });
+  } finally {
+    setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+  }
+};
 
 
   

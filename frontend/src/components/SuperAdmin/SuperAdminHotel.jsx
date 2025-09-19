@@ -166,9 +166,6 @@ const SuperAdminHotels = () => {
       setShowDeleteModal(false);
       setShowModal(false);
       setSelectedHotel(null);
-      
-      // Show success message
-      alert('Hotel deleted successfully!');
     } catch (error) {
       console.error('Error deleting hotel:', error);
       alert('Error deleting hotel. Please try again.');

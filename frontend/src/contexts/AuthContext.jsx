@@ -485,6 +485,8 @@ export function AuthProvider({ children }) {
       setMyBookings([]);
     }
   }, [token]);
+
+  
   const createBooking = async (bookingData) => {
     if (!token) throw new Error("No token found");
     if (!selectedHotelId) throw new Error("No hotel selected");
