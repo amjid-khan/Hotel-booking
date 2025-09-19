@@ -29,6 +29,7 @@ const BookingOrders = () => {
     fetchHotelBookings,
     fetchMyBookings,
     cancelBooking,
+    updateBookingStatus,
     token,
   } = useContext(AuthContext);
 
@@ -40,6 +41,8 @@ const BookingOrders = () => {
   const [sortBy, setSortBy] = useState("date");
   const [sortOrder, setSortOrder] = useState("desc");
   const [viewingBooking, setViewingBooking] = useState(null);
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  const [updatingStatus, setUpdatingStatus] = useState(null);
 
   // Decide which bookings to show
   const bookingsToShow = user?.role === "user" ? myBookings : hotelBookings;
@@ -87,9 +90,9 @@ const BookingOrders = () => {
   // Statistics
   const stats = {
     total: filteredBookings.length,
-    totalRevenue: filteredBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0),
+    totalRevenue: filteredBookings.reduce((sum, b) => sum + (parseFloat(b.totalAmount) || 0), 0),
     avgAmount: filteredBookings.length ? 
-      filteredBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0) / filteredBookings.length : 0,
+      filteredBookings.reduce((sum, b) => sum + (parseFloat(b.totalAmount) || 0), 0) / filteredBookings.length : 0,
     thisMonth: filteredBookings.filter(b => {
       const bookingDate = new Date(b.checkIn);
       const now = new Date();
@@ -114,6 +117,18 @@ const BookingOrders = () => {
     fetchData();
   }, [token, user, selectedHotelId]);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.dropdown-container')) {
+        setActiveDropdown(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   const handleCancel = async (bookingId) => {
     if (!token) {
       alert("No token found — please log in first.");
@@ -126,6 +141,30 @@ const BookingOrders = () => {
       console.error(err.response || err);
       alert(err.response?.data?.message || "Error cancelling booking");
     }
+  };
+
+  const handleStatusChange = async (bookingId, newStatus) => {
+    if (!token) {
+      alert("No token found — please log in first.");
+      return;
+    }
+
+    setUpdatingStatus(bookingId);
+    try {
+      await updateBookingStatus(bookingId, newStatus);
+      alert(`Booking status updated to ${newStatus} successfully!`);
+      setActiveDropdown(null);
+    } catch (err) {
+      console.error(err.response || err);
+      alert(err.response?.data?.message || "Error updating booking status");
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
+
+  const toggleDropdown = (bookingId, e) => {
+    e.stopPropagation();
+    setActiveDropdown(activeDropdown === bookingId ? null : bookingId);
   };
 
   const formatDate = (dateStr) => {
@@ -166,6 +205,64 @@ const BookingOrders = () => {
 
   const closeViewModal = () => {
     setViewingBooking(null);
+  };
+
+  const StatusDropdown = ({ booking }) => {
+    const statusOptions = [
+      { value: 'pending', label: 'Pending', icon: Clock, color: 'text-yellow-600' },
+      { value: 'confirmed', label: 'Confirmed', icon: CheckCircle, color: 'text-green-600' },
+      { value: 'cancelled', label: 'Cancelled', icon: XCircle, color: 'text-red-600' },
+    ];
+
+    return (
+      <div className="dropdown-container relative inline-flex items-center">
+        {getStatusBadge(booking.status)}
+        {user?.role !== "user" && (
+          <>
+            <button
+              onClick={(e) => toggleDropdown(booking.id, e)}
+              className="ml-2 p-1 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors relative"
+              title="Change Status"
+              disabled={updatingStatus === booking.id}
+            >
+              {updatingStatus === booking.id ? (
+                <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <MoreHorizontal className="w-3 h-3" />
+              )}
+            </button>
+
+            {activeDropdown === booking.id && (
+              <div className="absolute top-full right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                <div className="py-1">
+                  {statusOptions.map((option) => {
+                    const Icon = option.icon;
+                    const isCurrentStatus = booking.status === option.value;
+                    
+                    return (
+                      <button
+                        key={option.value}
+                        onClick={() => handleStatusChange(booking.id, option.value)}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
+                          isCurrentStatus ? 'bg-gray-50 font-medium' : ''
+                        }`}
+                        disabled={isCurrentStatus}
+                      >
+                        <Icon className={`w-4 h-4 ${option.color}`} />
+                        {option.label}
+                        {isCurrentStatus && (
+                          <span className="ml-auto text-xs text-gray-500">Current</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -313,7 +410,7 @@ const BookingOrders = () => {
                           <p className="text-xs sm:text-sm text-gray-600 truncate">{booking.guestEmail}</p>
                         </div>
                       </div>
-                      {getStatusBadge(booking.status)}
+                      <StatusDropdown booking={booking} />
                     </div>
 
                     <div className="space-y-2 sm:space-y-3 mb-4">
@@ -348,13 +445,6 @@ const BookingOrders = () => {
                         {formatCurrency(booking.totalAmount)}
                       </span>
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleViewBooking(booking)}
-                          className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
-                          title="View Booking"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
                         <button
                           onClick={() => handleCancel(booking.id)}
                           className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
