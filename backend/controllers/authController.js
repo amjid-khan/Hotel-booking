@@ -404,16 +404,29 @@ exports.getHotelUsers = async (req, res) => {
 
 
 // ====================== GET ALL USERS (SUPERADMIN ONLY) ======================
+// ====================== GET ALL USERS (SUPERADMIN ONLY) ======================
 exports.getAllUsers = async (req, res) => {
     try {
-        const users = await User.findAll({ include: [{ model: Role, as: 'role' }] });
-        const enriched = users.map(u => ({ ...u.toJSON(), role: u.role.name }));
+        const users = await User.findAll({
+            include: [
+                { model: Role, as: 'role' },          // role
+                { model: Hotel, as: 'hotel', attributes: ['id', 'name'] } // hotel
+            ]
+        });
+
+        const enriched = users.map(u => ({
+            ...u.toJSON(),
+            role: u.role.name,            // role name
+            hotelName: u.hotel ? u.hotel.name : null  // hotel name
+        }));
+
         res.json({ success: true, users: enriched });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 };
+
 
 // ====================== UPDATE ANY USER (SUPERADMIN ONLY) ======================
 exports.updateAnyUser = async (req, res) => {

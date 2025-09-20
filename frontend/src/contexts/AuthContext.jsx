@@ -432,9 +432,11 @@ export function AuthProvider({ children }) {
   };
 
   // ---------------- Bookings ----------------
+  // Replace your fetchHotelBookings function in AuthContext with this:
   const fetchHotelBookings = useCallback(
     async (hotelId) => {
-      if (!token || !hotelId) return;
+      if (!token) return;
+
       try {
         const res = await axios.get(
           `${BASE_URL}/api/bookings/hotel/${hotelId}`,
@@ -447,16 +449,32 @@ export function AuthProvider({ children }) {
           ? res.data
           : res.data.bookings || [];
 
-        const mappedData = data.map((b) => ({
-          ...b,
-          roomName: b.Room
-            ? `${b.Room.type} (#${b.Room.roomNumber})`
-            : b.roomId,
-          hotelName: b.Hotel ? b.Hotel.name : "",
+        // ✅ FIXED: Extract roomId from room object
+        const mappedData = data.map((booking) => ({
+          ...booking,
+          // Extract roomId from room object
+          roomId: booking.room?.id || booking.roomId || null,
+          roomName: booking.room
+            ? `${booking.room.type} (#${booking.room.roomNumber})`
+            : booking.roomName || `Room ${booking.room?.id || "Unknown"}`,
+          hotelName: booking.hotelName || "Unknown Hotel",
+          guestName: booking.guestName || "N/A",
+          status: booking.status || "pending",
         }));
 
+        console.log("Hotel bookings fetched:", mappedData.length);
+        // Debug: Check if roomId is properly mapped
+        if (mappedData.length > 0) {
+          console.log("Sample mapped booking:", {
+            id: mappedData[0].id,
+            roomId: mappedData[0].roomId,
+            roomName: mappedData[0].roomName,
+            status: mappedData[0].status,
+            dates: `${mappedData[0].checkIn} to ${mappedData[0].checkOut}`,
+          });
+        }
+
         setHotelBookings(mappedData);
-        console.log("Hotel bookings fetched:", mappedData.length); // Debug log
       } catch (err) {
         console.error("Error fetching hotel bookings:", err);
         setHotelBookings([]);
@@ -465,18 +483,31 @@ export function AuthProvider({ children }) {
     [token]
   );
 
+  // Also fix fetchMyBookings function in AuthContext:
   const fetchMyBookings = useCallback(async () => {
     if (!token) return;
+
     try {
       const res = await axios.get(`${BASE_URL}/api/bookings/my`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       const data = Array.isArray(res.data) ? res.data : res.data.bookings || [];
 
-      const mappedData = data.map((b) => ({
-        ...b,
-        roomName: b.Room ? `${b.Room.type} (#${b.Room.roomNumber})` : b.roomId,
-        hotelName: b.Hotel ? b.Hotel.name : "",
+      // ✅ FIXED: Extract roomId from room object
+      const mappedData = data.map((booking) => ({
+        ...booking,
+        // Extract roomId from room object
+        roomId: booking.room?.id || booking.roomId || null,
+        roomName: booking.room
+          ? `${booking.room.type} (#${booking.room.roomNumber})`
+          : booking.roomName || `Room ${booking.room?.id || "Unknown"}`,
+        hotelName:
+          booking.hotelName ||
+          (booking.Hotel ? booking.Hotel.name : null) ||
+          "Unknown Hotel",
+        guestName: booking.guestName || "N/A",
+        status: booking.status || "pending",
       }));
 
       setMyBookings(mappedData);
@@ -486,37 +517,130 @@ export function AuthProvider({ children }) {
     }
   }, [token]);
 
-  
-  const createBooking = async (bookingData) => {
+  // const createBooking = async (bookingData) => {
+  //   if (!token) throw new Error("No token found");
+  //   if (!selectedHotelId) throw new Error("No hotel selected");
+
+  //   try {
+  //     const payload = {
+  //       hotelId: selectedHotelId,
+  //       roomId: bookingData.roomId,
+  //       guestName: bookingData.guestName,
+  //       guestEmail: bookingData.guestEmail,
+  //       guestPhone: bookingData.guestPhone,
+  //       checkIn: bookingData.checkIn,
+  //       checkOut: bookingData.checkOut,
+  //       guests: bookingData.guests || 1,
+  //       totalAmount: bookingData.totalAmount,
+  //     };
+
+  //     const res = await axios.post(`${BASE_URL}/api/bookings`, payload, {
+  //       headers: { Authorization: `Bearer ${token}` },
+  //     });
+
+  //     fetchHotelBookings(selectedHotelId);
+  //     fetchMyBookings();
+
+  //     return res.data;
+  //   } catch (err) {
+  //     console.error("Error creating booking:", err.response || err);
+  //     throw err;
+  //   }
+  // };
+
+  //   const createBooking = async (bookingData) => {
+  //   if (!token) throw new Error("No token found");
+  //   if (!selectedHotelId) throw new Error("No hotel selected");
+
+  //   try {
+  //     const payload = {
+  //       hotelId: selectedHotelId,
+  //       roomId: bookingData.roomId,
+  //       guestName: bookingData.guestName,
+  //       guestEmail: bookingData.guestEmail,
+  //       guestPhone: bookingData.guestPhone,
+  //       checkIn: bookingData.checkIn,
+  //       checkOut: bookingData.checkOut,
+  //       guests: bookingData.guests || 1,
+  //       totalAmount: bookingData.totalAmount,
+  //     };
+
+  //     // Create booking via API
+  //     const res = await axios.post(`${BASE_URL}/api/bookings`, payload, {
+  //       headers: { Authorization: `Bearer ${token}` },
+  //     });
+
+  //     // Map roomName & hotelName immediately
+  //     const newBooking = {
+  //       ...res.data,
+  //       roomName: res.data.Room
+  //         ? `${res.data.Room.type} (#${res.data.Room.roomNumber})`
+  //         : res.data.roomId,
+  //       hotelName: res.data.Hotel ? res.data.Hotel.name : "",
+  //     };
+
+  //     // Refresh lists for UI
+  //     fetchHotelBookings(selectedHotelId);
+  //     fetchMyBookings();
+
+  //     return newBooking;
+  //   } catch (err) {
+  //     console.error("Error creating booking:", err.response || err);
+  //     throw err;
+  //   }
+  // };
+
+  const createBooking = async (bookingRequestData) => {
     if (!token) throw new Error("No token found");
     if (!selectedHotelId) throw new Error("No hotel selected");
 
     try {
       const payload = {
         hotelId: selectedHotelId,
-        roomId: bookingData.roomId,
-        guestName: bookingData.guestName,
-        guestEmail: bookingData.guestEmail,
-        guestPhone: bookingData.guestPhone,
-        checkIn: bookingData.checkIn,
-        checkOut: bookingData.checkOut,
-        guests: bookingData.guests || 1,
-        totalAmount: bookingData.totalAmount,
+        roomId: bookingRequestData.roomId,
+        guestName: bookingRequestData.guestName,
+        guestEmail: bookingRequestData.guestEmail,
+        guestPhone: bookingRequestData.guestPhone,
+        checkIn: bookingRequestData.checkIn,
+        checkOut: bookingRequestData.checkOut,
+        guests: bookingRequestData.guests || 1,
+        totalAmount: bookingRequestData.totalAmount,
       };
 
+      // Create booking via API
       const res = await axios.post(`${BASE_URL}/api/bookings`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      // Handle response data - could be res.data.booking or res.data directly
+      const responseBooking = res.data.booking || res.data;
+
+      // Map roomName & hotelName immediately
+      const newBooking = {
+        ...responseBooking,
+        roomName: responseBooking.Room
+          ? `${responseBooking.Room.type} (#${responseBooking.Room.roomNumber})`
+          : responseBooking.room
+          ? `${responseBooking.room.type} (#${responseBooking.room.roomNumber})`
+          : `Room ${responseBooking.roomId}`, // fallback
+        hotelName: responseBooking.Hotel
+          ? responseBooking.Hotel.name
+          : responseBooking.hotel
+          ? responseBooking.hotel.name
+          : responseBooking.hotelName || "Unknown Hotel", // fallback
+      };
+
+      // Refresh lists for UI
       fetchHotelBookings(selectedHotelId);
       fetchMyBookings();
 
-      return res.data;
+      return newBooking;
     } catch (err) {
       console.error("Error creating booking:", err.response || err);
       throw err;
     }
   };
+
   const cancelBooking = async (bookingId) => {
     if (!token) throw new Error("No token found");
     try {
@@ -587,6 +711,40 @@ export function AuthProvider({ children }) {
     }
   }, [user, token]);
 
+  // ---------------- Superadmin Bookings ----------------
+  const [allBookings, setAllBookings] = useState([]);
+
+  const fetchAllBookings = useCallback(async () => {
+    if (!token || user?.role !== "superadmin") return;
+
+    try {
+      const res = await axios.get(`${BASE_URL}/api/bookings/hotel/all`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = Array.isArray(res.data) ? res.data : res.data.bookings || [];
+
+      const mappedData = data.map((booking) => ({
+        ...booking,
+        roomName: booking.room
+          ? `${booking.room.type} (#${booking.room.roomNumber})`
+          : booking.roomId,
+        hotelName: booking.hotelName || "Unknown Hotel",
+        guestName: booking.guestName || "N/A",
+        status: booking.status || "pending",
+      }));
+
+      setAllBookings(mappedData);
+    } catch (err) {
+      console.error("Error fetching all bookings:", err);
+      setAllBookings([]);
+    }
+  }, [token, user]);
+
+  useEffect(() => {
+    fetchAllBookings();
+  }, [fetchAllBookings]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -637,6 +795,8 @@ export function AuthProvider({ children }) {
         updateUserSuperAdmin,
         deleteUserSuperAdmin,
         setUser,
+        allBookings,
+        fetchAllBookings,
 
         // roles & permissions
         roles,

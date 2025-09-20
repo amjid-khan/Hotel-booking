@@ -14,13 +14,13 @@ import {
 } from "react-icons/fa";
 
 const SuperAdminDashboard = () => {
-  const { user, allHotels, allUsers } = useContext(AuthContext);
+  const { user, allHotels, allUsers, allBookings } = useContext(AuthContext);
   const [selectedPeriod, setSelectedPeriod] = useState("This Month");
 
   // ----- Use real data from context -----
   const hotels = allHotels || [];
   const users = allUsers || [];
-  const bookings = []; // This will come from API later
+  const bookings = allBookings || [];
 
   // ----- Derived stats -----
   const totalHotels = hotels.length;
@@ -29,7 +29,7 @@ const SuperAdminDashboard = () => {
   const totalUsers = filteredUsers.length;
 
   const totalBookings = bookings.length;
-  const totalRevenue = 0; // This will be calculated from bookings
+  const totalRevenue = bookings.reduce((sum, b) => sum + parseFloat(b.totalAmount || 0), 0);
 
   const dashboardStats = [
     {
@@ -61,7 +61,7 @@ const SuperAdminDashboard = () => {
     },
     {
       title: "Revenue",
-      value: `$${totalRevenue}`,
+      value: `$${totalRevenue.toFixed(2)}`,
       change: "+0%",
       trend: "up",
       icon: <FaDollarSign className="w-6 h-6" />,

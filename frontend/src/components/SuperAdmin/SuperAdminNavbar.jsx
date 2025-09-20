@@ -24,7 +24,7 @@ const SuperAdminNavbar = () => {
     { name: "Dashboard", path: "/superadmin", icon: <MdDashboard /> },
     { name: "Hotels", path: "/hotels", icon: <HiOfficeBuilding /> },
     { name: "Users", path: "/superadminusers", icon: <HiUsers /> },
-    { name: "Bookings", path: "/superadmin/bookings", icon: <FaCalendarAlt /> },
+    { name: "Bookings", path: "/superbookings", icon: <FaCalendarAlt /> },
     { name: "Revenue", path: "/superadmin/revenue", icon: <HiCurrencyDollar /> },
     { name: "Analytics", path: "/superadmin/analytics", icon: <FaChartBar /> },
     { name: "Reports", path: "/superadmin/reports", icon: <FaFileAlt /> },

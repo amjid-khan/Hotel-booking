@@ -127,8 +127,7 @@ const AddRoom = () => {
 
   const handleDelete = async (roomId) => {
     if (!selectedHotelId) return;
-    if (!window.confirm("Are you sure you want to delete this room?")) return;
-
+ 
     try {
       await axios.delete(`${BASE_URL}/api/rooms/${roomId}`, {
         headers: { Authorization: `Bearer ${token}` },

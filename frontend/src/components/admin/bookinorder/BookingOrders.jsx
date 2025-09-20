@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState , useMemo } from "react";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
   Calendar,
@@ -48,17 +48,49 @@ const BookingOrders = () => {
   const bookingsToShow = user?.role === "user" ? myBookings : hotelBookings;
 
   // Filter and search bookings
-  const filteredBookings = bookingsToShow?.filter((booking) => {
-    const matchesSearch = 
-      booking.guestName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.guestEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.roomName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.hotelName?.toLowerCase().includes(searchTerm.toLowerCase());
+  // const filteredBookings = bookingsToShow?.filter((booking) => {
+  //   const matchesSearch = 
+  //     (booking.guestName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     booking.guestEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     (booking.roomName || `Room ${booking.roomId}`).toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     booking.hotelName?.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const matchesStatus = statusFilter === "all" || booking.status === statusFilter;
+  //   const matchesStatus = statusFilter === "all" || booking.status === statusFilter;
     
-    return matchesSearch && matchesStatus;
-  }) || [];
+  //   return matchesSearch && matchesStatus;
+  // }) || [];
+  
+  // Add this function at the top of your BookingOrders component
+const mapBookingData = (booking) => {
+  return {
+    ...booking,
+    roomName: booking.roomName || // already mapped
+              (booking.Room ? `${booking.Room.type} (#${booking.Room.roomNumber})` : null) ||
+              (booking.room ? `${booking.room.type} (#${booking.room.roomNumber})` : null) ||
+              `Room ${booking.roomId}`, // fallback
+    hotelName: booking.hotelName || // already mapped
+               (booking.Hotel ? booking.Hotel.name : null) ||
+               (booking.hotel ? booking.hotel.name : null) ||
+               "Unknown Hotel" // fallback
+  };
+};
+
+// Update your filteredBookings useMemo
+const filteredBookings = useMemo(
+  () =>
+    (bookingsToShow || []).map(mapBookingData).filter((booking) => {
+      const matchesSearch = 
+        (booking.guestName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.guestEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.roomName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.hotelName?.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      const matchesStatus = statusFilter === "all" || booking.status === statusFilter;
+      
+      return matchesSearch && matchesStatus;
+    }),
+  [bookingsToShow, searchTerm, statusFilter]
+);
 
   // Sort bookings
   const sortedBookings = [...filteredBookings].sort((a, b) => {
@@ -152,7 +184,6 @@ const BookingOrders = () => {
     setUpdatingStatus(bookingId);
     try {
       await updateBookingStatus(bookingId, newStatus);
-      alert(`Booking status updated to ${newStatus} successfully!`);
       setActiveDropdown(null);
     } catch (err) {
       console.error(err.response || err);

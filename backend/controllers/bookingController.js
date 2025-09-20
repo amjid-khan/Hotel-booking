@@ -2,6 +2,58 @@ const { Booking, Room, Hotel } = require('../models');
 
 module.exports = {
     // Create a new booking
+    // createBooking: async (req, res) => {
+    //     try {
+    //         const {
+    //             hotelId,
+    //             roomId,
+    //             guestName,
+    //             guestEmail,   // only for admin/superadmin
+    //             guestPhone,
+    //             checkIn,
+    //             checkOut,
+    //             guests,
+    //             totalAmount
+    //         } = req.body;
+
+    //         if (!hotelId || !roomId || !guestName || !checkIn || !checkOut || !totalAmount) {
+    //             return res.status(400).json({ message: "Required fields missing" });
+    //         }
+
+    //         // ✅ email decide based on role
+    //         let finalGuestEmail;
+
+    //         if (req.user.role === "admin" || req.user.role === "superadmin") {
+    //             // admin can specify email
+    //             if (!guestEmail) {
+    //                 return res.status(400).json({ message: "Guest email required for admin booking" });
+    //             }
+    //             finalGuestEmail = guestEmail;
+    //         } else {
+    //             // normal user/staff → always use their JWT email
+    //             finalGuestEmail = req.user.email;
+    //         }
+
+    //         const booking = await Booking.create({
+    //             hotelId,
+    //             roomId,
+    //             guestName,
+    //             guestEmail: finalGuestEmail,
+    //             guestPhone,
+    //             checkIn,
+    //             checkOut,
+    //             guests,
+    //             totalAmount,
+    //             status: "Pending" // Default status
+    //         });
+
+    //         res.status(201).json({ message: "Booking created successfully", booking });
+    //     } catch (error) {
+    //         console.error(error);
+    //         res.status(500).json({ message: "Server error", error });
+    //     }
+    // },
+
     createBooking: async (req, res) => {
         try {
             const {
@@ -47,12 +99,25 @@ module.exports = {
                 status: "Pending" // Default status
             });
 
-            res.status(201).json({ message: "Booking created successfully", booking });
+            // ✅ FIXED: Fetch the booking with room and hotel data
+            const bookingWithDetails = await Booking.findByPk(booking.id, {
+                include: [
+                    { model: Room, attributes: ['id', 'type', 'roomNumber', 'price'] },
+                    { model: Hotel, attributes: ['id', 'name'] }
+                ]
+            });
+
+            res.status(201).json({
+                message: "Booking created successfully",
+                booking: bookingWithDetails
+            });
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: "Server error", error });
         }
     },
+
+
 
     // Fetch all bookings for a specific hotel (fixed)
     getHotelBookings: async (req, res) => {
