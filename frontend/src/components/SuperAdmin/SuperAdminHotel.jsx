@@ -1,974 +1,581 @@
-import React, { useContext, useState, useEffect } from "react";
-import { AuthContext } from "../../contexts/AuthContext";
-import axios from "axios";
-import {
-  FaHotel,
-  FaMapMarkerAlt,
-  FaPhone,
-  FaEnvelope,
-  FaStar,
-  FaBed,
-  FaUsers,
-  FaDollarSign,
-  FaCalendarAlt,
-  FaEye,
-  FaEdit,
-  FaTrash,
-  FaPlus,
-  FaSearch,
-  FaFilter,
-  FaSort,
-  FaCheckCircle,
-  FaTimesCircle,
-  FaClock,
-  FaChartLine,
-  FaWifi,
-  FaCar,
-  FaSwimmingPool,
-  FaDumbbell,
-  FaCoffee,
-  FaConciergeBell,
-  FaSave,
-  FaTimes,
-} from "react-icons/fa";
+import React, { useState, useEffect, useContext } from 'react';
+import { AuthContext } from '../../contexts/AuthContext';
+import { 
+  Building2, 
+  Plus, 
+  Search, 
+  Filter, 
+  RefreshCw, 
+  Edit2, 
+  Trash2, 
+  Eye, 
+  MapPin, 
+  Phone, 
+  Mail, 
+  Calendar,
+  Users,
+  Bed,
+  DollarSign,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  X
+} from 'lucide-react';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
-
-const SuperAdminHotels = () => {
+const SuperAdminHotel = () => {
   const { 
     token, 
     user, 
     allHotels, 
-    fetchAllHotels,
-    updateHotelSuperAdmin,
-    deleteHotelSuperAdmin,
-    getHotelByIdSuperAdmin
+    fetchAllHotels, 
+    allBookings, 
+    fetchAllBookings,
+    updateHotelSuperAdmin, 
+    deleteHotelSuperAdmin, 
+    getHotelByIdSuperAdmin 
   } = useContext(AuthContext);
-  
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [sortBy, setSortBy] = useState("name");
-  const [viewMode, setViewMode] = useState("grid");
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [selectedHotel, setSelectedHotel] = useState(null);
-  const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [hotelDetails, setHotelDetails] = useState({});
-  const [editFormData, setEditFormData] = useState({});
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    address: '',
+    phone: '',
+    email: '',
+    description: ''
+  });
 
-  // Fetch detailed hotel information including rooms count
-  const fetchHotelDetails = async (hotelId) => {
-    if (!token || hotelDetails[hotelId]) return hotelDetails[hotelId];
+  // Handle responsive behavior
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
+  // Fetch data
+  const fetchData = async () => {
+    if (!token || user?.role !== "superadmin") return;
+    
+    setLoading(true);
     try {
-      const [hotelRes, roomsRes] = await Promise.all([
-        axios.get(`${BASE_URL}/api/hotels/${hotelId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        axios.get(`${BASE_URL}/api/rooms?hotelId=${hotelId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+      await Promise.all([
+        fetchAllHotels(),
+        fetchAllBookings()
       ]);
-
-      const hotel = hotelRes.data.hotel || hotelRes.data;
-      const rooms = Array.isArray(roomsRes.data)
-        ? roomsRes.data
-        : roomsRes.data.rooms || [];
-
-      const details = {
-        ...hotel,
-        total_rooms: rooms.length,
-        available_rooms: rooms.filter(
-          (room) => room.status === "available" || room.available
-        ).length,
-        occupied_rooms: rooms.filter(
-          (room) => room.status === "occupied" || !room.available
-        ).length,
-        rooms: rooms,
-      };
-
-      setHotelDetails((prev) => ({
-        ...prev,
-        [hotelId]: details,
-      }));
-
-      return details;
-    } catch (error) {
-      console.error(`Error fetching hotel details for ${hotelId}:`, error);
-      return null;
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching hotel data:', err);
+      setError('Failed to load hotel data');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Handle Edit Hotel
-  const handleEditHotel = async (hotel) => {
+  useEffect(() => {
+    if (token && user?.role === "superadmin") {
+      fetchData();
+    }
+  }, [token, user?.role]);
+
+  // Calculate hotel statistics
+  const calculateHotelStats = (hotel) => {
+    const hotelBookings = allBookings?.filter(booking => 
+      booking.hotelId === hotel.id || booking.hotelName === hotel.name
+    ) || [];
+
+    const totalBookings = hotelBookings.length;
+    const confirmedBookings = hotelBookings.filter(b => b.status === 'confirmed').length;
+    const pendingBookings = hotelBookings.filter(b => b.status === 'pending').length;
+    const revenue = hotelBookings
+      .filter(b => b.status === 'confirmed')
+      .reduce((sum, b) => sum + parseFloat(b.totalAmount || 0), 0);
+    
+    // Get total rooms from hotel.Rooms or hotel.rooms array
+    const totalRooms = hotel.Rooms?.length || hotel.rooms?.length || hotel.totalRooms || 0;
+    const occupancyRate = totalRooms > 0 ? (confirmedBookings / totalRooms) * 100 : 0;
+
+    return {
+      totalBookings,
+      confirmedBookings,
+      pendingBookings,
+      revenue,
+      occupancyRate,
+      totalRooms
+    };
+  };
+
+  // Enhanced hotel data with statistics
+  const enhancedHotels = allHotels.map(hotel => ({
+    ...hotel,
+    ...calculateHotelStats(hotel)
+  }));
+
+  // Filter hotels
+  const filteredHotels = enhancedHotels.filter(hotel => {
+    const matchesSearch = searchTerm === '' || 
+      hotel.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      hotel.address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      hotel.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' ||
+      (statusFilter === 'active' && hotel.totalBookings > 0) ||
+      (statusFilter === 'inactive' && hotel.totalBookings === 0) ||
+      (statusFilter === 'high-revenue' && hotel.revenue > 50000) ||
+      (statusFilter === 'low-revenue' && hotel.revenue <= 50000);
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  // Overall statistics
+  const totalStats = {
+    totalHotels: allHotels.length,
+    activeHotels: enhancedHotels.filter(h => h.totalBookings > 0).length,
+    totalRooms: enhancedHotels.reduce((sum, h) => sum + h.totalRooms, 0),
+    totalRevenue: enhancedHotels.reduce((sum, h) => sum + h.revenue, 0),
+    totalBookings: enhancedHotels.reduce((sum, h) => sum + h.totalBookings, 0)
+  };
+
+  // Handle edit
+  const handleEdit = async (hotel) => {
     try {
-      const hotelData = await getHotelByIdSuperAdmin(hotel.id);
-      setEditFormData({
-        name: hotelData.name || '',
-        address: hotelData.address || '',
-        description: hotelData.description || '',
-        email: hotelData.email || '',
-        city: hotelData.city || '',
-        state: hotelData.state || '',
-        country: hotelData.country || '',
-        zip: hotelData.zip || '',
-        phone: hotelData.phone || '',
-        starRating: hotelData.starRating || 1,
-      });
+      const hotelDetails = await getHotelByIdSuperAdmin(hotel.id);
       setSelectedHotel(hotel);
+      setEditFormData({
+        name: hotelDetails.name || '',
+        address: hotelDetails.address || '',
+        phone: hotelDetails.phone || '',
+        email: hotelDetails.email || '',
+        description: hotelDetails.description || ''
+      });
       setShowEditModal(true);
-    } catch (error) {
-      console.error('Error fetching hotel data for edit:', error);
-      alert('Error loading hotel data for editing');
+    } catch (err) {
+      setError('Failed to fetch hotel details');
     }
   };
 
-  // Handle Update Hotel
-  const handleUpdateHotel = async (e) => {
-    e.preventDefault();
-    setIsUpdating(true);
-
+  // Handle update
+  const handleUpdate = async () => {
     try {
       await updateHotelSuperAdmin(selectedHotel.id, editFormData);
       setShowEditModal(false);
       setSelectedHotel(null);
-      setEditFormData({});
-      
-      // Show success message
-      alert('Hotel updated successfully!');
-      
-      // Refresh hotel details if modal is open
-      if (showModal && selectedHotel) {
-        setHotelDetails(prev => {
-          const updated = { ...prev };
-          delete updated[selectedHotel.id];
-          return updated;
-        });
-        await fetchHotelDetails(selectedHotel.id);
-      }
-    } catch (error) {
-      console.error('Error updating hotel:', error);
-      alert('Error updating hotel. Please try again.');
-    } finally {
-      setIsUpdating(false);
+      fetchData();
+    } catch (err) {
+      setError('Failed to update hotel');
     }
   };
 
-  // Handle Delete Hotel
-  const handleDeleteHotel = async () => {
-    setIsDeleting(true);
-
+  // Handle delete
+  const handleDelete = async () => {
     try {
       await deleteHotelSuperAdmin(selectedHotel.id);
       setShowDeleteModal(false);
-      setShowModal(false);
       setSelectedHotel(null);
-    } catch (error) {
-      console.error('Error deleting hotel:', error);
-      alert('Error deleting hotel. Please try again.');
-    } finally {
-      setIsDeleting(false);
+      fetchData();
+    } catch (err) {
+      setError('Failed to delete hotel');
     }
   };
 
-  // Confirm Delete Modal
-  const confirmDelete = (hotel) => {
+  // Handle view details
+  const handleViewDetails = (hotel) => {
     setSelectedHotel(hotel);
-    setShowDeleteModal(true);
-  };
-
-  // Handle form input changes
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setEditFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  // Fetch all hotel details when component mounts
-  useEffect(() => {
-    const loadHotelDetails = async () => {
-      if (!token || !allHotels || allHotels.length === 0) {
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-
-      // Fetch details for all hotels
-      const detailsPromises = allHotels.map((hotel) =>
-        fetchHotelDetails(hotel.id)
-      );
-      await Promise.all(detailsPromises);
-
-      setLoading(false);
-    };
-
-    loadHotelDetails();
-  }, [allHotels, token]);
-
-  // Load hotels on component mount
-  useEffect(() => {
-    if (token && user?.role === "superadmin") {
-      fetchAllHotels();
-    }
-  }, [token, user]);
-
-  // Merge hotel data with details
-  const getEnrichedHotels = () => {
-    return allHotels.map((hotel) => {
-      const details = hotelDetails[hotel.id] || {};
-      return {
-        ...hotel,
-        ...details,
-        // Add defaults for missing fields
-        description:
-          hotel.description ||
-          details.description ||
-          "Premium hotel with excellent service and modern amenities.",
-        rating:
-          hotel.rating ||
-          details.rating ||
-          (4.5 + Math.random() * 0.4).toFixed(1),
-        status: hotel.status || details.status || "Active",
-        amenities: hotel.amenities ||
-          details.amenities || ["WiFi", "Restaurant", "Parking"],
-        total_rooms: details.total_rooms || hotel.total_rooms || 0,
-        available_rooms: details.available_rooms || hotel.available_rooms || 0,
-        occupied_rooms: details.occupied_rooms || hotel.occupied_rooms || 0,
-        monthly_revenue:
-          hotel.monthly_revenue || Math.floor(Math.random() * 150000) + 50000,
-        total_bookings:
-          hotel.total_bookings || Math.floor(Math.random() * 300) + 100,
-        created_at:
-          hotel.created_at || hotel.createdAt || new Date().toISOString(),
-      };
-    });
-  };
-
-  const displayHotels = getEnrichedHotels();
-
-  // Filter and search logic
-  const filteredHotels = displayHotels.filter((hotel) => {
-    const matchesSearch =
-      hotel.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      hotel.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      hotel.address?.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesStatus =
-      statusFilter === "All" || hotel.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
-
-  // Sort logic
-  const sortedHotels = [...filteredHotels].sort((a, b) => {
-    switch (sortBy) {
-      case "name":
-        return (a.name || "").localeCompare(b.name || "");
-      case "rating":
-        return parseFloat(b.rating || 0) - parseFloat(a.rating || 0);
-      case "revenue":
-        return (b.monthly_revenue || 0) - (a.monthly_revenue || 0);
-      case "rooms":
-        return (b.total_rooms || 0) - (a.total_rooms || 0);
-      case "date":
-        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-      default:
-        return 0;
-    }
-  });
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Active":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "Pending":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "Inactive":
-        return "bg-red-100 text-red-800 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "Active":
-        return <FaCheckCircle className="w-3 h-3" />;
-      case "Pending":
-        return <FaClock className="w-3 h-3" />;
-      case "Inactive":
-        return <FaTimesCircle className="w-3 h-3" />;
-      default:
-        return <FaClock className="w-3 h-3" />;
-    }
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-    }).format(amount || 0);
-  };
-
-  const getAmenityIcon = (amenity) => {
-    const icons = {
-      WiFi: <FaWifi />,
-      Pool: <FaSwimmingPool />,
-      Gym: <FaDumbbell />,
-      Parking: <FaCar />,
-      Restaurant: <FaCoffee />,
-      Spa: <FaConciergeBell />,
-      Bar: <FaCoffee />,
-      "Business Center": <FaUsers />,
-      "Conference Rooms": <FaUsers />,
-      Concierge: <FaConciergeBell />,
-      "Valet Parking": <FaCar />,
-      "Butler Service": <FaConciergeBell />,
-      "Fine Dining": <FaCoffee />,
-      "Beach Access": <FaSwimmingPool />,
-      Fireplace: <FaCoffee />,
-      "Hiking Trails": <FaDumbbell />,
-    };
-    return icons[amenity] || <FaCheckCircle />;
-  };
-
-  const openHotelDetails = async (hotel) => {
-    // Fetch fresh details when opening modal
-    const details = await fetchHotelDetails(hotel.id);
-    setSelectedHotel({ ...hotel, ...details });
-    setShowModal(true);
+    setShowDetailsModal(true);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50/30 md:ml-64 flex items-center justify-center">
-        <div className="text-center">
-          <FaHotel className="w-12 h-12 text-purple-400 mx-auto mb-4 animate-pulse" />
-          <p className="text-gray-600">Loading hotels data...</p>
+      <div className={`min-h-screen bg-gray-50 transition-all duration-300 ${isMobile ? 'pl-0 pt-16' : 'pl-64'} flex items-center justify-center`}>
+        <div className="bg-white rounded-2xl p-8 flex flex-col items-center shadow-2xl border border-gray-100">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading Hotels...</h3>
+          <p className="text-gray-600 text-center">Please wait while we fetch hotel data.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/30 md:ml-64">
-      {/* Mobile Top Spacing */}
-      <div className="h-16 md:hidden"></div>
-
-      {/* Main Content */}
-      <div className="p-4 md:p-6 lg:p-8">
+    <div className={`min-h-screen bg-gray-50 transition-all duration-300 ${isMobile ? 'pl-0 pt-16' : 'pl-64'}`}>
+      <div className="p-4 md:p-8">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
-          <div className="mb-4 lg:mb-0">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-              Hotel Management
-            </h1>
-            <p className="text-gray-600">
-              Manage all hotels across your platform • {sortedHotels.length}{" "}
-              hotels total
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2">
-              <FaPlus className="w-4 h-4" />
-              Add Hotel
-            </button>
+        <div className="mb-6 md:mb-8">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Hotel Management</h1>
+            <p className="text-gray-600">Manage all hotels in your system</p>
           </div>
         </div>
 
-        {/* Filters and Search */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            {/* Search */}
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-6 mb-6 md:mb-8">
+          {[
+            {
+              label: 'Total Hotels',
+              value: totalStats.totalHotels,
+              icon: <Building2 className="h-5 w-5 md:h-6 md:w-6 text-blue-600" />,
+              bg: 'bg-blue-100',
+              subtitle: `${totalStats.activeHotels} active`
+            },
+            {
+              label: 'Total Rooms',
+              value: totalStats.totalRooms,
+              icon: <Bed className="h-5 w-5 md:h-6 md:w-6 text-green-600" />,
+              bg: 'bg-green-100',
+              subtitle: 'Across all hotels'
+            },
+            {
+              label: 'Total Bookings',
+              value: totalStats.totalBookings,
+              icon: <Calendar className="h-5 w-5 md:h-6 md:w-6 text-purple-600" />,
+              bg: 'bg-purple-100',
+              subtitle: 'All time'
+            },
+            {
+              label: 'Total Revenue',
+              value: `PKR ${totalStats.totalRevenue.toLocaleString()}`,
+              icon: <DollarSign className="h-5 w-5 md:h-6 md:w-6 text-emerald-600" />,
+              bg: 'bg-emerald-100'
+            },
+            {
+              label: 'Active Hotels',
+              value: `${((totalStats.activeHotels / totalStats.totalHotels) * 100 || 0).toFixed(0)}%`,
+              icon: <TrendingUp className="h-5 w-5 md:h-6 md:w-6 text-orange-600" />,
+              bg: 'bg-orange-100',
+              subtitle: 'With bookings'
+            }
+          ].map((card, index) => (
+            <div key={index} className="bg-white rounded-lg md:rounded-xl shadow-sm border p-4 md:p-6 h-28 md:h-32 flex flex-col justify-between border-gray-200 hover:shadow-lg transition-all duration-300">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-xs md:text-sm font-medium text-gray-600 mb-1">{card.label}</p>
+                  <p className="text-lg md:text-2xl font-bold text-gray-900 mb-1">{card.value}</p>
+                  {card.subtitle && (
+                    <p className="text-xs text-gray-500">{card.subtitle}</p>
+                  )}
+                </div>
+                <div className={`p-2 md:p-3 ${card.bg} rounded-lg flex-shrink-0`}>
+                  {card.icon}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Search and Filter Controls */}
+        <div className="bg-white rounded-lg md:rounded-xl shadow-sm border border-gray-200 p-4 md:p-6 mb-6 md:mb-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 md:space-x-4">
             <div className="relative flex-1 max-w-md">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search hotels, cities, addresses..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="Search hotels by name, address, or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
               />
             </div>
-
-            {/* Filters */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center space-x-3 flex-wrap gap-2">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               >
-                <option value="All">All Status</option>
-                <option value="Active">Active</option>
-                <option value="Pending">Pending</option>
-                <option value="Inactive">Inactive</option>
+                <option value="all">All Hotels</option>
+                <option value="active">Active Hotels</option>
+                <option value="inactive">Inactive Hotels</option>
+                <option value="high-revenue">High Revenue (&gt;50K)</option>
+                <option value="low-revenue">Low Revenue (≤50K)</option>
               </select>
-
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              <button
+                onClick={fetchData}
+                className="inline-flex items-center px-4 py-2.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-200 border border-blue-200"
               >
-                <option value="name">Sort by Name</option>
-                <option value="rating">Sort by Rating</option>
-                <option value="revenue">Sort by Revenue</option>
-                <option value="rooms">Sort by Rooms</option>
-                <option value="date">Sort by Date</option>
-              </select>
-
-              <div className="flex bg-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => setViewMode("grid")}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 ${
-                    viewMode === "grid"
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  Grid
-                </button>
-                <button
-                  onClick={() => setViewMode("list")}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 ${
-                    viewMode === "list"
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  List
-                </button>
-              </div>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Hotels Grid/List */}
-        {viewMode === "grid" ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {sortedHotels.map((hotel) => (
-              <div
-                key={hotel.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200"
-              >
-                {/* Hotel Image */}
-                <div className="aspect-video bg-gradient-to-br from-purple-100 to-blue-100 rounded-t-xl relative overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <FaHotel className="w-12 h-12 text-purple-400" />
-                  </div>
-                  <div className="absolute top-4 left-4">
-                    <span
-                      className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium border rounded-full ${getStatusColor(
-                        hotel.status
-                      )}`}
-                    >
-                      {getStatusIcon(hotel.status)}
-                      {hotel.status}
-                    </span>
-                  </div>
-                  <div className="absolute top-4 right-4">
-                    <div className="bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1 flex items-center gap-1">
-                      <FaStar className="w-3 h-3 text-yellow-500" />
-                      <span className="text-sm font-medium text-gray-900">
-                        {hotel.rating}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Hotel Info */}
-                <div className="p-6">
-                  <div className="mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      {hotel.name}
-                    </h3>
-                    <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-                      {hotel.description}
-                    </p>
-
-                    <div className="flex items-center text-sm text-gray-600 mb-2">
-                      <FaMapMarkerAlt className="w-4 h-4 mr-2 text-gray-400" />
-                      {hotel.address ||
-                        `${hotel.city || ""}, ${hotel.state || ""}`}
-                    </div>
-
-                    {hotel.phone && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <FaPhone className="w-4 h-4 mr-2 text-gray-400" />
-                        {hotel.phone}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Stats */}
-                  <div className="grid grid-cols-3 gap-4 mb-4 pt-4 border-t border-gray-100">
-                    <div className="text-center">
-                      <div className="text-lg font-semibold text-gray-900">
-                        {hotel.total_rooms}
-                      </div>
-                      <div className="text-xs text-gray-500">Total Rooms</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-semibold text-green-600">
-                        {hotel.available_rooms}
-                      </div>
-                      <div className="text-xs text-gray-500">Available</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-semibold text-gray-900">
-                        {formatCurrency(hotel.monthly_revenue)}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        Monthly Revenue
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Amenities */}
-                  {hotel.amenities && hotel.amenities.length > 0 && (
-                    <div className="mb-4">
-                      <div className="flex flex-wrap gap-1">
-                        {hotel.amenities.slice(0, 4).map((amenity, index) => (
-                          <span
-                            key={index}
-                            className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-md"
-                          >
-                            <span className="text-gray-500">
-                              {getAmenityIcon(amenity)}
-                            </span>
-                            {amenity}
-                          </span>
-                        ))}
-                        {hotel.amenities.length > 4 && (
-                          <span className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-md">
-                            +{hotel.amenities.length - 4} more
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => openHotelDetails(hotel)}
-                      className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2"
-                    >
-                      <FaEye className="w-4 h-4" />
-                      View Details
-                    </button>
-                    <button 
-                      onClick={() => handleEditHotel(hotel)}
-                      className="p-2 border border-gray-300 hover:border-gray-400 rounded-lg text-gray-600 hover:text-gray-900 transition-colors duration-200"
-                    >
-                      <FaEdit className="w-4 h-4" />
-                    </button>
-                    <button 
-                      onClick={() => confirmDelete(hotel)}
-                      className="p-2 border border-red-300 hover:border-red-400 rounded-lg text-red-600 hover:text-red-700 transition-colors duration-200"
-                    >
-                      <FaTrash className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          /* List View */
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50/50">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Hotel
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Location
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Rooms
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Rating
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Revenue
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {sortedHotels.map((hotel) => (
-                    <tr key={hotel.id} className="hover:bg-gray-50/50">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
-                            <FaHotel className="w-5 h-5 text-purple-600" />
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {hotel.name}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {hotel.email}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">
-                          {hotel.city}, {hotel.state}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {hotel.country}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">
-                          {hotel.total_rooms}
-                        </div>
-                        <div className="text-sm text-green-600">
-                          {hotel.available_rooms} available
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <FaStar className="w-4 h-4 text-yellow-400 mr-1" />
-                          <span className="text-sm font-medium text-gray-900">
-                            {hotel.rating}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {formatCurrency(hotel.monthly_revenue)}
-                        </div>
-                        <div className="text-sm text-gray-500">per month</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium border rounded-full ${getStatusColor(
-                            hotel.status
-                          )}`}
-                        >
-                          {getStatusIcon(hotel.status)}
-                          {hotel.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => openHotelDetails(hotel)}
-                            className="p-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors duration-200"
-                          >
-                            <FaEye className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={() => handleEditHotel(hotel)}
-                            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors duration-200"
-                          >
-                            <FaEdit className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={() => confirmDelete(hotel)}
-                            className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors duration-200"
-                          >
-                            <FaTrash className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* Error */}
+        {error && (
+          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center">
+            <AlertTriangle className="h-5 w-5 text-red-400 mr-3" />
+            <div>
+              <h4 className="font-medium">Error occurred</h4>
+              <p className="text-sm">{error}</p>
             </div>
           </div>
         )}
 
-        {/* No Results */}
-        {sortedHotels.length === 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-            <FaHotel className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No hotels found
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {searchQuery
-                ? "Try adjusting your search criteria"
-                : "Get started by adding your first hotel"}
-            </p>
-            <button className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200">
-              Add Hotel
-            </button>
+        {/* Hotels Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {filteredHotels.length === 0 ? (
+            <div className="col-span-full flex flex-col items-center justify-center py-12 bg-white rounded-xl shadow-sm border border-gray-200">
+              <Building2 className="w-12 h-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No hotels found</h3>
+              <p className="text-sm text-gray-500 text-center max-w-sm">
+                {searchTerm ? 'Try adjusting your search terms or filters' : 'Get started by adding your first hotel'}
+              </p>
+            </div>
+          ) : (
+            filteredHotels.map((hotel) => (
+              <div key={hotel.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300">
+                {/* Hotel Header */}
+                <div className="p-6 pb-4">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center">
+                      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
+                        {hotel.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-lg font-semibold text-gray-900">{hotel.name}</h3>
+                        <div className="flex items-center text-sm text-gray-500">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          <span className="truncate max-w-[200px]">{hotel.address || 'No address'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${hotel.totalBookings > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                      {hotel.totalBookings > 0 ? (
+                        <>
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Active
+                        </>
+                      ) : (
+                        <>
+                          <Clock className="h-3 w-3 mr-1" />
+                          Inactive
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Contact Info */}
+                  <div className="space-y-2 mb-4">
+                    {hotel.email && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Mail className="h-3 w-3 mr-2" />
+                        <span className="truncate">{hotel.email}</span>
+                      </div>
+                    )}
+                    {hotel.phone && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Phone className="h-3 w-3 mr-2" />
+                        <span>{hotel.phone}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Statistics */}
+                <div className="px-6 pb-4">
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="text-center p-3 bg-blue-50 rounded-lg">
+                      <div className="flex items-center justify-center mb-1">
+                        <Bed className="h-4 w-4 text-blue-600 mr-1" />
+                        <span className="text-sm font-medium text-blue-600">Rooms</span>
+                      </div>
+                      <div className="text-lg font-bold text-gray-900">{hotel.totalRooms}</div>
+                    </div>
+                    <div className="text-center p-3 bg-purple-50 rounded-lg">
+                      <div className="flex items-center justify-center mb-1">
+                        <Calendar className="h-4 w-4 text-purple-600 mr-1" />
+                        <span className="text-sm font-medium text-purple-600">Bookings</span>
+                      </div>
+                      <div className="text-lg font-bold text-gray-900">{hotel.totalBookings}</div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="text-center p-3 bg-green-50 rounded-lg">
+                      <div className="flex items-center justify-center mb-1">
+                        <DollarSign className="h-4 w-4 text-green-600 mr-1" />
+                        <span className="text-sm font-medium text-green-600">Revenue</span>
+                      </div>
+                      <div className="text-sm font-bold text-gray-900">PKR {hotel.revenue.toLocaleString()}</div>
+                    </div>
+                    <div className="text-center p-3 bg-orange-50 rounded-lg">
+                      <div className="flex items-center justify-center mb-1">
+                        <TrendingUp className="h-4 w-4 text-orange-600 mr-1" />
+                        <span className="text-sm font-medium text-orange-600">Occupancy</span>
+                      </div>
+                      <div className="text-sm font-bold text-gray-900">{hotel.occupancyRate.toFixed(0)}%</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs text-gray-500">
+                        {hotel.confirmedBookings} confirmed • {hotel.pendingBookings} pending
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => handleViewDetails(hotel)}
+                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                        title="View Details"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleEdit(hotel)}
+                        className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200"
+                        title="Edit Hotel"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedHotel(hotel);
+                          setShowDeleteModal(true);
+                        }}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                        title="Delete Hotel"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Summary Footer */}
+        {filteredHotels.length > 0 && (
+          <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between text-sm text-gray-600">
+              <span>
+                Showing {filteredHotels.length} of {allHotels.length} hotels
+              </span>
+              <span>
+                Combined Revenue: PKR {filteredHotels.reduce((sum, h) => sum + h.revenue, 0).toLocaleString()}
+              </span>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Edit Hotel Modal */}
+      {/* Edit Modal */}
       {showEditModal && selectedHotel && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <form onSubmit={handleUpdateHotel}>
-              {/* Modal Header */}
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">Edit Hotel</h2>
-                    <p className="text-gray-600">Update hotel information</p>
+        <div className="fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-gray-100">
+            <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold mr-3">
+                    {selectedHotel.name.charAt(0).toUpperCase()}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowEditModal(false)}
-                    className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-700"
-                  >
-                    <FaTimes className="w-5 h-5" />
-                  </button>
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900">Edit Hotel</h3>
+                    <p className="text-sm text-gray-500">Update hotel information</p>
+                  </div>
                 </div>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="text-gray-400 hover:text-gray-600 hover:bg-white hover:bg-opacity-50 rounded-full p-2 transition-all duration-200"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
-
-              {/* Modal Content */}
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Basic Information */}
+            </div>
+            <div className="p-6 space-y-5 max-h-96 overflow-y-auto">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                    <Building2 className="h-4 w-4 mr-2 text-blue-500" />
+                    Hotel Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.name}
+                    onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                    placeholder="Enter hotel name"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                    <MapPin className="h-4 w-4 mr-2 text-green-500" />
+                    Address
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.address}
+                    onChange={(e) => setEditFormData({...editFormData, address: e.target.value})}
+                    placeholder="Enter hotel address"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Hotel Name
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={editFormData.name || ''}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={editFormData.email || ''}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                      <Phone className="h-4 w-4 mr-2 text-orange-500" />
                       Phone
                     </label>
                     <input
                       type="text"
-                      name="phone"
-                      value={editFormData.phone || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      value={editFormData.phone}
+                      onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
+                      placeholder="Phone number"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
                     />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Star Rating
-                    </label>
-                    <select
-                      name="starRating"
-                      value={editFormData.starRating || 1}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    >
-                      {[1, 2, 3, 4, 5].map(rating => (
-                        <option key={rating} value={rating}>{rating} Star</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Address
+                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                      <Mail className="h-4 w-4 mr-2 text-purple-500" />
+                      Email
                     </label>
                     <input
-                      type="text"
-                      name="address"
-                      value={editFormData.address || ''}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      type="email"
+                      value={editFormData.email}
+                      onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                      placeholder="Email address"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
                     />
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      City
-                    </label>
-                    <input
-                      type="text"
-                      name="city"
-                      value={editFormData.city || ''}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      State
-                    </label>
-                    <input
-                      type="text"
-                      name="state"
-                      value={editFormData.state || ''}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Country
-                    </label>
-                    <input
-                      type="text"
-                      name="country"
-                      value={editFormData.country || ''}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      ZIP Code
-                    </label>
-                    <input
-                      type="text"
-                      name="zip"
-                      value={editFormData.zip || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Description
-                    </label>
-                    <textarea
-                      name="description"
-                      value={editFormData.description || ''}
-                      onChange={handleInputChange}
-                      rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Modal Footer */}
-              <div className="p-6 border-t border-gray-200 bg-gray-50 rounded-b-xl">
-                <div className="flex items-center justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowEditModal(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isUpdating}
-                    className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
-                  >
-                    {isUpdating ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Updating...
-                      </>
-                    ) : (
-                      <>
-                        <FaSave className="w-4 h-4" />
-                        Update Hotel
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && selectedHotel && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
-            <div className="p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                  <FaTrash className="w-6 h-6 text-red-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Delete Hotel
-                  </h3>
-                  <p className="text-gray-600">
-                    This action cannot be undone
-                  </p>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                  <textarea
+                    value={editFormData.description}
+                    onChange={(e) => setEditFormData({...editFormData, description: e.target.value})}
+                    rows={3}
+                    placeholder="Enter hotel description..."
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white resize-none"
+                  />
                 </div>
               </div>
-              
-              <div className="mb-6">
-                <p className="text-gray-700">
-                  Are you sure you want to delete <strong>{selectedHotel.name}</strong>? 
-                  This will permanently remove the hotel and all associated data.
-                </p>
-              </div>
-
-              <div className="flex items-center justify-end gap-3">
+            </div>
+            <div className="p-6 border-t border-gray-100 bg-gray-50">
+              <div className="flex items-center justify-end space-x-3">
                 <button
-                  type="button"
-                  onClick={() => setShowDeleteModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 border border-gray-200 rounded-xl transition-all duration-200 shadow-sm"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handleDeleteHotel}
-                  disabled={isDeleting}
-                  className="px-6 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+                  onClick={handleUpdate}
+                  className="px-6 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
-                  {isDeleting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Deleting...
-                    </>
-                  ) : (
-                    <>
-                      <FaTrash className="w-4 h-4" />
-                      Delete Hotel
-                    </>
-                  )}
+                  <Edit2 className="h-4 w-4 mr-2 inline" />
+                  Update Hotel
                 </button>
               </div>
             </div>
@@ -976,245 +583,164 @@ const SuperAdminHotels = () => {
         </div>
       )}
 
-      {/* Hotel Details Modal */}
-      {showModal && selectedHotel && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="p-6 border-b border-gray-200/50 bg-white/80 backdrop-blur-sm rounded-t-xl">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-purple-100 rounded-xl flex items-center justify-center">
-                    <FaHotel className="w-8 h-8 text-purple-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">
-                      {selectedHotel.name}
-                    </h2>
-                    <p className="text-gray-600 flex items-center gap-2 mt-1">
-                      <FaMapMarkerAlt className="w-4 h-4" />
-                      {selectedHotel.address ||
-                        `${selectedHotel.city}, ${selectedHotel.state}`}
-                    </p>
-                  </div>
+      {/* Delete Modal */}
+      {showDeleteModal && selectedHotel && (
+        <div className="fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div className="p-6">
+              <div className="flex items-center mb-4">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
                 </div>
+                <div className="ml-3">
+                  <h3 className="text-lg font-semibold text-gray-900">Delete Hotel</h3>
+                  <p className="text-sm text-gray-500">This action cannot be undone</p>
+                </div>
+              </div>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete <strong>{selectedHotel.name}</strong>? 
+                This will permanently remove the hotel and all associated data.
+              </p>
+              <div className="flex items-center justify-end space-x-3">
                 <button
-                  onClick={() => setShowModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowDeleteModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-200"
                 >
-                  <FaTimes className="w-5 h-5" />
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-all duration-200"
+                >
+                  Delete Hotel
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
 
-            {/* Modal Content */}
-            <div className="p-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                {/* Basic Info */}
-                <div className="bg-gray-50/70 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Hotel Information
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <FaPhone className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-700">
-                        {selectedHotel.phone || "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <FaEnvelope className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-700">
-                        {selectedHotel.email || "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <FaStar className="w-4 h-4 text-yellow-500" />
-                      <span className="text-gray-700">
-                        {selectedHotel.rating} Rating
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium border rounded-full ${getStatusColor(
-                          selectedHotel.status
-                        )}`}
-                      >
-                        {getStatusIcon(selectedHotel.status)}
-                        {selectedHotel.status}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Stats */}
-                <div className="bg-gray-50/70 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Real-time Statistics
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-3 bg-white/50 rounded-lg">
-                      <div className="text-2xl font-bold text-gray-900">
-                        {selectedHotel.total_rooms}
-                      </div>
-                      <div className="text-sm text-gray-600">Total Rooms</div>
-                    </div>
-                    <div className="text-center p-3 bg-white/50 rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">
-                        {selectedHotel.available_rooms}
-                      </div>
-                      <div className="text-sm text-gray-600">Available</div>
-                    </div>
-                    <div className="text-center p-3 bg-white/50 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {selectedHotel.occupied_rooms}
-                      </div>
-                      <div className="text-sm text-gray-600">Occupied</div>
-                    </div>
-                    <div className="text-center p-3 bg-white/50 rounded-lg">
-                      <div className="text-2xl font-bold text-purple-600">
-                        {selectedHotel.total_bookings || 0}
-                      </div>
-                      <div className="text-sm text-gray-600">Bookings</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Room Details */}
-              {selectedHotel.rooms && selectedHotel.rooms.length > 0 && (
-                <div className="bg-gray-50/70 rounded-lg p-6 mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Room Breakdown
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {Object.entries(
-                      selectedHotel.rooms.reduce((acc, room) => {
-                        const type = room.type || room.room_type || "Standard";
-                        acc[type] = (acc[type] || 0) + 1;
-                        return acc;
-                      }, {})
-                    ).map(([type, count]) => (
-                      <div
-                        key={type}
-                        className="bg-white/50 rounded-lg p-3 text-center"
-                      >
-                        <div className="text-lg font-semibold text-gray-900">
-                          {count}
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          {type} Rooms
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Description */}
-              <div className="bg-gray-50/70 rounded-lg p-6 mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                  Description
-                </h3>
-                <p className="text-gray-700 leading-relaxed">
-                  {selectedHotel.description}
-                </p>
-              </div>
-
-              {/* Amenities */}
-              {selectedHotel.amenities &&
-                selectedHotel.amenities.length > 0 && (
-                  <div className="bg-gray-50/70 rounded-lg p-6 mb-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      Amenities
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                      {selectedHotel.amenities.map((amenity, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-2 p-3 bg-white/50 rounded-lg"
-                        >
-                          <div className="text-purple-600">
-                            {getAmenityIcon(amenity)}
-                          </div>
-                          <span className="text-sm font-medium text-gray-700">
-                            {amenity}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-              {/* Revenue Information */}
-              <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6 mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Revenue Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-white/70 rounded-lg p-4 text-center">
-                    <FaDollarSign className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-gray-900">
-                      {formatCurrency(selectedHotel.monthly_revenue)}
-                    </div>
-                    <div className="text-sm text-gray-600">Monthly Revenue</div>
-                  </div>
-                  <div className="bg-white/70 rounded-lg p-4 text-center">
-                    <FaChartLine className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-gray-900">
-                      {formatCurrency(
-                        (selectedHotel.monthly_revenue || 0) * 12
-                      )}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      Annual Projection
-                    </div>
-                  </div>
-                  <div className="bg-white/70 rounded-lg p-4 text-center">
-                    <FaCalendarAlt className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-gray-900">
-                      {Math.round(
-                        (selectedHotel.monthly_revenue || 0) /
-                          (selectedHotel.total_bookings || 1)
-                      )}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      Avg Booking Value
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button 
-                  onClick={() => {
-                    setShowModal(false);
-                    handleEditHotel(selectedHotel);
-                  }}
-                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-3 px-6 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2"
-                >
-                  <FaEdit className="w-4 h-4" />
-                  Edit Hotel
-                </button>
-                <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2">
-                  <FaChartLine className="w-4 h-4" />
-                  View Analytics
-                </button>
-                <button className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2">
-                  <FaUsers className="w-4 h-4" />
-                  Manage Users
-                </button>
+      {/* Details Modal */}
+      {showDetailsModal && selectedHotel && (
+        <div className="fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-semibold text-gray-900">{selectedHotel.name}</h3>
                 <button
-                  onClick={() => {
-                    setShowModal(false);
-                    confirmDelete(selectedHotel);
-                  }}
-                  className="bg-red-600 hover:bg-red-700 text-white py-3 px-6 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+                  onClick={() => setShowDetailsModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
                 >
-                  <FaTrash className="w-4 h-4" />
-                  Delete
+                  <X className="h-5 w-5" />
                 </button>
+              </div>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-2 gap-6 mb-6">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Contact Information</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center text-sm text-gray-600">
+                        <MapPin className="h-4 w-4 mr-2" />
+                        <span>{selectedHotel.address || 'No address provided'}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Mail className="h-4 w-4 mr-2" />
+                        <span>{selectedHotel.email || 'No email provided'}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Phone className="h-4 w-4 mr-2" />
+                        <span>{selectedHotel.phone || 'No phone provided'}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Description</h4>
+                    <p className="text-sm text-gray-600">
+                      {selectedHotel.description || 'No description available'}
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Statistics</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-blue-50 p-3 rounded-lg text-center">
+                        <div className="text-lg font-bold text-blue-600">{selectedHotel.totalRooms}</div>
+                        <div className="text-xs text-blue-600">Total Rooms</div>
+                      </div>
+                      <div className="bg-purple-50 p-3 rounded-lg text-center">
+                        <div className="text-lg font-bold text-purple-600">{selectedHotel.totalBookings}</div>
+                        <div className="text-xs text-purple-600">Bookings</div>
+                      </div>
+                      <div className="bg-green-50 p-3 rounded-lg text-center">
+                        <div className="text-lg font-bold text-green-600">{selectedHotel.confirmedBookings}</div>
+                        <div className="text-xs text-green-600">Confirmed</div>
+                      </div>
+                      <div className="bg-yellow-50 p-3 rounded-lg text-center">
+                        <div className="text-lg font-bold text-yellow-600">{selectedHotel.pendingBookings}</div>
+                        <div className="text-xs text-yellow-600">Pending</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Revenue</h4>
+                    <div className="bg-emerald-50 p-4 rounded-lg text-center">
+                      <div className="text-2xl font-bold text-emerald-600">
+                        PKR {selectedHotel.revenue.toLocaleString()}
+                      </div>
+                      <div className="text-sm text-emerald-600">Total Revenue</div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        From confirmed bookings
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Occupancy Rate Progress */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-medium text-gray-700">Occupancy Rate</h4>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {selectedHotel.occupancyRate.toFixed(1)}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.min(selectedHotel.occupancyRate, 100)}%` }}
+                  ></div>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Based on confirmed bookings vs total rooms
+                </div>
+              </div>
+
+              {/* Recent Activity */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Performance Metrics</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <div className="text-sm font-semibold text-gray-900">
+                      PKR {selectedHotel.totalBookings > 0 ? (selectedHotel.revenue / selectedHotel.confirmedBookings).toLocaleString(undefined, { maximumFractionDigits: 0 }) : 0}
+                    </div>
+                    <div className="text-xs text-gray-600">Avg. Booking Value</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <div className="text-sm font-semibold text-gray-900">
+                      {selectedHotel.totalRooms > 0 ? (selectedHotel.revenue / selectedHotel.totalRooms).toLocaleString(undefined, { maximumFractionDigits: 0 }) : 0}
+                    </div>
+                    <div className="text-xs text-gray-600">Revenue per Room</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <div className="text-sm font-semibold text-gray-900">
+                      {selectedHotel.totalBookings > 0 ? ((selectedHotel.confirmedBookings / selectedHotel.totalBookings) * 100).toFixed(0) : 0}%
+                    </div>
+                    <div className="text-xs text-gray-600">Confirmation Rate</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1224,4 +750,4 @@ const SuperAdminHotels = () => {
   );
 };
 
-export default SuperAdminHotels;
+export default SuperAdminHotel;

@@ -49,112 +49,166 @@ const RoomBooking = () => {
   // Check if a room is available based on bookings
 // Replace your isRoomAvailable function with this fixed version:
 // Replace your isRoomAvailable function with this detailed debug version temporarily:
-const isRoomAvailable = (roomId, checkInDate = null, checkOutDate = null) => {
-  console.log("=== DETAILED DEBUG ===");
-  console.log("Room ID to check:", roomId, typeof roomId);
-  console.log("All hotel bookings:", hotelBookings);
+// const isRoomAvailable = (roomId, checkInDate = null, checkOutDate = null) => {
+//   console.log("=== DETAILED DEBUG ===");
+//   console.log("Room ID to check:", roomId, typeof roomId);
+//   console.log("All hotel bookings:", hotelBookings);
   
+//   if (!hotelBookings || hotelBookings.length === 0) {
+//     console.log("No bookings found");
+//     return true;
+//   }
+  
+//   // Log each booking's roomId for comparison
+//   hotelBookings.forEach((booking, index) => {
+//     console.log(`Booking ${index + 1}:`, {
+//       id: booking.id,
+//       roomId: booking.roomId,
+//       roomIdType: typeof booking.roomId,
+//       status: booking.status,
+//       guestName: booking.guestName,
+//       checkIn: booking.checkIn,
+//       checkOut: booking.checkOut,
+//       matchesRoom: booking.roomId == roomId,
+//       strictMatch: booking.roomId === roomId
+//     });
+//   });
+  
+//   const today = new Date();
+//   today.setHours(0, 0, 0, 0);
+//   console.log("Today:", today.toISOString());
+  
+//   // Check current availability (no specific dates)
+//   if (!checkInDate || !checkOutDate) {
+//     console.log("Checking current availability for today");
+    
+//     const conflictingBookings = hotelBookings.filter(booking => {
+//       const roomMatch = booking.roomId == roomId;
+//       const notCancelled = booking.status !== 'cancelled';
+      
+//       console.log(`Booking ${booking.id} check:`, {
+//         roomMatch,
+//         notCancelled,
+//         status: booking.status,
+//         roomId: booking.roomId,
+//         targetRoomId: roomId
+//       });
+      
+//       if (!roomMatch || !notCancelled) return false;
+      
+//       const checkIn = new Date(booking.checkIn);
+//       const checkOut = new Date(booking.checkOut);
+//       checkIn.setHours(0, 0, 0, 0);
+//       checkOut.setHours(0, 0, 0, 0);
+      
+//       const isCurrentlyOccupied = checkIn <= today && checkOut > today;
+      
+//       console.log(`Date check for booking ${booking.id}:`, {
+//         checkIn: checkIn.toISOString(),
+//         checkOut: checkOut.toISOString(),
+//         today: today.toISOString(),
+//         checkInBeforeToday: checkIn <= today,
+//         checkOutAfterToday: checkOut > today,
+//         isCurrentlyOccupied
+//       });
+      
+//       return isCurrentlyOccupied;
+//     });
+    
+//     console.log("Conflicting bookings found:", conflictingBookings.length);
+//     const available = conflictingBookings.length === 0;
+//     console.log("Room available:", available);
+//     return available;
+//   }
+  
+//   // Check for specific dates
+//   console.log("Checking for specific dates:", checkInDate, "to", checkOutDate);
+  
+//   const requestedCheckIn = new Date(checkInDate);
+//   const requestedCheckOut = new Date(checkOutDate);
+//   requestedCheckIn.setHours(0, 0, 0, 0);
+//   requestedCheckOut.setHours(0, 0, 0, 0);
+  
+//   const conflictingBooking = hotelBookings.find(booking => {
+//     if (booking.roomId != roomId || booking.status === 'cancelled') return false;
+    
+//     const bookingCheckIn = new Date(booking.checkIn);
+//     const bookingCheckOut = new Date(booking.checkOut);
+//     bookingCheckIn.setHours(0, 0, 0, 0);
+//     bookingCheckOut.setHours(0, 0, 0, 0);
+    
+//     const hasOverlap = (requestedCheckIn < bookingCheckOut) && (requestedCheckOut > bookingCheckIn);
+    
+//     if (hasOverlap) {
+//       console.log("Date conflict found:", {
+//         bookingId: booking.id,
+//         bookingDates: `${bookingCheckIn.toISOString()} to ${bookingCheckOut.toISOString()}`,
+//         requestedDates: `${requestedCheckIn.toISOString()} to ${requestedCheckOut.toISOString()}`
+//       });
+//     }
+    
+//     return hasOverlap;
+//   });
+  
+//   const available = !conflictingBooking;
+//   console.log("Room available for specific dates:", available);
+//   console.log("=== END DEBUG ===");
+//   return available;
+  //   };
+  
+  // ✅ Updated isRoomAvailable function
+const isRoomAvailable = (roomId, checkInDate = null, checkOutDate = null) => {
   if (!hotelBookings || hotelBookings.length === 0) {
-    console.log("No bookings found");
     return true;
   }
-  
-  // Log each booking's roomId for comparison
-  hotelBookings.forEach((booking, index) => {
-    console.log(`Booking ${index + 1}:`, {
-      id: booking.id,
-      roomId: booking.roomId,
-      roomIdType: typeof booking.roomId,
-      status: booking.status,
-      guestName: booking.guestName,
-      checkIn: booking.checkIn,
-      checkOut: booking.checkOut,
-      matchesRoom: booking.roomId == roomId,
-      strictMatch: booking.roomId === roomId
-    });
-  });
-  
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  console.log("Today:", today.toISOString());
-  
-  // Check current availability (no specific dates)
+
+  // Agar specific dates nahi diye → current availability check
   if (!checkInDate || !checkOutDate) {
-    console.log("Checking current availability for today");
-    
-    const conflictingBookings = hotelBookings.filter(booking => {
+    const conflictingBookings = hotelBookings.filter((booking) => {
       const roomMatch = booking.roomId == roomId;
-      const notCancelled = booking.status !== 'cancelled';
-      
-      console.log(`Booking ${booking.id} check:`, {
-        roomMatch,
-        notCancelled,
-        status: booking.status,
-        roomId: booking.roomId,
-        targetRoomId: roomId
-      });
-      
-      if (!roomMatch || !notCancelled) return false;
-      
+      const isConfirmed = booking.status === "confirmed"; // ✅ Only confirmed bookings
+      if (!roomMatch || !isConfirmed) return false;
+
       const checkIn = new Date(booking.checkIn);
       const checkOut = new Date(booking.checkOut);
       checkIn.setHours(0, 0, 0, 0);
       checkOut.setHours(0, 0, 0, 0);
-      
-      const isCurrentlyOccupied = checkIn <= today && checkOut > today;
-      
-      console.log(`Date check for booking ${booking.id}:`, {
-        checkIn: checkIn.toISOString(),
-        checkOut: checkOut.toISOString(),
-        today: today.toISOString(),
-        checkInBeforeToday: checkIn <= today,
-        checkOutAfterToday: checkOut > today,
-        isCurrentlyOccupied
-      });
-      
-      return isCurrentlyOccupied;
+
+      // Agar aaj ke din already confirm booking hai → room occupied
+      return checkIn <= today && checkOut > today;
     });
-    
-    console.log("Conflicting bookings found:", conflictingBookings.length);
-    const available = conflictingBookings.length === 0;
-    console.log("Room available:", available);
-    return available;
+
+    return conflictingBookings.length === 0;
   }
-  
-  // Check for specific dates
-  console.log("Checking for specific dates:", checkInDate, "to", checkOutDate);
-  
+
+  // Agar specific dates diye gaye ho to overlap check karo
   const requestedCheckIn = new Date(checkInDate);
   const requestedCheckOut = new Date(checkOutDate);
   requestedCheckIn.setHours(0, 0, 0, 0);
   requestedCheckOut.setHours(0, 0, 0, 0);
-  
-  const conflictingBooking = hotelBookings.find(booking => {
-    if (booking.roomId != roomId || booking.status === 'cancelled') return false;
-    
+
+  const conflictingBooking = hotelBookings.find((booking) => {
+    if (booking.roomId != roomId || booking.status !== "confirmed") return false; // ✅ only confirmed bookings
+
     const bookingCheckIn = new Date(booking.checkIn);
     const bookingCheckOut = new Date(booking.checkOut);
     bookingCheckIn.setHours(0, 0, 0, 0);
     bookingCheckOut.setHours(0, 0, 0, 0);
-    
-    const hasOverlap = (requestedCheckIn < bookingCheckOut) && (requestedCheckOut > bookingCheckIn);
-    
-    if (hasOverlap) {
-      console.log("Date conflict found:", {
-        bookingId: booking.id,
-        bookingDates: `${bookingCheckIn.toISOString()} to ${bookingCheckOut.toISOString()}`,
-        requestedDates: `${requestedCheckIn.toISOString()} to ${requestedCheckOut.toISOString()}`
-      });
-    }
-    
-    return hasOverlap;
+
+    // Date overlap check
+    return (
+      requestedCheckIn < bookingCheckOut && requestedCheckOut > bookingCheckIn
+    );
   });
-  
-  const available = !conflictingBooking;
-  console.log("Room available for specific dates:", available);
-  console.log("=== END DEBUG ===");
-  return available;
+
+  return !conflictingBooking;
 };
+
+  
+
 
 
   const roomPriceRange = useMemo(() => {

@@ -129,27 +129,32 @@ const BookingOrders = () => {
   });
 
   // Statistics
-  const stats = {
-    total: filteredBookings.length,
-    totalRevenue: filteredBookings.reduce(
-      (sum, b) => sum + (parseFloat(b.totalAmount) || 0),
-      0
-    ),
-    avgAmount: filteredBookings.length
-      ? filteredBookings.reduce(
-          (sum, b) => sum + (parseFloat(b.totalAmount) || 0),
-          0
-        ) / filteredBookings.length
-      : 0,
-    thisMonth: filteredBookings.filter((b) => {
-      const bookingDate = new Date(b.checkIn);
-      const now = new Date();
-      return (
-        bookingDate.getMonth() === now.getMonth() &&
-        bookingDate.getFullYear() === now.getFullYear()
-      );
-    }).length,
-  };
+// Statistics (only confirmed bookings)
+const confirmedBookings = filteredBookings.filter(
+  (b) => b.status === "confirmed"
+);
+
+const stats = {
+  total: confirmedBookings.length,
+  totalRevenue: confirmedBookings.reduce(
+    (sum, b) => sum + (parseFloat(b.totalAmount) || 0),
+    0
+  ),
+  avgAmount: confirmedBookings.length
+    ? confirmedBookings.reduce(
+        (sum, b) => sum + (parseFloat(b.totalAmount) || 0),
+        0
+      ) / confirmedBookings.length
+    : 0,
+  thisMonth: confirmedBookings.filter((b) => {
+    const bookingDate = new Date(b.checkIn);
+    const now = new Date();
+    return (
+      bookingDate.getMonth() === now.getMonth() &&
+      bookingDate.getFullYear() === now.getFullYear()
+    );
+  }).length,
+};
 
   // Fetch bookings on mount / hotel change / token change
   useEffect(() => {
