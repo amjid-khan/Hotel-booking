@@ -145,14 +145,18 @@ export function AuthProvider({ children }) {
 
       // ✅ Check if we have a saved hotel selection first
       const savedHotelId = localStorage.getItem("selectedHotelId");
-      
+
       if (list.length > 0) {
-        if (savedHotelId && list.find(h => h.id == savedHotelId)) {
+        if (savedHotelId && list.find((h) => h.id == savedHotelId)) {
           // ✅ If saved hotel exists in the list, use it
           setSelectedHotelId(savedHotelId);
-          const savedHotel = list.find(h => h.id == savedHotelId);
+          const savedHotel = list.find((h) => h.id == savedHotelId);
           setHotelName(savedHotel.name || "");
-          console.log("Using saved hotel selection:", savedHotelId, savedHotel.name);
+          console.log(
+            "Using saved hotel selection:",
+            savedHotelId,
+            savedHotel.name
+          );
         } else if (!selectedHotelId) {
           // ✅ Only set first hotel if no selection exists
           setSelectedHotelId(list[0].id);
@@ -361,10 +365,14 @@ export function AuthProvider({ children }) {
       // ✅ Prioritize localStorage selection over user's default hotelId
       const savedHotelId = localStorage.getItem("selectedHotelId");
       const lastHotel = savedHotelId || updatedUser.hotelId;
-      
+
       if (lastHotel) {
         selectHotel(lastHotel);
-        console.log("Login: Selected hotel:", lastHotel, savedHotelId ? "(from localStorage)" : "(from user.hotelId)");
+        console.log(
+          "Login: Selected hotel:",
+          lastHotel,
+          savedHotelId ? "(from localStorage)" : "(from user.hotelId)"
+        );
       }
 
       if (updatedUser.role !== "superadmin" && updatedUser.hotelId) {
@@ -496,46 +504,53 @@ export function AuthProvider({ children }) {
     [token]
   );
 
-  const fetchMyBookings = useCallback(async (hotelId = null) => {
-    if (!token) return;
+  const fetchMyBookings = useCallback(
+    async (hotelId = null) => {
+      if (!token) return;
 
-    try {
-      // ✅ Build URL with hotelId parameter if provided
-      let url = `${BASE_URL}/api/bookings/my`;
-      if (hotelId) {
-        url += `?hotelId=${hotelId}`;
-      }
+      try {
+        // ✅ Build URL with hotelId parameter if provided
+        let url = `${BASE_URL}/api/bookings/my`;
+        if (hotelId) {
+          url += `?hotelId=${hotelId}`;
+        }
 
-      const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+        const res = await axios.get(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-      const data = Array.isArray(res.data) ? res.data : res.data.bookings || [];
+        const data = Array.isArray(res.data)
+          ? res.data
+          : res.data.bookings || [];
 
-      // Extract roomId from room object
-      const mappedData = data.map((booking) => ({
-        ...booking,
         // Extract roomId from room object
-        roomId: booking.room?.id || booking.roomId || null,
-        roomName: booking.room
-          ? `${booking.room.type} (#${booking.room.roomNumber})`
-          : booking.roomName || `Room ${booking.room?.id || "Unknown"}`,
-        hotelName:
-          booking.hotelName ||
-          (booking.Hotel ? booking.Hotel.name : null) ||
-          "Unknown Hotel",
-        guestName: booking.guestName || "N/A",
-        status: booking.status || "pending",
-      }));
+        const mappedData = data.map((booking) => ({
+          ...booking,
+          // Extract roomId from room object
+          roomId: booking.room?.id || booking.roomId || null,
+          roomName: booking.room
+            ? `${booking.room.type} (#${booking.room.roomNumber})`
+            : booking.roomName || `Room ${booking.room?.id || "Unknown"}`,
+          hotelName:
+            booking.hotelName ||
+            (booking.Hotel ? booking.Hotel.name : null) ||
+            "Unknown Hotel",
+          guestName: booking.guestName || "N/A",
+          status: booking.status || "pending",
+        }));
 
-      setMyBookings(mappedData);
-      console.log(`Fetched ${mappedData.length} bookings for hotel:`, hotelId || "all hotels");
-    } catch (err) {
-      console.error("Error fetching my bookings:", err);
-      setMyBookings([]);
-    }
-  }, [token]);
-
+        setMyBookings(mappedData);
+        console.log(
+          `Fetched ${mappedData.length} bookings for hotel:`,
+          hotelId || "all hotels"
+        );
+      } catch (err) {
+        console.error("Error fetching my bookings:", err);
+        setMyBookings([]);
+      }
+    },
+    [token]
+  );
 
   const createBooking = async (bookingRequestData) => {
     if (!token) throw new Error("No token found");
@@ -588,7 +603,6 @@ export function AuthProvider({ children }) {
       throw err;
     }
   };
-
 
   const cancelBooking = async (bookingId) => {
     if (!token) throw new Error("No token found");
@@ -741,6 +755,77 @@ export function AuthProvider({ children }) {
     }
   }, [token, user]);
 
+  // Analytics  .....................................................................................
+
+  const [analyticsRevenue, setAnalyticsRevenue] = useState([]);
+  const [monthlyRevenue, setMonthlyRevenue] = useState([]);
+  const [occupancy, setOccupancy] = useState(null);
+
+  // 🔹 Total revenue (per hotel ya all hotels for superadmin)
+  const fetchAnalyticsRevenue = useCallback(
+    async (hotelId = null) => {
+      if (!token) return;
+      try {
+        let url = `${BASE_URL}/api/analytics/revenue`;
+        if (hotelId) url += `?hotelId=${hotelId}`;
+
+        const res = await axios.get(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const data = Array.isArray(res.data.data) ? res.data.data : res.data;
+        setAnalyticsRevenue(data);
+      } catch (err) {
+        console.error("Error fetching analytics revenue:", err);
+        setAnalyticsRevenue([]);
+      }
+    },
+    [token]
+  );
+
+  // 🔹 Monthly revenue (chart/graph ke liye)
+  const fetchMonthlyRevenue = useCallback(
+    async (hotelId = null) => {
+      if (!token) return;
+      try {
+        let url = `${BASE_URL}/api/analytics/revenue/monthly`;
+        if (hotelId) url += `?hotelId=${hotelId}`;
+
+        const res = await axios.get(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const data = Array.isArray(res.data.data) ? res.data.data : res.data;
+        setMonthlyRevenue(data);
+      } catch (err) {
+        console.error("Error fetching monthly revenue:", err);
+        setMonthlyRevenue([]);
+      }
+    },
+    [token]
+  );
+
+  // 🔹 Occupancy (rooms vs occupied)
+  const fetchOccupancy = useCallback(
+    async (hotelId = null) => {
+      if (!token) return;
+      try {
+        let url = `${BASE_URL}/api/analytics/occupancy`;
+        if (hotelId) url += `?hotelId=${hotelId}`;
+
+        const res = await axios.get(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setOccupancy(res.data.data || res.data);
+      } catch (err) {
+        console.error("Error fetching occupancy:", err);
+        setOccupancy(null);
+      }
+    },
+    [token]
+  );
+
   return (
     <AuthContext.Provider
       value={{
@@ -802,6 +887,14 @@ export function AuthProvider({ children }) {
         fetchRoles,
         fetchPermissions,
         createRole,
+
+        // Analytics
+        analyticsRevenue,
+        monthlyRevenue,
+        occupancy,
+        fetchAnalyticsRevenue,
+        fetchMonthlyRevenue,
+        fetchOccupancy,
       }}
     >
       {children}

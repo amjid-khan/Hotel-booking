@@ -1,4 +1,4 @@
-const { Booking, Room, Hotel } = require('../models');
+const { Booking, Room, Hotel } = require("../models");
 
 module.exports = {
     // Create a new booking
@@ -60,15 +60,22 @@ module.exports = {
                 hotelId,
                 roomId,
                 guestName,
-                guestEmail,   // only for admin/superadmin
+                guestEmail, // only for admin/superadmin
                 guestPhone,
                 checkIn,
                 checkOut,
                 guests,
-                totalAmount
+                totalAmount,
             } = req.body;
 
-            if (!hotelId || !roomId || !guestName || !checkIn || !checkOut || !totalAmount) {
+            if (
+                !hotelId ||
+                !roomId ||
+                !guestName ||
+                !checkIn ||
+                !checkOut ||
+                !totalAmount
+            ) {
                 return res.status(400).json({ message: "Required fields missing" });
             }
 
@@ -78,7 +85,9 @@ module.exports = {
             if (req.user.role === "admin" || req.user.role === "superadmin") {
                 // admin can specify email
                 if (!guestEmail) {
-                    return res.status(400).json({ message: "Guest email required for admin booking" });
+                    return res
+                        .status(400)
+                        .json({ message: "Guest email required for admin booking" });
                 }
                 finalGuestEmail = guestEmail;
             } else {
@@ -96,30 +105,28 @@ module.exports = {
                 checkOut,
                 guests,
                 totalAmount,
-                status: "pending" // ✅ Use lowercase for consistency
+                status: "pending", // ✅ Use lowercase for consistency
             });
 
             // ✅ FIXED: Fetch the booking with room and hotel data
             const bookingWithDetails = await Booking.findByPk(booking.id, {
                 include: [
-                    { model: Room, attributes: ['id', 'type', 'roomNumber', 'price'] },
-                    { model: Hotel, attributes: ['id', 'name'] }
-                ]
+                    { model: Room, attributes: ["id", "type", "roomNumber", "price"] },
+                    { model: Hotel, attributes: ["id", "name"] },
+                ],
             });
 
             // debug removed
 
             res.status(201).json({
                 message: "Booking created successfully",
-                booking: bookingWithDetails
+                booking: bookingWithDetails,
             });
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: "Server error", error });
         }
     },
-
-
 
     // Fetch all bookings for a specific hotel (fixed)
     getHotelBookings: async (req, res) => {
@@ -134,10 +141,10 @@ module.exports = {
             const bookings = await Booking.findAll({
                 where: { hotelId: parseInt(hotelId) },
                 include: [
-                    { model: Room, attributes: ['id', 'type', 'roomNumber', 'price'] },
-                    { model: Hotel, attributes: ['id', 'name'] }
+                    { model: Room, attributes: ["id", "type", "roomNumber", "price"] },
+                    { model: Hotel, attributes: ["id", "name"] },
                 ],
-                order: [['createdAt', 'DESC']]
+                order: [["createdAt", "DESC"]],
             });
 
             res.status(200).json({ bookings });
@@ -153,12 +160,15 @@ module.exports = {
             const { bookingId } = req.params;
 
             const booking = await Booking.findByPk(bookingId);
-            if (!booking) return res.status(404).json({ message: "Booking not found" });
+            if (!booking)
+                return res.status(404).json({ message: "Booking not found" });
 
             booking.status = "cancelled";
             await booking.save();
 
-            res.status(200).json({ message: "Booking cancelled successfully", booking });
+            res
+                .status(200)
+                .json({ message: "Booking cancelled successfully", booking });
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: "Server error", error });
@@ -186,7 +196,6 @@ module.exports = {
     //     }
     // },
 
-
     // Fixed backend controller - make sure email filtering is strict
     getMyBookings: async (req, res) => {
         try {
@@ -195,7 +204,7 @@ module.exports = {
 
             // Build query dynamically but ALWAYS filter by user email
             const whereClause = {
-                guestEmail: userEmail // ✅ This must always be present
+                guestEmail: userEmail, // ✅ This must always be present
             };
 
             // Only add hotelId filter if provided (optional)
@@ -203,8 +212,8 @@ module.exports = {
                 whereClause.hotelId = hotelId;
             }
 
-            console.log('Filtering bookings for email:', userEmail); // Debug log
-            console.log('Where clause:', whereClause); // Debug log
+            console.log("Filtering bookings for email:", userEmail); // Debug log
+            console.log("Where clause:", whereClause); // Debug log
 
             const bookings = await Booking.findAll({
                 where: whereClause,
@@ -215,17 +224,14 @@ module.exports = {
                 order: [["createdAt", "DESC"]],
             });
 
-            console.log('Found bookings:', bookings.length); // Debug log
+            console.log("Found bookings:", bookings.length); // Debug log
 
             res.status(200).json({ bookings });
         } catch (error) {
-            console.error('Error in getMyBookings:', error);
+            console.error("Error in getMyBookings:", error);
             res.status(500).json({ message: "Server error", error });
         }
     },
-
-
-
 
     deleteBooking: async (req, res) => {
         try {
@@ -266,7 +272,9 @@ module.exports = {
 
             // debug removed
 
-            res.status(200).json({ message: `Booking ${status} successfully`, booking });
+            res
+                .status(200)
+                .json({ message: `Booking ${status} successfully`, booking });
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: "Server error", error });
@@ -362,7 +370,7 @@ module.exports = {
                 });
             }
 
-            const formattedBookings = bookings.map(b => ({
+            const formattedBookings = bookings.map((b) => ({
                 id: b.id,
                 hotelId: b.hotelId,
                 hotelName: b.Hotel ? b.Hotel.name : null,
@@ -376,7 +384,7 @@ module.exports = {
                 totalAmount: b.totalAmount,
                 status: b.status,
                 createdAt: b.createdAt,
-                updatedAt: b.updatedAt
+                updatedAt: b.updatedAt,
             }));
 
             res.status(200).json({ bookings: formattedBookings });
@@ -385,7 +393,6 @@ module.exports = {
             res.status(500).json({ message: "Server error", error });
         }
     },
-
 
     // Superadmin: Get revenue summary
     getRevenue: async (req, res) => {
@@ -397,14 +404,14 @@ module.exports = {
             // Sab confirmed bookings fetch karo
             const bookings = await Booking.findAll({
                 where: { status: "confirmed" },
-                include: [{ model: Hotel, attributes: ["id", "name"] }]
+                include: [{ model: Hotel, attributes: ["id", "name"] }],
             });
 
             // Revenue calculation per hotel
             const revenuePerHotel = {};
             let totalRevenue = 0;
 
-            bookings.forEach(b => {
+            bookings.forEach((b) => {
                 const hotelName = b.Hotel.name;
                 if (!revenuePerHotel[hotelName]) revenuePerHotel[hotelName] = 0;
                 revenuePerHotel[hotelName] += parseFloat(b.totalAmount);
@@ -413,12 +420,11 @@ module.exports = {
 
             res.status(200).json({
                 totalRevenue,
-                revenuePerHotel
+                revenuePerHotel,
             });
-
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: "Server error", error });
         }
-    }
+    },
 };

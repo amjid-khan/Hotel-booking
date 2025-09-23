@@ -29,6 +29,8 @@ const hotelRoutes = require("./routes/hotelRoutes");
 const roleRoutes = require("./routes/roleRoutes");
 const permissionRoutes = require("./routes/permissionsRoutes");
 const bookingRoutes = require('./routes/bookingRoutes');
+const analyticsRoutes = require("./routes/analyticsRoutes")
+app.use("/api/analytics", analyticsRoutes);
 
 
 
