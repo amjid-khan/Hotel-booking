@@ -462,10 +462,13 @@ const AdminNavbar = () => {
                       className="w-full flex items-center justify-between px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 hover:border-gray-400 transition-colors duration-200"
                     >
                       <span className="truncate">
-                        {selectedHotelId
-                          ? hotels.find((h) => h.id === selectedHotelId)
-                              ?.name || "Select Hotel"
-                          : "Select Hotel"}
+                        {(() => {
+                          // ✅ More robust hotel name finding
+                          if (!selectedHotelId || !hotels.length) return "Select Hotel";
+                          
+                          const selectedHotel = hotels.find((h) => h.id == selectedHotelId);
+                          return selectedHotel?.name || "Select Hotel";
+                        })()}
                       </span>
                       <FaChevronDown
                         className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${
@@ -480,7 +483,8 @@ const AdminNavbar = () => {
                           Available Hotels
                         </div>
                         {hotels.map((hotel) => {
-                          const isSelected = selectedHotelId === hotel.id;
+                          // ✅ Use loose comparison to handle string/number mismatch
+                          const isSelected = selectedHotelId == hotel.id;
                           return (
                             <button
                               key={hotel.id}

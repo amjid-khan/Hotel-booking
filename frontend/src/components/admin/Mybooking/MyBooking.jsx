@@ -143,12 +143,13 @@ const MyBooking = () => {
     setLoading(true);
 
     const fetchData = async () => {
-      await fetchMyBookings(); // ✅ sab role ke liye apni bookings hi fetch hongi
+      // ✅ Fetch bookings for the currently selected hotel
+      await fetchMyBookings(selectedHotelId);
       setLoading(false);
     };
 
     fetchData();
-  }, [token, user]);
+  }, [token, user, selectedHotelId]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -166,10 +167,9 @@ const MyBooking = () => {
     setCancellingId(bookingId);
     try {
       await cancelBooking(bookingId);
-      // Refetch data after cancellation
-      if (user?.role === "user") {
-        await fetchMyBookings();
-      } else if (selectedHotelId) {
+      // ✅ Refetch data after cancellation for the selected hotel
+      if (selectedHotelId) {
+        await fetchMyBookings(selectedHotelId);
         await fetchHotelBookings(selectedHotelId);
       }
     } catch (err) {

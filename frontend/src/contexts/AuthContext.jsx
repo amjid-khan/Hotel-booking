@@ -53,6 +53,7 @@ export function AuthProvider({ children }) {
       setUser(parsedUser);
       setToken(savedToken);
 
+      // ✅ Prioritize saved hotel selection over user's default hotelId
       if (savedHotel) {
         setSelectedHotelId(savedHotel);
       } else if (parsedUser.hotelId) {
@@ -142,10 +143,23 @@ export function AuthProvider({ children }) {
       const list = Array.isArray(res.data) ? res.data : res.data.hotels || [];
       setHotels(list);
 
-      if (list.length > 0 && !selectedHotelId) {
-        setSelectedHotelId(list[0].id);
-        setHotelName(list[0].name || "");
-        localStorage.setItem("selectedHotelId", list[0].id);
+      // ✅ Check if we have a saved hotel selection first
+      const savedHotelId = localStorage.getItem("selectedHotelId");
+      
+      if (list.length > 0) {
+        if (savedHotelId && list.find(h => h.id == savedHotelId)) {
+          // ✅ If saved hotel exists in the list, use it
+          setSelectedHotelId(savedHotelId);
+          const savedHotel = list.find(h => h.id == savedHotelId);
+          setHotelName(savedHotel.name || "");
+          console.log("Using saved hotel selection:", savedHotelId, savedHotel.name);
+        } else if (!selectedHotelId) {
+          // ✅ Only set first hotel if no selection exists
+          setSelectedHotelId(list[0].id);
+          setHotelName(list[0].name || "");
+          localStorage.setItem("selectedHotelId", list[0].id);
+          console.log("Set default hotel selection:", list[0].id, list[0].name);
+        }
       }
     } catch (err) {
       console.error("Error fetching hotels:", err);
@@ -166,10 +180,8 @@ export function AuthProvider({ children }) {
     // ALWAYS fetch hotel bookings for ALL users
     fetchHotelBookings(hotelId);
 
-    // Also fetch personal bookings if user
-    if (user?.role === "user") {
-      fetchMyBookings();
-    }
+    // ✅ Fetch personal bookings for the selected hotel
+    fetchMyBookings(hotelId);
   };
 
   // ---------------- Superadmin data ----------------
@@ -346,14 +358,21 @@ export function AuthProvider({ children }) {
     localStorage.setItem("token", tokenData);
 
     fetchHotels().then(() => {
-      const lastHotel =
-        localStorage.getItem("selectedHotelId") || updatedUser.hotelId;
-      if (lastHotel) selectHotel(lastHotel);
+      // ✅ Prioritize localStorage selection over user's default hotelId
+      const savedHotelId = localStorage.getItem("selectedHotelId");
+      const lastHotel = savedHotelId || updatedUser.hotelId;
+      
+      if (lastHotel) {
+        selectHotel(lastHotel);
+        console.log("Login: Selected hotel:", lastHotel, savedHotelId ? "(from localStorage)" : "(from user.hotelId)");
+      }
 
       if (updatedUser.role !== "superadmin" && updatedUser.hotelId) {
         fetchHotelName(updatedUser.hotelId);
         fetchRooms(updatedUser.hotelId);
         fetchUsers(updatedUser.hotelId);
+        // ✅ Fetch personal bookings for the user's hotel
+        fetchMyBookings(updatedUser.hotelId);
       }
     });
 
@@ -477,11 +496,17 @@ export function AuthProvider({ children }) {
     [token]
   );
 
-  const fetchMyBookings = useCallback(async () => {
+  const fetchMyBookings = useCallback(async (hotelId = null) => {
     if (!token) return;
 
     try {
-      const res = await axios.get(`${BASE_URL}/api/bookings/my`, {
+      // ✅ Build URL with hotelId parameter if provided
+      let url = `${BASE_URL}/api/bookings/my`;
+      if (hotelId) {
+        url += `?hotelId=${hotelId}`;
+      }
+
+      const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -504,11 +529,13 @@ export function AuthProvider({ children }) {
       }));
 
       setMyBookings(mappedData);
+      console.log(`Fetched ${mappedData.length} bookings for hotel:`, hotelId || "all hotels");
     } catch (err) {
       console.error("Error fetching my bookings:", err);
       setMyBookings([]);
     }
   }, [token]);
+
 
   const createBooking = async (bookingRequestData) => {
     if (!token) throw new Error("No token found");
@@ -552,7 +579,8 @@ export function AuthProvider({ children }) {
 
       // IMPORTANT: Refresh booking data for ALL users after booking creation
       fetchHotelBookings(selectedHotelId);
-      fetchMyBookings();
+      // ✅ Fetch personal bookings for the selected hotel
+      fetchMyBookings(selectedHotelId);
 
       return newBooking;
     } catch (err) {
@@ -560,6 +588,7 @@ export function AuthProvider({ children }) {
       throw err;
     }
   };
+
 
   const cancelBooking = async (bookingId) => {
     if (!token) throw new Error("No token found");
@@ -569,8 +598,11 @@ export function AuthProvider({ children }) {
       });
 
       // Refresh list after delete for ALL users
-      if (selectedHotelId) fetchHotelBookings(selectedHotelId);
-      if (user?.role === "user") fetchMyBookings();
+      if (selectedHotelId) {
+        fetchHotelBookings(selectedHotelId);
+        // ✅ Fetch personal bookings for the selected hotel
+        fetchMyBookings(selectedHotelId);
+      }
     } catch (err) {
       console.error("Error deleting booking:", err.response || err);
       throw err;
@@ -588,8 +620,11 @@ export function AuthProvider({ children }) {
       );
 
       // IMPORTANT: Refresh booking data after status update for ALL users
-      if (selectedHotelId) fetchHotelBookings(selectedHotelId);
-      if (user?.role === "user") fetchMyBookings();
+      if (selectedHotelId) {
+        fetchHotelBookings(selectedHotelId);
+        // ✅ Fetch personal bookings for the selected hotel
+        fetchMyBookings(selectedHotelId);
+      }
     } catch (err) {
       console.error("Error updating booking status:", err.response || err);
       throw err;
@@ -651,10 +686,8 @@ export function AuthProvider({ children }) {
       navigationDoneRef.current = true;
     }
 
-    // Also fetch personal bookings for regular users
-    if (user?.role === "user") {
-      fetchMyBookings();
-    }
+    // ✅ Fetch personal bookings for the selected hotel
+    fetchMyBookings(selectedHotelId);
   }, [
     selectedHotelId,
     token,
@@ -684,9 +717,8 @@ export function AuthProvider({ children }) {
     if (token && selectedHotelId) {
       // Refresh booking data whenever user or token changes
       fetchHotelBookings(selectedHotelId);
-      if (user?.role === "user") {
-        fetchMyBookings();
-      }
+      // ✅ Fetch personal bookings for the selected hotel
+      fetchMyBookings(selectedHotelId);
     }
   }, [user, token, selectedHotelId, fetchHotelBookings, fetchMyBookings]);
 

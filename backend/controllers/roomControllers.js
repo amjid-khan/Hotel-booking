@@ -52,8 +52,49 @@ exports.getAllRooms = async (req, res) => {
         const { hotelId } = req.query;
         if (!hotelId) return res.status(400).json({ message: "hotelId is required" });
 
-        const rooms = await Room.findAll({ where: { hotelId } });
-        res.status(200).json({ rooms: rooms || [] });
+        // ✅ Convert hotelId to integer
+        const parsedHotelId = parseInt(hotelId, 10);
+        if (isNaN(parsedHotelId)) {
+            return res.status(400).json({ message: "Invalid hotelId" });
+        }
+
+        // ✅ Import Booking model for availability check
+        const { Booking } = require("../models");
+        
+        const rooms = await Room.findAll({ where: { hotelId: parsedHotelId } });
+        
+        // ✅ Check booking status for each room using current timestamp (avoid timezone/start-of-day issues)
+        const now = new Date();
+        // debug removed
+        
+        const roomsWithAvailability = await Promise.all(
+            rooms.map(async (room) => {
+                // Check if room has any confirmed bookings for today
+                const activeBooking = await Booking.findOne({
+                    where: {
+                        roomId: room.id,
+                        hotelId: parsedHotelId,
+                        status: 'confirmed',
+                        // booking overlaps NOW: checkIn <= now < checkOut
+                        checkIn: { [Op.lte]: now },
+                        checkOut: { [Op.gt]: now }
+                    }
+                });
+                
+                // ✅ Room is available if no active confirmed booking
+                const isAvailable = !activeBooking;
+                
+                // debug removed
+                
+                return {
+                    ...room.toJSON(),
+                    isAvailable: isAvailable,
+                    hasActiveBooking: !!activeBooking
+                };
+            })
+        );
+        
+        res.status(200).json({ rooms: roomsWithAvailability || [] });
     } catch (error) {
         console.error("Error fetching rooms:", error);
         res.status(500).json({ message: "Server error" });
@@ -153,6 +194,9 @@ exports.getUserRooms = async (req, res) => {
             return res.status(400).json({ message: 'No hotel assigned to this user' });
         }
 
+        // ✅ Import Booking model for availability check
+        const { Booking } = require("../models");
+        
         const rooms = await Room.findAll({
             where: { hotelId },
             attributes: [
@@ -168,8 +212,39 @@ exports.getUserRooms = async (req, res) => {
                 'updated_at'
             ]
         });
+        
+        // ✅ Check booking status for each room using current timestamp (avoid timezone/start-of-day issues)
+        const now = new Date();
+        // debug removed
+        
+        const roomsWithAvailability = await Promise.all(
+            rooms.map(async (room) => {
+                // Check if room has any confirmed bookings for today
+                const activeBooking = await Booking.findOne({
+                    where: {
+                        roomId: room.id,
+                        hotelId: hotelId,
+                        status: 'confirmed',
+                        // booking overlaps NOW: checkIn <= now < checkOut
+                        checkIn: { [Op.lte]: now },
+                        checkOut: { [Op.gt]: now }
+                    }
+                });
+                
+                // ✅ Room is available if no active confirmed booking
+                const isAvailable = !activeBooking;
+                
+                // debug removed
+                
+                return {
+                    ...room.toJSON(),
+                    isAvailable: isAvailable,
+                    hasActiveBooking: !!activeBooking
+                };
+            })
+        );
 
-        res.json({ rooms });
+        res.json({ rooms: roomsWithAvailability });
     } catch (error) {
         console.error('Error fetching user rooms:', error);
         res.status(500).json({ message: 'Server error' });

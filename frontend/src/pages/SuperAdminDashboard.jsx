@@ -114,6 +114,14 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const formatDate = (value) => {
+    const raw = value || null;
+    if (!raw) return "N/A";
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime())) return "N/A";
+    return date.toLocaleDateString();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50/30 md:ml-64">
       <div className="h-16 md:hidden"></div>
@@ -239,7 +247,7 @@ const SuperAdminDashboard = () => {
                           {hotel.email}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-gray-600">{new Date(hotel.createdAt).toLocaleDateString()}</td>
+                      <td className="px-6 py-4 text-gray-600">{formatDate(hotel.createdAt || hotel.created_at)}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex px-2 py-1 text-xs font-medium border rounded-full ${getStatusColor("Active")}`}>
                           Active
@@ -300,7 +308,7 @@ const SuperAdminDashboard = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-gray-600">{user.hotelId}</td>
-                      <td className="px-6 py-4 text-gray-600">{new Date(user.createdAt).toLocaleDateString()}</td>
+                      <td className="px-6 py-4 text-gray-600">{formatDate(user.createdAt || user.created_at)}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex px-2 py-1 text-xs font-medium border rounded-full ${getStatusColor("Active")}`}>
                           Active

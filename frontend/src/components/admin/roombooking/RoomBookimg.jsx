@@ -156,10 +156,16 @@ const RoomBooking = () => {
 //   return available;
   //   };
   
-  // ✅ Updated isRoomAvailable function
-const isRoomAvailable = (roomId, checkInDate = null, checkOutDate = null) => {
+  // ✅ Enhanced isRoomAvailable function - now uses backend availability + booking data
+const isRoomAvailable = (room, checkInDate = null, checkOutDate = null) => {
+  // ✅ First check backend availability status
+  if (room.hasActiveBooking === true) {
+    return false; // Backend says room has active booking
+  }
+  
+  // ✅ If backend says room is available, double-check with booking data
   if (!hotelBookings || hotelBookings.length === 0) {
-    return true;
+    return room.isAvailable !== false; // Use backend status as fallback
   }
 
   const today = new Date();
@@ -168,7 +174,7 @@ const isRoomAvailable = (roomId, checkInDate = null, checkOutDate = null) => {
   // Agar specific dates nahi diye → current availability check
   if (!checkInDate || !checkOutDate) {
     const conflictingBookings = hotelBookings.filter((booking) => {
-      const roomMatch = booking.roomId == roomId;
+      const roomMatch = booking.roomId == room.id;
       const isConfirmed = booking.status === "confirmed"; // ✅ Only confirmed bookings
       if (!roomMatch || !isConfirmed) return false;
 
@@ -191,7 +197,7 @@ const isRoomAvailable = (roomId, checkInDate = null, checkOutDate = null) => {
   requestedCheckOut.setHours(0, 0, 0, 0);
 
   const conflictingBooking = hotelBookings.find((booking) => {
-    if (booking.roomId != roomId || booking.status !== "confirmed") return false; // ✅ only confirmed bookings
+    if (booking.roomId != room.id || booking.status !== "confirmed") return false; // ✅ only confirmed bookings
 
     const bookingCheckIn = new Date(booking.checkIn);
     const bookingCheckOut = new Date(booking.checkOut);
@@ -548,7 +554,7 @@ const isRoomAvailable = (roomId, checkInDate = null, checkOutDate = null) => {
               }
             >
               {filteredRooms.map((room) => {
-                const roomAvailable = isRoomAvailable(room.id);
+                      const roomAvailable = isRoomAvailable(room);
                 return (
                   <div
                     key={room.id}
@@ -616,12 +622,17 @@ const isRoomAvailable = (roomId, checkInDate = null, checkOutDate = null) => {
                           Book This Room
                         </button>
                       ) : (
-                        <button
-                          disabled
-                          className="mt-4 w-full bg-gray-400 text-white py-3 rounded-xl font-semibold cursor-not-allowed"
-                        >
-                          Currently Unavailable
-                        </button>
+                        <div className="mt-4 w-full">
+                          <button
+                            disabled
+                            className="w-full bg-red-100 text-red-700 py-3 rounded-xl font-semibold cursor-not-allowed border border-red-200"
+                          >
+                            Currently Booked
+                          </button>
+                          <p className="text-xs text-red-600 mt-2 text-center">
+                            This room has a confirmed booking
+                          </p>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -865,11 +876,11 @@ const isRoomAvailable = (roomId, checkInDate = null, checkOutDate = null) => {
                       {/* Date Availability Check */}
                       {form.checkIn && form.checkOut && selectedRoom && (
                         <div className={`p-4 rounded-xl border ${
-                          isRoomAvailable(selectedRoom.id, form.checkIn, form.checkOut)
+                          isRoomAvailable(selectedRoom, form.checkIn, form.checkOut)
                             ? 'bg-green-50 border-green-200'
                             : 'bg-red-50 border-red-200'
                         }`}>
-                          {isRoomAvailable(selectedRoom.id, form.checkIn, form.checkOut) ? (
+                          {isRoomAvailable(selectedRoom, form.checkIn, form.checkOut) ? (
                             <div className="flex items-center gap-2 text-green-700">
                               <CheckCircle className="w-5 h-5" />
                               <span className="font-medium">Room is available for selected dates!</span>

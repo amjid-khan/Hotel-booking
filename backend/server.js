@@ -9,7 +9,7 @@ require('dotenv').config();
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use(express.json());
-const allowedOrigins = ['hotel-booking-zeta-two.vercel.app'];
+const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
 app.use(cors({
     origin: function (origin, callback) {
         if (!origin || allowedOrigins.includes(origin)) {
