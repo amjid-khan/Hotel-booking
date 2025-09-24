@@ -169,7 +169,16 @@ const User = () => {
   const getStatusColor = (status) =>
     status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800";
 
-  const availableRoles = roles.filter(role => role.name.toLowerCase() !== "superadmin");
+  // Scope roles to current hotel (if API provides hotelId), remove superadmin, and deduplicate 'admin'
+  const availableRoles = Array.from(
+    new Map(
+      roles
+        .filter((role) => role && role.name)
+        .filter((role) => role.name.toLowerCase() !== "superadmin")
+        .filter((role) => (role.hotelId ? role.hotelId == selectedHotelId : true))
+        .map((role) => [role.name.toLowerCase(), role])
+    ).values()
+  ).filter((role) => role.name.toLowerCase() !== "admin");
 
   return (
     <div className="min-h-screen bg-gray-50 md:pl-64 pt-16 md:pt-0">
@@ -295,9 +304,10 @@ const User = () => {
                     className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base"
                   >
                     <option value="">Select Role</option>
+                    {/* Ensure Admin appears only once */}
                     <option value="admin">Admin</option>
                     {availableRoles.map((role) => (
-                      <option key={role.id} value={role.name}>
+                      <option key={role.id || role.name} value={role.name}>
                         {role.name.charAt(0).toUpperCase() + role.name.slice(1)}
                       </option>
                     ))}

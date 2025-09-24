@@ -357,7 +357,7 @@ const AdminNavbar = () => {
           <div>
             <div className="font-bold text-gray-900 text-lg">LuxStay</div>
             <div className="text-xs text-gray-500">
-              {user?.role === "user" ? assignedHotelName : "Admin"}
+              {user?.role === "user" ? assignedHotelName : user?.role === "admin" ? "Admin" : user?.role === "superadmin" ? "Super Admin" : ""}
             </div>
           </div>
         </div>
@@ -392,7 +392,7 @@ const AdminNavbar = () => {
             <div>
               <div className="font-bold text-gray-900 text-lg">LuxStay</div>
               <div className="text-xs text-gray-500">
-                {user?.role === "user" ? assignedHotelName : "Admin Panel"}
+                {user?.role === "user" ? assignedHotelName : user?.role === "admin" ? "Admin Panel" : user?.role === "superadmin" ? "Super Admin Panel" : ""}
               </div>
             </div>
           </div>
@@ -421,7 +421,13 @@ const AdminNavbar = () => {
                   {user.full_name || "User"}
                 </div>
                 <div className="text-xs text-gray-500">
-                  {user.role === "user" ? assignedHotelName : "Administrator"}
+                  {user.role === "user"
+                    ? assignedHotelName
+                    : user.role === "admin"
+                    ? "Administrator"
+                    : user.role === "superadmin"
+                    ? "Super Administrator"
+                    : ""}
                 </div>
               </div>
             </div>

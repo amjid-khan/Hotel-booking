@@ -1,16 +1,17 @@
 const { Role, Permission, RolePermission } = require("../models");
+const { Op } = require("sequelize");
 
 // Create new role + assign permissions
 exports.createRole = async (req, res) => {
     try {
-        const { name, permissionIds } = req.body; // permissionIds = [1,2,3]
+        const { name, permissionIds, hotelId } = req.body; // permissionIds = [1,2,3]
 
         if (!name) {
             return res.status(400).json({ message: "Role name is required" });
         }
 
-        // Create role
-        const role = await Role.create({ name });
+        // Create role with optional hotel scope
+        const role = await Role.create({ name, hotelId: hotelId || null });
 
         // Assign permissions manually in role_permissions table
         if (permissionIds && Array.isArray(permissionIds)) {
@@ -24,7 +25,9 @@ exports.createRole = async (req, res) => {
 
         // Fetch role with permissions
         const roleWithPermissions = await Role.findByPk(role.id, {
-            include: { model: Permission, as: "permissions" },
+            include: [
+              { model: Permission, as: "permissions" },
+            ],
         });
 
         res.status(201).json({
@@ -40,7 +43,14 @@ exports.createRole = async (req, res) => {
 // Get all roles with permissions
 exports.getRoles = async (req, res) => {
     try {
+        const { hotelId } = req.query;
+        const where = {};
+        if (hotelId) {
+          // Return roles that are global (hotelId null) or scoped to this hotel
+          where["hotelId"] = { [Op.or]: [null, Number(hotelId)] };
+        }
         const roles = await Role.findAll({
+            where,
             include: { model: Permission, as: "permissions" },
         });
         res.json(roles);

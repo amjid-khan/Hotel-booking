@@ -295,6 +295,7 @@ export function AuthProvider({ children }) {
         name: formData.name,
         description: formData.description,
         permissionIds: formData.permissions,
+        hotelId: selectedHotelId || user?.hotelId || null,
       };
 
       await axios.post(`${BASE_URL}/api/roles`, payload, {
@@ -311,16 +312,20 @@ export function AuthProvider({ children }) {
   const fetchRoles = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await axios.get(`${BASE_URL}/api/roles`, {
+      // Try to scope roles by selectedHotelId if backend supports it; fallback to all
+      const url = selectedHotelId ? `${BASE_URL}/api/roles?hotelId=${selectedHotelId}` : `${BASE_URL}/api/roles`;
+      const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = Array.isArray(res.data) ? res.data : res.data.roles || [];
-      setRoles(data.filter((r) => r.name.toLowerCase() !== "superadmin"));
+      // Normalize roles to include potential hotelId; filter out superadmin
+      const normalized = data.map(r => ({ ...r }));
+      setRoles(normalized.filter((r) => (r.name || '').toLowerCase() !== "superadmin"));
     } catch (err) {
       console.error("Error fetching roles:", err);
       setRoles([]);
     }
-  }, [token]);
+  }, [token, selectedHotelId]);
 
   const fetchPermissions = useCallback(async () => {
     if (!token) return;
@@ -682,6 +687,12 @@ export function AuthProvider({ children }) {
     }
   }, [token, fetchHotels, fetchRoles, fetchPermissions]);
 
+  // Refetch roles when hotel selection changes so role list is scoped
+  useEffect(() => {
+    if (!token) return;
+    fetchRoles();
+  }, [token, selectedHotelId, fetchRoles]);
+
   // FIXED: Updated useEffect for selected hotel - fetches booking data for ALL users
   useEffect(() => {
     if (!selectedHotelId || !token) return;
@@ -694,9 +705,9 @@ export function AuthProvider({ children }) {
     // CRITICAL: Always fetch hotel bookings for ALL users
     fetchHotelBookings(selectedHotelId);
 
-    // Handle navigation for regular users
+    // Handle navigation for regular users → send to user welcome/dashboard
     if (user?.role === "user" && !navigationDoneRef.current) {
-      navigate(`/admin/hotel/${selectedHotelId}`);
+      navigate(`/userdashboard`);
       navigationDoneRef.current = true;
     }
 

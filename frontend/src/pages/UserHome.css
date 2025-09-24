@@ -1,3 +1,12 @@
+.user-home-hero {
+	background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+}
+
+.user-home-card {
+	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+		0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
 .home-container {
   font-family: 'Poppins', sans-serif;
   background: #fff;

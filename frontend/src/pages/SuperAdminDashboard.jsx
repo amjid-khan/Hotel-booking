@@ -13,9 +13,6 @@ import {
   FaEnvelope,
   FaChartLine,
   FaChartBar,
-  FaEdit,
-  FaTrash,
-  FaEye,
   FaFilter,
   FaSearch,
 } from "react-icons/fa";
@@ -547,7 +544,6 @@ const SuperAdminDashboard = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Details</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Performance</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -619,19 +615,7 @@ const SuperAdminDashboard = () => {
                             Joined {formatDate(hotel.createdAt || hotel.created_at)}
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center space-x-2">
-                            <button className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors duration-200">
-                              <FaEye className="w-4 h-4" />
-                            </button>
-                            <button className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors duration-200">
-                              <FaEdit className="w-4 h-4" />
-                            </button>
-                            <button className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors duration-200">
-                              <FaTrash className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
+                        
                       </tr>
                     );
                   })
@@ -689,7 +673,6 @@ const SuperAdminDashboard = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact & Role</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Activity</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -707,7 +690,10 @@ const SuperAdminDashboard = () => {
                   </tr>
                 ) : (
                   filteredAndSearchedUsers.map((user) => {
-                    const userBookings = bookings.filter(b => b.userId === user.id);
+                    const userBookings = bookings.filter(b => (
+                      (b.userId && b.userId === user.id) ||
+                      (b.guestEmail && b.guestEmail === user.email)
+                    ));
                     const userHotel = hotels.find(h => h.id === user.hotelId);
                     
                     return (
@@ -775,28 +761,7 @@ const SuperAdminDashboard = () => {
                             Joined {formatDate(user.createdAt || user.created_at)}
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center space-x-2">
-                            <button 
-                              className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors duration-200"
-                              title="View Details"
-                            >
-                              <FaEye className="w-4 h-4" />
-                            </button>
-                            <button 
-                              className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors duration-200"
-                              title="Edit User"
-                            >
-                              <FaEdit className="w-4 h-4" />
-                            </button>
-                            <button 
-                              className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors duration-200"
-                              title="Delete User"
-                            >
-                              <FaTrash className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
+                        
                       </tr>
                     );
                   })

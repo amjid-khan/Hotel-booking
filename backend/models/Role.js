@@ -4,6 +4,7 @@ module.exports = (sequelize, DataTypes) => {
     "Role",
     {
       name: { type: DataTypes.STRING(50), allowNull: false, unique: true },
+      hotelId: { type: DataTypes.INTEGER, allowNull: true },
     },
     {
       tableName: "roles",
@@ -25,6 +26,9 @@ module.exports = (sequelize, DataTypes) => {
       otherKey: "permissionId",
       as: "permissions",
     });
+
+    // Each role may belong to a specific hotel (scoped roles)
+    Role.belongsTo(models.Hotel, { foreignKey: 'hotelId', as: 'hotel' });
   };
 
   return Role;

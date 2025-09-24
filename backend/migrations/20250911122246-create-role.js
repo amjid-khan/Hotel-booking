@@ -13,6 +13,13 @@ module.exports = {
         allowNull: false,
         unique: true
       },
+      hotelId: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: { model: 'Hotels', key: 'id' },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
+      },
       created_at: {
         allowNull: false,
         type: Sequelize.DATE,

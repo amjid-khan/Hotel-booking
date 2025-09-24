@@ -22,6 +22,7 @@ import MyBooking from "./components/admin/Mybooking/MyBooking";
 import SuperBooking from "./components/SuperAdmin/SuperBooking";
 import SuperRevenue from "./components/SuperAdmin/SuperRevenue";
 import SuperAnalytics from "./components/SuperAdmin/SuperAnalytics";
+import UserHome from "./pages/UserHome";
 
 // --- After login, redirect based on role + hotel status ---
 function HomeRedirect() {
@@ -53,12 +54,8 @@ function HomeRedirect() {
     case "superadmin":
       return <Navigate to="/superadmin" replace />;
     default:
-      // ✅ Any dynamic role (staff, manager, receptionist, etc.) with hotelId
-      return user.hotelId ? (
-        <Navigate to={`/admin/hotel/${user.hotelId}`} replace />
-      ) : (
-        <Navigate to="/login" replace />
-      );
+      // ✅ Any dynamic role (staff, manager, receptionist, etc.) go to user welcome
+      return <Navigate to="/userdashboard" replace />;
   }
 }
 
@@ -96,12 +93,8 @@ function LoginRedirect() {
     case "superadmin":
       return <Navigate to="/superadmin" replace />;
     default:
-      // ✅ Any dynamic role (staff, manager, etc.) redirect to their assigned hotel
-      return user.hotelId ? (
-        <Navigate to={`/admin/hotel/${user.hotelId}`} replace />
-      ) : (
-        <Navigate to="/login" replace />
-      );
+      // ✅ Any dynamic role (staff, manager, etc.) go to user welcome
+      return <Navigate to="/userdashboard" replace />;
   }
 }
 
@@ -122,6 +115,7 @@ export default function App() {
       {/* All Hotel Roles - Admin + Dynamic Roles (staff, manager, receptionist, etc.) */}
       <Route element={<ProtectedRoute allowHotelRoles={true} />}>
         <Route element={<AdminLayout />}>
+          <Route path="/userdashboard" element={<UserHome />} />
           <Route path="/admin/hotel/:hotelId" element={<AdminDashboard />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/add-room" element={<AddRoom />} />

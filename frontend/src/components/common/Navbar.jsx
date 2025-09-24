@@ -22,7 +22,7 @@ const Navbar = () => {
     return null;
   };
 
-  const getHotelName = () => user?.hotel?.name || user?.hotelName || 'Hotel Management';
+  const getHotelName = () => user?.hotel?.name || user?.hotelName || user?.assignedHotelName || 'LuxStay';
 
   const navigationItems = [
     { name: 'Dashboard', path: '/userdashboard', icon: <FaHome /> },
@@ -42,8 +42,8 @@ const Navbar = () => {
             <GiModernCity className="text-white w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold">{getHotelName()}</h1>
-            <p className="text-xs text-gray-600">Management System</p>
+            <h1 className="text-lg font-bold">LuxStay</h1>
+            <p className="text-xs text-gray-600">{getHotelName()}</p>
           </div>
         </div>
         <button
@@ -74,8 +74,8 @@ const Navbar = () => {
             <GiModernCity className="text-white w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold">{getHotelName()}</h1>
-            <p className="text-sm text-gray-600">Management Portal</p>
+            <h1 className="text-xl font-bold">LuxStay</h1>
+            <p className="text-sm text-gray-600">{getHotelName()}</p>
           </div>
         </div>
 
@@ -102,7 +102,7 @@ const Navbar = () => {
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold truncate">{user?.full_name || user?.name || 'Guest User'}</h3>
             <p className="text-sm text-gray-600 capitalize">
-              {user?.role === 'admin' ? 'Administrator' : 'Guest User'}
+              {user?.role === 'admin' ? 'Administrator' : user?.role === 'manager' ? 'Manager' : 'User'}
             </p>
             <div className="flex items-center mt-1 gap-1">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
