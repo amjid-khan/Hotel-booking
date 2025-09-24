@@ -25,7 +25,7 @@ module.exports = {
       },
       roleId: {  // ✅ replace role enum with roleId
         type: Sequelize.INTEGER,
-        allowNull: false,
+        allowNull: true,
         defaultValue: 1, // default role admin (change if needed)
         references: {
           model: 'roles',

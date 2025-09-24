@@ -1,4 +1,5 @@
 'use strict';
+
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('roles', {
@@ -16,7 +17,7 @@ module.exports = {
       hotelId: {
         type: Sequelize.INTEGER,
         allowNull: true,
-        references: { model: 'Hotels', key: 'id' },
+        references: { model: 'hotels', key: 'id' }, // ✅ lowercase table name
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL'
       },
@@ -32,6 +33,7 @@ module.exports = {
       }
     });
   },
+
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable('roles');
   }
