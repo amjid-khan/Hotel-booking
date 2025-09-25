@@ -16,7 +16,7 @@ module.exports = {
       hotelId: {
         type: Sequelize.INTEGER,
         allowNull: true,
-        references: { model: 'Hotels', key: 'id' },
+        references: { model: 'hotels', key: 'id' },
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL'
       },

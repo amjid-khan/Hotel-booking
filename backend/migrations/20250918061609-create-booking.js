@@ -11,14 +11,14 @@ module.exports = {
       hotelId: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        references: { model: 'Hotels', key: 'id' },
+        references: { model: 'hotels', key: 'id' },
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE'
       },
       roomId: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        references: { model: 'Rooms', key: 'id' },
+        references: { model: 'rooms', key: 'id' },
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE'
       },
