@@ -4,125 +4,7 @@ const generateToken = require('../utils/generateToken');
 const fs = require('fs');
 const path = require('path');
 
-// ====================== REGISTER USER ======================
-// exports.registerUser = async (req, res) => {
-//     const { full_name, email, password, phone, status, roleId, hotel_role } = req.body;
-//     const profile_image = req.file ? req.file.filename : null;
 
-//     if (!full_name || !email || !password) {
-//         return res.status(400).json({ message: 'Full name, email, and password are required' });
-//     }
-
-//     try {
-//         // Check if email exists
-//         const existing = await User.findOne({ where: { email } });
-//         if (existing) {
-//             return res.status(400).json({ message: 'User already exists' });
-//         }
-
-//         // Hash password
-//         const hashedPassword = await bcrypt.hash(password, 10);
-
-//         // Determine the role to assign
-//         let finalRoleId;
-//         let roleName;
-
-//         if (hotel_role) {
-//             // If hotel_role is provided from frontend, find role by name
-//             const role = await Role.findOne({ where: { name: hotel_role } });
-//             if (!role) {
-//                 return res.status(400).json({ message: 'Invalid hotel role specified' });
-//             }
-//             finalRoleId = role.id;
-//             roleName = role.name;
-//         } else if (roleId) {
-//             // If roleId is provided, use it
-//             const role = await Role.findByPk(roleId);
-//             if (!role) {
-//                 return res.status(400).json({ message: 'Role not found' });
-//             }
-//             finalRoleId = roleId;
-//             roleName = role.name;
-//         } else {
-//             // Default fallback - set to admin role
-//             const defaultRole = await Role.findOne({ where: { name: 'admin' } });
-//             if (!defaultRole) {
-//                 return res.status(400).json({ message: 'Default admin role not found' });
-//             }
-//             finalRoleId = defaultRole.id;
-//             roleName = defaultRole.name;
-//         }
-
-//         // HotelId set karna
-//         let creatorHotelId = null;
-
-//         // Agar request mein hotelId explicitly di gayi hai to use that
-//         if (req.body.hotelId) {
-//             creatorHotelId = req.body.hotelId;
-//         }
-//         // Otherwise, use the logged-in user's hotelId (except for superadmin)
-//         else if (req.user && req.user.role !== 'superadmin' && req.user.hotelId) {
-//             creatorHotelId = req.user.hotelId;
-//         }
-
-//         // Only superadmin should not have hotelId
-//         if (roleName === 'superadmin') {
-//             creatorHotelId = null;
-//         }
-
-//         // Debug: Check kar lete hain kya values aa rhi hain
-//         console.log('=== USER CREATION DEBUG ===');
-//         console.log('req.user:', req.user ? { id: req.user.id, role: req.user.role, hotelId: req.user.hotelId } : 'null');
-//         console.log('req.body.hotelId:', req.body.hotelId);
-//         console.log('roleName:', roleName);
-//         console.log('finalRoleId:', finalRoleId);
-//         console.log('creatorHotelId:', creatorHotelId);
-//         console.log('==========================');
-
-//         // User data prepare
-//         let userData = {
-//             name: full_name,
-//             email,
-//             password: hashedPassword,
-//             roleId: finalRoleId,
-//             phone: phone || null,
-//             profile_image,
-//             status: status || 'active',
-//             hotelId: creatorHotelId // Ab ye properly set hoga
-//         };
-
-//         const user = await User.create(userData);
-
-//         // Fetch the created user with role info
-//         const createdUser = await User.findByPk(user.id, {
-//             include: [{ model: Role, as: 'role' }]
-//         });
-
-//         const token = generateToken({
-//             id: createdUser.id,
-//             email: createdUser.email,
-//             role: createdUser.role.name,
-//             hotelId: createdUser.hotelId
-//         });
-
-//         res.status(201).json({
-//             user: {
-//                 id: createdUser.id,
-//                 full_name: createdUser.name,
-//                 email: createdUser.email,
-//                 role: createdUser.role.name,
-//                 hotelId: createdUser.hotelId,
-//                 phone: createdUser.phone,
-//                 profile_image: createdUser.profile_image,
-//                 status: createdUser.status
-//             },
-//             token
-//         });
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({ message: 'Server error' });
-//     }
-// };
 
 // ====================== REGISTER USER ======================
 exports.registerUser = async (req, res) => {
@@ -402,8 +284,6 @@ exports.getHotelUsers = async (req, res) => {
     }
 };
 
-
-// ====================== GET ALL USERS (SUPERADMIN ONLY) ======================
 // ====================== GET ALL USERS (SUPERADMIN ONLY) ======================
 exports.getAllUsers = async (req, res) => {
     try {
@@ -426,7 +306,6 @@ exports.getAllUsers = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
-
 
 // ====================== UPDATE ANY USER (SUPERADMIN ONLY) ======================
 exports.updateAnyUser = async (req, res) => {
