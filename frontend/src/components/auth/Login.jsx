@@ -89,7 +89,7 @@ function LoginRegister() {
       {/* Left Side */}
       <div className="flex-1 relative flex flex-col justify-center p-12 bg-gradient-to-br from-[#2b5876] to-[#4e4376] text-white">
         <div className="absolute top-0 right-[-80px] w-[200px] h-[96%] bg-white [clip-path:ellipse(60%_100%_at_0%_50%)] hidden md:block"></div>
-        <h1 className="text-5xl mb-2.5">Find Your Perfect Stay</h1>
+        <h1 className="text-6xl mb-2.5">Find Your Perfect Stay</h1>
         <p className="text-lg opacity-90">Book hotels with best deals and comfort.</p>
         <div className="mt-10" aria-hidden="true">
           <svg width="64" height="64" fill="white" viewBox="0 0 24 24">
