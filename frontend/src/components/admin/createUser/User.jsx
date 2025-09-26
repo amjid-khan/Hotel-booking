@@ -169,13 +169,14 @@ const User = () => {
   const getStatusColor = (status) =>
     status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800";
 
-  // Scope roles to current hotel (if API provides hotelId), remove superadmin, and deduplicate 'admin'
+  // Strictly scope roles to the currently selected hotel only (no global/other hotels)
+  // Also remove 'superadmin' and deduplicate by role name
   const availableRoles = Array.from(
     new Map(
       roles
         .filter((role) => role && role.name)
         .filter((role) => role.name.toLowerCase() !== "superadmin")
-        .filter((role) => (role.hotelId ? role.hotelId == selectedHotelId : true))
+        .filter((role) => String(role.hotelId) === String(selectedHotelId))
         .map((role) => [role.name.toLowerCase(), role])
     ).values()
   ).filter((role) => role.name.toLowerCase() !== "admin");
@@ -191,14 +192,16 @@ const User = () => {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">User Management</h1>
             <p className="text-gray-600 text-sm md:text-base">Manage hotel staff and user accounts efficiently.</p>
           </div>
-          {(user?.role === "admin" || user?.role === "superadmin" || perms?.user?.create) && (
-            <button
-              onClick={handleOpenModal}
-              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm"
-            >
-              <FaUserPlus className="text-sm" /> Create User
-            </button>
-          )}
+          <div className="flex flex-col sm:flex-row gap-2">
+            {(user?.role === "admin" || user?.role === "superadmin" || perms?.user?.create) && (
+              <button
+                onClick={handleOpenModal}
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm"
+              >
+                <FaUserPlus className="text-sm" /> Create User
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

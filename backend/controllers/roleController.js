@@ -59,3 +59,54 @@ exports.getRoles = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
+
+// Update role name and permissions
+exports.updateRole = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, permissionIds, hotelId } = req.body;
+
+        const role = await Role.findByPk(id);
+        if (!role) return res.status(404).json({ message: "Role not found" });
+
+        if (typeof name === 'string' && name.trim().length > 0) {
+            role.name = name.trim();
+        }
+        if (hotelId !== undefined) {
+            role.hotelId = hotelId || null;
+        }
+        await role.save();
+
+        if (Array.isArray(permissionIds)) {
+            // Replace permissions via RolePermission join table
+            await RolePermission.destroy({ where: { roleId: role.id } });
+            const rows = permissionIds.map(permissionId => ({ roleId: role.id, permissionId }));
+            if (rows.length > 0) await RolePermission.bulkCreate(rows);
+        }
+
+        const updated = await Role.findByPk(role.id, {
+            include: [{ model: Permission, as: 'permissions' }]
+        });
+
+        res.json({ message: 'Role updated successfully', role: updated });
+    } catch (error) {
+        console.error("Error updating role:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// Delete role and its permission mappings
+exports.deleteRole = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const role = await Role.findByPk(id);
+        if (!role) return res.status(404).json({ message: "Role not found" });
+
+        await RolePermission.destroy({ where: { roleId: id } });
+        await role.destroy();
+        res.json({ message: 'Role deleted successfully' });
+    } catch (error) {
+        console.error("Error deleting role:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};

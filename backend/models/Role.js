@@ -3,7 +3,8 @@ module.exports = (sequelize, DataTypes) => {
   const Role = sequelize.define(
     "Role",
     {
-      name: { type: DataTypes.STRING(50), allowNull: false, unique: true },
+      // Remove global unique; uniqueness will be enforced via composite index (name, hotelId)
+      name: { type: DataTypes.STRING(50), allowNull: false },
       hotelId: { type: DataTypes.INTEGER, allowNull: true },
     },
     {

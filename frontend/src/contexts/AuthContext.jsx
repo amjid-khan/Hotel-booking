@@ -327,6 +327,34 @@ export function AuthProvider({ children }) {
     }
   }, [token, selectedHotelId]);
 
+  const updateRoleById = async (id, payload) => {
+    if (!token) throw new Error('No token');
+    try {
+      const res = await axios.put(`${BASE_URL}/api/roles/${id}`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      await fetchRoles();
+      return res.data;
+    } catch (err) {
+      console.error('Error updating role:', err);
+      throw err;
+    }
+  };
+
+  const deleteRoleById = async (id) => {
+    if (!token) throw new Error('No token');
+    try {
+      const res = await axios.delete(`${BASE_URL}/api/roles/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      await fetchRoles();
+      return res.data;
+    } catch (err) {
+      console.error('Error deleting role:', err);
+      throw err;
+    }
+  };
+
   const fetchPermissions = useCallback(async () => {
     if (!token) return;
     try {
@@ -474,12 +502,13 @@ export function AuthProvider({ children }) {
       if (!token || !hotelId) return;
 
       try {
-        const res = await axios.get(
-          `${BASE_URL}/api/bookings/hotel/${hotelId}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        const url = user?.role === 'user'
+          ? `${BASE_URL}/api/bookings/confirmed`
+          : `${BASE_URL}/api/bookings/hotel/${hotelId}`;
+
+        const res = await axios.get(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
         const data = Array.isArray(res.data)
           ? res.data
@@ -495,7 +524,7 @@ export function AuthProvider({ children }) {
             : booking.roomName || `Room ${booking.room?.id || "Unknown"}`,
           hotelName: booking.hotelName || "Unknown Hotel",
           guestName: booking.guestName || "N/A",
-          status: booking.status || "pending",
+          status: booking.status || (user?.role === 'user' ? 'confirmed' : 'pending'),
         }));
 
         console.log("Hotel bookings fetched for all users:", mappedData.length);
@@ -605,6 +634,7 @@ export function AuthProvider({ children }) {
       return newBooking;
     } catch (err) {
       console.error("Error creating booking:", err.response || err);
+      // Re-throw so UI can show ROOM_UNAVAILABLE message if applicable
       throw err;
     }
   };
@@ -646,6 +676,7 @@ export function AuthProvider({ children }) {
       }
     } catch (err) {
       console.error("Error updating booking status:", err.response || err);
+      // Re-throw to allow UI to detect ROOM_UNAVAILABLE
       throw err;
     }
   };
@@ -898,6 +929,8 @@ export function AuthProvider({ children }) {
         fetchRoles,
         fetchPermissions,
         createRole,
+        updateRoleById,
+        deleteRoleById,
 
         // Analytics
         analyticsRevenue,

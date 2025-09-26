@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { protect, isSuperAdmin, isAdminOrSuperAdmin } = require("../middleware/auth");
 const { hasPermission } = require("../middleware/permissions"); // 👈 import
-const { createRole, getRoles } = require("../controllers/roleController");
+const { createRole, getRoles, updateRole, deleteRole } = require("../controllers/roleController");
 
 // ✅ Super Admin only route
 router.post(
@@ -32,3 +32,20 @@ router.get(
 );
 
 module.exports = router;
+// Update role (Admin + Super Admin)
+router.put(
+    "/:id",
+    protect,
+    isAdminOrSuperAdmin,
+    hasPermission("role_update"),
+    updateRole
+);
+
+// Delete role (Admin + Super Admin)
+router.delete(
+    "/:id",
+    protect,
+    isAdminOrSuperAdmin,
+    hasPermission("role_delete"),
+    deleteRole
+);

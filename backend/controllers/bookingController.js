@@ -1,4 +1,5 @@
 const { Booking, Room, Hotel } = require("../models");
+const { Op } = require("sequelize");
 
 module.exports = {
 
@@ -41,6 +42,39 @@ module.exports = {
             } else {
                 // normal user/staff → always use their JWT email
                 finalGuestEmail = req.user.email;
+            }
+
+            // Overlap check against existing CONFIRMED bookings for same room
+            const overlapExists = await Booking.findOne({
+                where: {
+                    hotelId,
+                    roomId,
+                    status: "confirmed",
+                    // Overlap: existing.checkIn < newCheckOut AND existing.checkOut > newCheckIn
+                    checkIn: { [Op.lt]: new Date(checkOut) },
+                    checkOut: { [Op.gt]: new Date(checkIn) },
+                },
+                include: [
+                    { model: Room, attributes: ["id", "type", "roomNumber"] },
+                    { model: Hotel, attributes: ["id", "name"] },
+                ],
+            });
+
+            if (overlapExists) {
+                return res.status(409).json({
+                    message: "Room is unavailable for the selected dates",
+                    code: "ROOM_UNAVAILABLE",
+                    conflict: {
+                        id: overlapExists.id,
+                        roomId: overlapExists.roomId,
+                        hotelId: overlapExists.hotelId,
+                        checkIn: overlapExists.checkIn,
+                        checkOut: overlapExists.checkOut,
+                        room: overlapExists.Room,
+                        hotel: overlapExists.Hotel,
+                        status: overlapExists.status,
+                    }
+                });
             }
 
             const booking = await Booking.create({
@@ -99,6 +133,37 @@ module.exports = {
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: "Server error", error });
+        }
+    },
+
+    // Get confirmed bookings for the logged-in user's hotel (for user role)
+    getConfirmedForHotel: async (req, res) => {
+        try {
+            let hotelId = null;
+            // Prefer explicit query for admins/superadmins; users use their assigned hotelId
+            if (req.user.role === 'superadmin' || req.user.role === 'admin') {
+                hotelId = req.query.hotelId ? parseInt(req.query.hotelId, 10) : (req.user.hotelId || null);
+            } else {
+                hotelId = req.user.hotelId || null;
+            }
+
+            if (!hotelId || isNaN(hotelId)) {
+                return res.status(400).json({ message: 'hotelId is required' });
+            }
+
+            const bookings = await Booking.findAll({
+                where: {
+                    hotelId,
+                    status: 'confirmed',
+                },
+                attributes: ['id', 'hotelId', 'roomId', 'checkIn', 'checkOut', 'status'],
+                order: [['checkIn', 'ASC']],
+            });
+
+            return res.json({ bookings });
+        } catch (error) {
+            console.error('Error fetching confirmed bookings for hotel:', error);
+            return res.status(500).json({ message: 'Server error' });
         }
     },
 
@@ -212,6 +277,42 @@ module.exports = {
             // Only allow valid statuses
             if (!["confirmed", "cancelled", "pending"].includes(status)) {
                 return res.status(400).json({ message: "Invalid status" });
+            }
+
+            // If confirming, ensure no overlap with other confirmed bookings
+            if (status === "confirmed") {
+                const conflict = await Booking.findOne({
+                    where: {
+                        id: { [Op.ne]: booking.id },
+                        hotelId: booking.hotelId,
+                        roomId: booking.roomId,
+                        status: "confirmed",
+                        // Overlap with this booking's dates
+                        checkIn: { [Op.lt]: booking.checkOut },
+                        checkOut: { [Op.gt]: booking.checkIn },
+                    },
+                    include: [
+                        { model: Room, attributes: ["id", "type", "roomNumber"] },
+                        { model: Hotel, attributes: ["id", "name"] },
+                    ],
+                });
+
+                if (conflict) {
+                    return res.status(409).json({
+                        message: "Room already booked for these dates",
+                        code: "ROOM_UNAVAILABLE",
+                        conflict: {
+                            id: conflict.id,
+                            roomId: conflict.roomId,
+                            hotelId: conflict.hotelId,
+                            checkIn: conflict.checkIn,
+                            checkOut: conflict.checkOut,
+                            room: conflict.Room,
+                            hotel: conflict.Hotel,
+                            status: conflict.status,
+                        }
+                    });
+                }
             }
 
             booking.status = status;

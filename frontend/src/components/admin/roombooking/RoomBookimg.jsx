@@ -282,7 +282,7 @@ const isRoomAvailable = (room, checkInDate = null, checkOutDate = null) => {
     }
 
     // Check room availability for selected dates
-    if (!isRoomAvailable(selectedRoom.id, form.checkIn, form.checkOut)) {
+    if (!isRoomAvailable(selectedRoom, form.checkIn, form.checkOut)) {
       alert("Sorry, this room is not available for the selected dates. Please choose different dates or another room.");
       return;
     }
@@ -341,7 +341,16 @@ const isRoomAvailable = (room, checkInDate = null, checkOutDate = null) => {
     } catch (err) {
       setIsLoading(false);
       console.error("Booking failed:", err);
-      alert("Booking failed! Please try again.");
+      const code = err?.response?.data?.code;
+      const message = err?.response?.data?.message || "Booking failed! Please try again.";
+      if (code === 'ROOM_UNAVAILABLE') {
+        const conflict = err?.response?.data?.conflict;
+        const from = conflict?.checkIn ? new Date(conflict.checkIn).toLocaleDateString() : null;
+        const to = conflict?.checkOut ? new Date(conflict.checkOut).toLocaleDateString() : null;
+        alert(`${message}${from && to ? ` (${from} - ${to})` : ''}`);
+      } else {
+        alert(message);
+      }
     }
   };
 
@@ -968,7 +977,7 @@ const isRoomAvailable = (room, checkInDate = null, checkOutDate = null) => {
                         </button>
                         <button
                           onClick={submitBooking}
-                          disabled={!form.checkIn || !form.checkOut || !isRoomAvailable(selectedRoom?.id, form.checkIn, form.checkOut)}
+                          disabled={!form.checkIn || !form.checkOut || !isRoomAvailable(selectedRoom, form.checkIn, form.checkOut)}
                           className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-semibold transition flex items-center justify-center gap-2"
                         >
                           <CheckCircle className="w-5 h-5" />

@@ -30,6 +30,10 @@ const AdminNavbar = () => {
     selectHotel,
     createRole,
     permissions = [],
+    roles = [],
+    fetchRoles,
+    updateRoleById,
+    deleteRoleById,
   } = useContext(AuthContext);
   const [mobileActive, setMobileActive] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -45,6 +49,9 @@ const AdminNavbar = () => {
     permissions: [],
   });
   const [isCreatingRole, setIsCreatingRole] = useState(false);
+  const [showViewRoles, setShowViewRoles] = useState(false);
+  const [editingRole, setEditingRole] = useState(null);
+  const [roleEditForm, setRoleEditForm] = useState({ name: "", permissionIds: [] });
   const dropdownRef = useRef(null);
 
   const navigate = useNavigate();
@@ -173,6 +180,50 @@ const AdminNavbar = () => {
       description: "",
       permissions: [],
     });
+  };
+
+  const openViewRoles = () => {
+    setShowViewRoles(true);
+    setEditingRole(null);
+    fetchRoles && fetchRoles();
+  };
+
+  const closeViewRoles = () => {
+    setShowViewRoles(false);
+    setEditingRole(null);
+  };
+
+  const startEditRole = (role) => {
+    setEditingRole(role);
+    setRoleEditForm({
+      name: role.name || "",
+      permissionIds: (role.permissions || []).map((p) => p.id),
+    });
+  };
+
+  const submitEditRole = async () => {
+    if (!editingRole) return;
+    try {
+      await updateRoleById(editingRole.id, {
+        name: roleEditForm.name,
+        permissionIds: roleEditForm.permissionIds,
+        hotelId: selectedHotelId,
+      });
+      setEditingRole(null);
+      alert('Role updated');
+    } catch (e) {
+      alert('Failed to update role');
+    }
+  };
+
+  const removeRole = async (id) => {
+    try {
+      await deleteRoleById(id);
+      if (editingRole?.id === id) setEditingRole(null);
+      alert('Role deleted');
+    } catch (e) {
+      alert('Failed to delete role');
+    }
   };
 
   const handleRoleFormChange = (field, value) => {
@@ -457,6 +508,16 @@ const AdminNavbar = () => {
                     >
                       <FaUserTag className="w-4 h-4" />
                       Create Role
+                    </button>
+                  )}
+
+                  {(perms?.role?.viewAny || user?.role === 'admin' || user?.role === 'superadmin') && (
+                    <button
+                      onClick={openViewRoles}
+                      className="w-full bg-gray-800 hover:bg-black text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+                    >
+                      <FaShieldAlt className="w-4 h-4" />
+                      View Roles
                     </button>
                   )}
                 </div>
@@ -799,6 +860,263 @@ const AdminNavbar = () => {
                   </>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Roles Modal */}
+ {/* View Roles Modal */}
+      {showViewRoles && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-4 bg-gradient-to-r from-gray-800 to-gray-900 border-b">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center">
+                    <FaShieldAlt className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-white">Manage Roles</h3>
+                    <p className="text-gray-300 text-sm">View, edit and manage hotel roles</p>
+                  </div>
+                </div>
+                <button
+                  onClick={closeViewRoles}
+                  className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <FaTimes className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8 overflow-y-auto max-h-[75vh]">
+              {/* Roles List */}
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <FaUserTag className="w-4 h-4 text-gray-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900">Existing Roles</h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-1 rounded-full">
+                          {roles.filter((r) => String(r.hotelId) === String(selectedHotelId) && (r.name || '').toLowerCase() !== 'superadmin').length} roles
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {roles
+                    .filter((r) => String(r.hotelId) === String(selectedHotelId) && (r.name || '').toLowerCase() !== 'superadmin')
+                    .map((r) => (
+                      <div 
+                        key={r.id} 
+                        className={`group relative border-2 rounded-xl p-5 transition-all duration-200 ${
+                          editingRole?.id === r.id 
+                            ? 'border-blue-500 bg-blue-50 shadow-md' 
+                            : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                        }`}
+                      >
+                        {/* Role Info */}
+                        <div className="mb-4">
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                              <FaUserTag className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <h5 className="font-semibold text-gray-900 text-lg">{r.name}</h5>
+                              <div className="text-sm text-gray-500">
+                                {(r.permissions || []).length} permissions assigned
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Permissions Preview */}
+                          <div className="mt-3">
+                            <div className="flex flex-wrap gap-1 max-h-20 overflow-hidden">
+                              {(r.permissions || []).slice(0, 6).map((perm, idx) => (
+                                <span 
+                                  key={idx}
+                                  className="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-md"
+                                >
+                                  {formatPermissionName(perm.name)}
+                                </span>
+                              ))}
+                              {(r.permissions || []).length > 6 && (
+                                <span className="inline-block bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-md">
+                                  +{(r.permissions || []).length - 6} more
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => startEditRole(r)}
+                            className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+                              editingRole?.id === r.id
+                                ? 'bg-blue-600 text-white shadow-md'
+                                : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 hover:border-blue-300'
+                            }`}
+                          >
+                            <HiCog className="w-4 h-4" />
+                            {editingRole?.id === r.id ? 'Editing...' : 'Edit Role'}
+                          </button>
+                          <button 
+                            onClick={() => removeRole(r.id)}
+                            className="px-4 py-2.5 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 hover:border-red-300 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2"
+                          >
+                            <FaTimes className="w-4 h-4" />
+                            Delete
+                          </button>
+                        </div>
+
+                        {/* Active Indicator */}
+                        {editingRole?.id === r.id && (
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white"></div>
+                        )}
+                      </div>
+                    ))}
+
+                  {/* Empty State */}
+                  {roles.filter((r) => String(r.hotelId) === String(selectedHotelId) && (r.name || '').toLowerCase() !== 'superadmin').length === 0 && (
+                    <div className="text-center py-12 text-gray-500">
+                      <FaUserTag className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                      <p className="text-lg font-medium">No roles found</p>
+                      <p className="text-sm">Create your first role to get started</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Edit Panel */}
+              <div className="bg-gray-50 rounded-xl p-6 border">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <HiCog className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900">
+                        {editingRole ? `Edit Role: ${editingRole.name}` : 'Role Editor'}
+                      </h4>
+                      <p className="text-sm text-gray-500">
+                        {editingRole ? 'Modify role details and permissions' : 'Select a role to start editing'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {editingRole ? (
+                  <div className="space-y-6">
+                    {/* Role Name */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-2">
+                        Role Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={roleEditForm.name}
+                        onChange={(e) => setRoleEditForm({ ...roleEditForm, name: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white"
+                        placeholder="Enter role name"
+                      />
+                    </div>
+
+                    {/* Permissions */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-3">
+                        Permissions
+                        <span className="ml-2 bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-1 rounded-full">
+                          {roleEditForm.permissionIds.length} selected
+                        </span>
+                      </label>
+                      
+                      <div className="bg-white border border-gray-300 rounded-lg max-h-80 overflow-y-auto">
+                        <div className="p-4">
+                          <div className="grid grid-cols-1 gap-3">
+                            {permissions.map((perm) => {
+                              const checked = roleEditForm.permissionIds.includes(perm.id);
+                              return (
+                                <div
+                                  key={perm.id}
+                                  className={`flex items-center p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                                    checked 
+                                      ? 'border-blue-500 bg-blue-50' 
+                                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                  }`}
+                                  onClick={() => {
+                                    setRoleEditForm((prev) => {
+                                      const set = new Set(prev.permissionIds);
+                                      if (checked) set.delete(perm.id); 
+                                      else set.add(perm.id);
+                                      return { ...prev, permissionIds: Array.from(set) };
+                                    });
+                                  }}
+                                >
+                                  <div className="flex items-center h-5 mr-3">
+                                    <input
+                                      type="checkbox"
+                                      checked={checked}
+                                      onChange={() => {}}
+                                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                                    />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium text-gray-900">
+                                      {formatPermissionName(perm.name)}
+                                    </div>
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      {getPermissionDescription(perm)}
+                                    </div>
+                                  </div>
+                                  {checked && (
+                                    <div className="ml-2 flex-shrink-0">
+                                      <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
+                                        <FaCheck className="w-3 h-3 text-white" />
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-3 pt-4 border-t border-gray-200">
+                      <button 
+                        onClick={() => setEditingRole(null)}
+                        className="flex-1 bg-white hover:bg-gray-50 text-gray-700 py-2.5 px-4 rounded-lg text-sm font-medium border border-gray-300 hover:border-gray-400 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        onClick={submitEditRole}
+                        className="flex-2 bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                      >
+                        <FaCheck className="w-4 h-4" />
+                        Save Changes ({roleEditForm.permissionIds.length} permissions)
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-16 text-gray-500">
+                    <HiCog className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                    <p className="text-lg font-medium">No Role Selected</p>
+                    <p className="text-sm">Choose a role from the list to start editing</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

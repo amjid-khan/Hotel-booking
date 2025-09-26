@@ -19,7 +19,7 @@ const Setting = () => {
 
   useEffect(() => {
     if (selectedHotelId && hotels && hotels.length > 0) {
-      const currentHotel = hotels.find(h => h.id === selectedHotelId);
+      const currentHotel = hotels.find(h => String(h.id) === String(selectedHotelId));
       setHotel(currentHotel || null);
       setEditedHotel(currentHotel ? { ...currentHotel } : {});
     }
@@ -117,7 +117,7 @@ const Setting = () => {
       if (editedHotel.name) {
         // This will update the hotels array and trigger hotelName update in context
         const updatedHotels = hotels.map(h => 
-          h.id === selectedHotelId ? { ...h, ...editedHotel } : h
+          String(h.id) === String(selectedHotelId) ? { ...h, ...editedHotel } : h
         );
         // Force context update by calling selectHotel which refreshes hotel name
         selectHotel(selectedHotelId);
@@ -142,7 +142,7 @@ const Setting = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      const remaining = (hotels || []).filter(h => h.id !== selectedHotelId);
+      const remaining = (hotels || []).filter(h => String(h.id) !== String(selectedHotelId));
       const next = remaining.length > 0 ? remaining[0] : null;
 
       // Keep loader for 2 seconds

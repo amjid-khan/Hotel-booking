@@ -38,6 +38,13 @@ router.get(
     bookingController.getMyBookings
 );
 
+// Confirmed bookings for a hotel (regular users need this to prevent overlaps)
+router.get(
+    '/confirmed',
+    protect,
+    bookingController.getConfirmedForHotel
+);
+
 // Delete booking (Admin / Manager)
 router.delete(
     '/:bookingId',

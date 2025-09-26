@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState, useMemo } from "react";
+import { toast } from "react-toastify";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
   Calendar,
@@ -43,6 +44,7 @@ const BookingOrders = () => {
   const [viewingBooking, setViewingBooking] = useState(null);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(null);
+  const [conflictBlockedIds, setConflictBlockedIds] = useState(new Set());
 
   // Decide which bookings to show
   const bookingsToShow = user?.role === "user" ? myBookings : hotelBookings;
@@ -211,7 +213,18 @@ const stats = {
       setActiveDropdown(null);
     } catch (err) {
       console.error(err.response || err);
-      alert(err.response?.data?.message || "Error updating booking status");
+      const code = err.response?.data?.code;
+      const message = err.response?.data?.message || "Error updating booking status";
+      if (code === "ROOM_UNAVAILABLE") {
+        const conflict = err.response?.data?.conflict;
+        const from = conflict?.checkIn ? new Date(conflict.checkIn) : null;
+        const to = conflict?.checkOut ? new Date(conflict.checkOut) : null;
+        const dateRange = from && to ? `${from.toLocaleDateString()} - ${to.toLocaleDateString()}` : "selected dates";
+        toast.error(`${message}. Conflict on ${dateRange}.`);
+        setConflictBlockedIds((prev) => new Set([...prev, bookingId]));
+      } else {
+        toast.error(message);
+      }
     } finally {
       setUpdatingStatus(null);
     }
@@ -324,7 +337,10 @@ const stats = {
                         className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
                           isCurrentStatus ? "bg-gray-50 font-medium" : ""
                         }`}
-                        disabled={isCurrentStatus}
+                        disabled={
+                          isCurrentStatus ||
+                          (option.value === "confirmed" && conflictBlockedIds.has(booking.id))
+                        }
                       >
                         <Icon className={`w-4 h-4 ${option.color}`} />
                         {option.label}
@@ -332,6 +348,9 @@ const stats = {
                           <span className="ml-auto text-xs text-gray-500">
                             Current
                           </span>
+                        )}
+                        {option.value === "confirmed" && conflictBlockedIds.has(booking.id) && (
+                          <span className="ml-auto text-xs text-red-500">Unavailable</span>
                         )}
                       </button>
                     );
