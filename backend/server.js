@@ -2,9 +2,7 @@ const express = require('express');
 const cors = require("cors")
 const app = express();
 const path = require('path');
-// const bcrypt = require('bcrypt');
-const bcrypt = require('bcryptjs');
-
+const bcrypt = require('bcrypt');
 const { User, Role } = require('./models'); // Import User and Role models
 require('dotenv').config();
 
