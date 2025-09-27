@@ -9,7 +9,12 @@ require('dotenv').config();
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use(express.json());
-const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    `https://${process.env.RENDER_EXTERNAL_URL || ''}` // Render deployment URL
+];
+
 app.use(cors({
     origin: function (origin, callback) {
         if (!origin || allowedOrigins.includes(origin)) {
