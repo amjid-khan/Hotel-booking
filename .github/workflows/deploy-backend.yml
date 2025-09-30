@@ -31,16 +31,22 @@ jobs:
             npm install
           fi
 
-      # Optional: Run migrations if you set RUN_MIGRATIONS secret to 'true'
-      - name: Run Sequelize migrations
-        if: ${{ secrets.RUN_MIGRATIONS == 'true' }}
+      # Optional: Run migrations when RUN_MIGRATIONS secret is 'true'
+      - name: Run Sequelize migrations (optional)
         env:
           NODE_ENV: production
+          RUN_MIGRATIONS: ${{ secrets.RUN_MIGRATIONS }}
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASS: ${{ secrets.DB_PASS }}
           DB_NAME: ${{ secrets.DB_NAME }}
-        run: npx sequelize db:migrate
+        run: |
+          if [ "${RUN_MIGRATIONS}" = "true" ]; then
+            echo "Running migrations..."
+            npx sequelize db:migrate
+          else
+            echo "Skipping migrations"
+          fi
 
       - name: Create deployment package
         run: |
