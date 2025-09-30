@@ -21,7 +21,15 @@ jobs:
         with:
           node-version: 18
           cache: npm
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: |
+            backend/package-lock.json
+
+      - name: Verify lockfile exists
+        run: |
+          echo "Workspace: $(pwd)"
+          ls -la
+          ls -la backend
+          test -f backend/package-lock.json && echo "Lockfile found" || (echo "Lockfile missing" && exit 1)
 
       - name: Install dependencies (backend)
         run: npm ci
