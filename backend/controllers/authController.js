@@ -191,7 +191,7 @@ exports.loginUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
     const { id } = req.params;
     const { full_name, email, password, roleId, hotelId, phone, status } = req.body;
-    const profile_image = req.file ? req.file.filename : null;
+    const profileImageUrl = req.file ? `${process.env.BACKEND_URL}/uploads/${req.file.filename}` : null;
 
     try {
         const user = await User.findByPk(id, { include: [{ model: Role, as: 'role' }] });
@@ -199,8 +199,8 @@ exports.updateUser = async (req, res) => {
 
         const hashedPassword = password ? await bcrypt.hash(password, 10) : user.password;
 
-        if (profile_image && user.profile_image) {
-            const oldImagePath = path.join(__dirname, '../uploads', user.profile_image);
+        if (profileImageUrl && user.profile_image) {
+            const oldImagePath = path.join(__dirname, '../uploads', path.basename(user.profile_image));
             if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
         }
 
@@ -213,7 +213,7 @@ exports.updateUser = async (req, res) => {
             password: hashedPassword,
             roleId: role.id,
             phone: phone || user.phone,
-            profile_image: profile_image || user.profile_image,
+            profile_image: profileImageUrl || user.profile_image,
             status: status || user.status
         };
 
