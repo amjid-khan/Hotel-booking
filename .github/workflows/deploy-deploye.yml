@@ -21,7 +21,7 @@ jobs:
           node-version: "20"
 
       - name: Install dependencies locally (for validation)
-        run: npm ci --ignore-scripts
+        run: npm install --ignore-scripts
 
       - name: Deploy to EC2 Instance
         env:
