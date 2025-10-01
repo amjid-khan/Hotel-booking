@@ -4,7 +4,7 @@ const { Op } = require("sequelize");
 // Create new role + assign permissions
 exports.createRole = async (req, res) => {
     try {
-        const { name, permissionIds, hotelId } = req.body; // permissionIds = [1,2,3]
+        const { name, permissionIds, permissionNames, hotelId } = req.body; // accepts IDs or names
 
         if (!name) {
             return res.status(400).json({ message: "Role name is required" });
@@ -13,13 +13,18 @@ exports.createRole = async (req, res) => {
         // Create role with optional hotel scope
         const role = await Role.create({ name, hotelId: hotelId || null });
 
-        // Assign permissions manually in role_permissions table
-        if (permissionIds && Array.isArray(permissionIds)) {
-            const rolePermissions = permissionIds.map(permissionId => ({
-                roleId: role.id,
-                permissionId,
-            }));
+        // Assign permissions (accept both IDs and names)
+        let resolvedPermissionIds = [];
+        if (Array.isArray(permissionIds) && permissionIds.length > 0) {
+            // Numeric or numeric-like values
+            resolvedPermissionIds = permissionIds.map((p) => Number(p)).filter((n) => !Number.isNaN(n));
+        } else if (Array.isArray(permissionNames) && permissionNames.length > 0) {
+            const perms = await Permission.findAll({ where: { name: { [Op.in]: permissionNames } } });
+            resolvedPermissionIds = perms.map((p) => p.id);
+        }
 
+        if (resolvedPermissionIds.length > 0) {
+            const rolePermissions = resolvedPermissionIds.map((permissionId) => ({ roleId: role.id, permissionId }));
             await RolePermission.bulkCreate(rolePermissions);
         }
 

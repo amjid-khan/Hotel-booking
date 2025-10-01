@@ -132,12 +132,13 @@ exports.updateRoom = async (req, res) => {
         // Handle image update
         let image = room.image;
         if (req.file) {
-            // Delete old image if exists
+            // Delete old image file if exists
             if (image) {
                 const oldImagePath = path.join(__dirname, "../uploads", path.basename(image));
                 if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
             }
-            image = `/uploads/${req.file.filename}`;
+            // Save absolute URL for consistency with addRoom
+            image = `${process.env.BACKEND_URL}/uploads/${req.file.filename}`;
         }
 
         await room.update({
