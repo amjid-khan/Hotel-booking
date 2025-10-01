@@ -14,6 +14,7 @@ const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:5174',
     'https://hotel-booking-zeta-two.vercel.app',  // ✅ Vercel frontend
+    'https://luxstay.duckdns.org',
 ];
 app.use(cors({
     origin: function (origin, callback) {
