@@ -114,7 +114,13 @@ const User = () => {
       hotel_role: userItem.hotel_role || userItem.role || "admin",
       status: userItem.status || "active",
       profile_image: null,
-      profile_image_url: userItem.profile_image ? `${BASE_URL}/uploads/${userItem.profile_image}` : null,
+      profile_image_url: userItem.profile_image
+        ? (userItem.profile_image.startsWith('http')
+            ? userItem.profile_image
+            : (userItem.profile_image.startsWith('/')
+                ? `${BASE_URL}${userItem.profile_image}`
+                : `${BASE_URL}/uploads/${userItem.profile_image}`))
+        : null,
     });
     handleOpenModal();
   };
@@ -377,7 +383,7 @@ const User = () => {
                         <td className="py-4 px-6">
                           <div className="w-12 h-12 rounded-full overflow-hidden shadow-sm">
                             {u.profile_image ? (
-                              <img src={`${BASE_URL}/uploads/${u.profile_image}`} alt={u.full_name || u.name} className="w-full h-full object-cover" />
+                              <img src={(u.profile_image.startsWith('http') ? u.profile_image : (u.profile_image.startsWith('/') ? `${BASE_URL}${u.profile_image}` : `${BASE_URL}/uploads/${u.profile_image}`))} alt={u.full_name || u.name} className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full bg-gray-200 flex items-center justify-center">
                                 <FaUser className="text-gray-500" size={20} />
@@ -433,7 +439,7 @@ const User = () => {
                     <div className="flex items-start gap-3 md:gap-4">
                       <div className="w-16 md:w-20 h-16 md:h-20 rounded-full overflow-hidden shadow-sm flex-shrink-0">
                         {u.profile_image ? (
-                          <img src={`${BASE_URL}/uploads/${u.profile_image}`} alt={u.full_name || u.name} className="w-full h-full object-cover" />
+                          <img src={(u.profile_image.startsWith('http') ? u.profile_image : (u.profile_image.startsWith('/') ? `${BASE_URL}${u.profile_image}` : `${BASE_URL}/uploads/${u.profile_image}`))} alt={u.full_name || u.name} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full bg-gray-200 flex items-center justify-center">
                             <FaUser className="text-gray-500" size={24} />

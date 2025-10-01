@@ -245,8 +245,12 @@ const isRoomAvailable = (room, checkInDate = null, checkOutDate = null) => {
   );
 
   const getImageUrl = (room) => {
-    const img = room.image || (room.images && room.images[0]);
-    return img ? (img.startsWith("http") ? img : `${BASE_URL}${img}`) : null;
+    const raw = room.image || (room.images && room.images[0]);
+    if (!raw) return null;
+    if (typeof raw !== "string") return null;
+    if (raw.startsWith("http")) return raw;
+    if (raw.startsWith("/")) return `${BASE_URL}${raw}`;
+    return `${BASE_URL}/uploads/${raw}`;
   };
 
   const calculateCost = () => {
