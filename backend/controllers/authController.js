@@ -76,7 +76,7 @@ exports.registerUser = async (req, res) => {
             password: hashedPassword,
             roleId: finalRoleId,
             phone: phone || null,
-            profile_image,
+            profile_image: image,
             status: status || 'active',
             hotelId: creatorHotelId
         };
