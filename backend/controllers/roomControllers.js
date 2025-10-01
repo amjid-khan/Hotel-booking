@@ -60,13 +60,13 @@ exports.getAllRooms = async (req, res) => {
 
         // ✅ Import Booking model for availability check
         const { Booking } = require("../models");
-        
+
         const rooms = await Room.findAll({ where: { hotelId: parsedHotelId } });
-        
+
         // ✅ Check booking status for each room using current timestamp (avoid timezone/start-of-day issues)
         const now = new Date();
         // debug removed
-        
+
         const roomsWithAvailability = await Promise.all(
             rooms.map(async (room) => {
                 // Check if room has any confirmed bookings for today
@@ -80,12 +80,12 @@ exports.getAllRooms = async (req, res) => {
                         checkOut: { [Op.gt]: now }
                     }
                 });
-                
+
                 // ✅ Room is available if no active confirmed booking
                 const isAvailable = !activeBooking;
-                
+
                 // debug removed
-                
+
                 return {
                     ...room.toJSON(),
                     isAvailable: isAvailable,
@@ -93,7 +93,7 @@ exports.getAllRooms = async (req, res) => {
                 };
             })
         );
-        
+
         res.status(200).json({ rooms: roomsWithAvailability || [] });
     } catch (error) {
         console.error("Error fetching rooms:", error);
@@ -196,7 +196,7 @@ exports.getUserRooms = async (req, res) => {
 
         // ✅ Import Booking model for availability check
         const { Booking } = require("../models");
-        
+
         const rooms = await Room.findAll({
             where: { hotelId },
             attributes: [
@@ -212,11 +212,11 @@ exports.getUserRooms = async (req, res) => {
                 'updated_at'
             ]
         });
-        
+
         // ✅ Check booking status for each room using current timestamp (avoid timezone/start-of-day issues)
         const now = new Date();
         // debug removed
-        
+
         const roomsWithAvailability = await Promise.all(
             rooms.map(async (room) => {
                 // Check if room has any confirmed bookings for today
@@ -230,12 +230,12 @@ exports.getUserRooms = async (req, res) => {
                         checkOut: { [Op.gt]: now }
                     }
                 });
-                
+
                 // ✅ Room is available if no active confirmed booking
                 const isAvailable = !activeBooking;
-                
+
                 // debug removed
-                
+
                 return {
                     ...room.toJSON(),
                     isAvailable: isAvailable,

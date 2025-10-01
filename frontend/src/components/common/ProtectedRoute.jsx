@@ -13,6 +13,8 @@ function ProtectedRoute({ roles, allowHotelRoles = false, permissions = [] }) {
     return <Navigate to="/login" replace />;
   }
 
+  // removed password reset gating
+
   // ✅ Role check (if roles prop given)
   if (roles && roles.length > 0) {
     if (!roles.includes(user.role)) {

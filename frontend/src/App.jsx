@@ -23,6 +23,8 @@ import SuperBooking from "./components/SuperAdmin/SuperBooking";
 import SuperRevenue from "./components/SuperAdmin/SuperRevenue";
 import SuperAnalytics from "./components/SuperAdmin/SuperAnalytics";
 import UserHome from "./pages/UserHome";
+import SuperReports from "./components/SuperAdmin/SuperReports";
+// removed reset password page
 
 // --- After login, redirect based on role + hotel status ---
 function HomeRedirect() {
@@ -107,6 +109,8 @@ export default function App() {
       {/* Login */}
       <Route path="/login" element={<LoginRedirect />} />
 
+      {/* removed reset password route */}
+
       {/* Admin Create Hotel (only admins allowed) */}
       <Route element={<ProtectedRoute roles={["admin"]} />}>
         <Route path="/admin/create-hotel" element={<CreateHotel />} />
@@ -137,6 +141,7 @@ export default function App() {
           <Route path="/superbookings" element={<SuperBooking />} />
           <Route path="/superrevenue" element={<SuperRevenue />} />
           <Route path="/superanalytics" element={<SuperAnalytics />} />
+          <Route path="superreports" element={<SuperReports />} />
          </Route>
       </Route>
 

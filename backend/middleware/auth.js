@@ -28,6 +28,8 @@ exports.protect = (req, res, next) => {
     }
 };
 
+// removed password reset enforcement
+
 // Check if user role is admin
 // middleware/auth.js
 exports.isAdmin = (req, res, next) => {

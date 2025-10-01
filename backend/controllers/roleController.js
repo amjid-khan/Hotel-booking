@@ -26,7 +26,7 @@ exports.createRole = async (req, res) => {
         // Fetch role with permissions
         const roleWithPermissions = await Role.findByPk(role.id, {
             include: [
-              { model: Permission, as: "permissions" },
+                { model: Permission, as: "permissions" },
             ],
         });
 
@@ -46,8 +46,8 @@ exports.getRoles = async (req, res) => {
         const { hotelId } = req.query;
         const where = {};
         if (hotelId) {
-          // Return roles that are global (hotelId null) or scoped to this hotel
-          where["hotelId"] = { [Op.or]: [null, Number(hotelId)] };
+            // Return roles that are global (hotelId null) or scoped to this hotel
+            where["hotelId"] = { [Op.or]: [null, Number(hotelId)] };
         }
         const roles = await Role.findAll({
             where,
