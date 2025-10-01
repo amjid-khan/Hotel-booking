@@ -31,8 +31,11 @@ exports.registerUser = async (req, res) => {
         let roleName;
 
         if (hotel_role) {
-            // If hotel_role is provided from frontend, find role by name
-            const role = await Role.findOne({ where: { name: hotel_role } });
+            // If hotel_role is provided from frontend, try to find role by exact or lowercase name
+            let role = await Role.findOne({ where: { name: hotel_role } });
+            if (!role && typeof hotel_role === 'string') {
+                role = await Role.findOne({ where: { name: hotel_role.toLowerCase() } });
+            }
             if (!role) {
                 return res.status(400).json({ message: 'Invalid hotel role specified' });
             }
@@ -47,10 +50,10 @@ exports.registerUser = async (req, res) => {
             finalRoleId = roleId;
             roleName = role.name;
         } else {
-            // Default fallback - set to admin role
-            const defaultRole = await Role.findOne({ where: { name: 'admin' } });
+            // Default fallback - ensure admin role exists, then assign
+            let defaultRole = await Role.findOne({ where: { name: 'admin' } });
             if (!defaultRole) {
-                return res.status(400).json({ message: 'Default admin role not found' });
+                defaultRole = await Role.create({ name: 'admin' });
             }
             finalRoleId = defaultRole.id;
             roleName = defaultRole.name;
