@@ -7,7 +7,8 @@ const { Op } = require("sequelize");
 // ------------------- ADD NEW ROOM -------------------
 exports.addRoom = async (req, res) => {
     const { roomNumber, type, price, capacity, description, hotelId } = req.body;
-    const image = req.file ? `/uploads/${req.file.filename}` : null;
+    // const image = req.file ? `/uploads/${req.file.filename}` : null;
+    const image = req.file ? `${process.env.BACKEND_URL}/uploads/${req.file.filename}` : null;
 
     // Validation
     if (!roomNumber || !type || !price || !capacity || !hotelId) {

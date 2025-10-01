@@ -9,7 +9,8 @@ const path = require('path');
 // ====================== REGISTER USER ======================
 exports.registerUser = async (req, res) => {
     const { full_name, email, password, phone, status, roleId, hotel_role, hotelId } = req.body;
-    const profile_image = req.file ? req.file.filename : null;
+    // const profile_image = req.file ? req.file.filename : null;
+    const image = req.file ? `${process.env.BACKEND_URL}/uploads/${req.file.filename}` : null;
 
     if (!full_name || !email || !password) {
         return res.status(400).json({ message: 'Full name, email, and password are required' });
