@@ -44,6 +44,13 @@ app.use("/api/analytics", analyticsRoutes);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoute);
+app.get('/', (req, res) => {
+    res.json({
+        message: 'Hotel Booking API is running! 🚀',
+        status: 'ok',
+        timestamp: new Date()
+    });
+});
 app.use('/api/superadmin', superAdminRoutes);
 app.use('/api/hotels', hotelRoutes);
 app.use("/api/roles", roleRoutes);
