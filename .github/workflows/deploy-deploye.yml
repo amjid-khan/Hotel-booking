@@ -62,7 +62,7 @@ jobs:
           # EC2 par deployment commands
           echo "🔧 Installing dependencies and starting app..."
           ssh -o StrictHostKeyChecking=no -i private_key.pem ${USERNAME}@${HOST} << 'ENDSSH'
-            cd /home/ubuntu/my-app
+           cd /home/ubuntu/my-app/backend
             
             # Production dependencies install
             echo "Installing production dependencies..."
