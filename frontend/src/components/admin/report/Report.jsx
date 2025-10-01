@@ -211,38 +211,484 @@ const Reports = () => {
     }
   ];
 
+  // const handleExportReport = async () => {
+  //   setLoading(true);
+  //   try {
+  //     // Create export data from real booking data
+  //     const exportData = {
+  //       hotel: hotelName,
+  //       reportType: selectedReport,
+  //       dateRange: dateRange,
+  //       totalRooms: rooms.length,
+  //       occupancyRate: calculateOccupancyRate(),
+  //       totalRevenue: calculateTotalRevenue(),
+  //       totalBookings: bookingsData.length,
+  //       confirmedBookings: bookingsData.filter(b => b.status === 'confirmed').length,
+  //       bookings: bookingsData.map(booking => ({
+  //         guestName: booking.guestName,
+  //         checkIn: booking.checkIn,
+  //         checkOut: booking.checkOut,
+  //         totalAmount: booking.totalAmount,
+  //         status: booking.status
+  //       }))
+  //     };
+      
+  //     // For now, create a downloadable JSON file
+  //     const dataStr = JSON.stringify(exportData, null, 2);
+  //     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+      
+  //     const exportFileDefaultName = `${selectedReport}-report-${dateRange}-${new Date().toISOString().split('T')[0]}.json`;
+      
+  //     const linkElement = document.createElement('a');
+  //     linkElement.setAttribute('href', dataUri);
+  //     linkElement.setAttribute('download', exportFileDefaultName);
+  //     linkElement.click();
+      
+  //   } catch (error) {
+  //     console.error('Export failed:', error);
+  //     alert('Export failed. Please try again.');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const handleExportReport = async () => {
     setLoading(true);
     try {
-      // Create export data from real booking data
-      const exportData = {
-        hotel: hotelName,
-        reportType: selectedReport,
-        dateRange: dateRange,
-        totalRooms: rooms.length,
-        occupancyRate: calculateOccupancyRate(),
-        totalRevenue: calculateTotalRevenue(),
-        totalBookings: bookingsData.length,
-        confirmedBookings: bookingsData.filter(b => b.status === 'confirmed').length,
-        bookings: bookingsData.map(booking => ({
-          guestName: booking.guestName,
-          checkIn: booking.checkIn,
-          checkOut: booking.checkOut,
-          totalAmount: booking.totalAmount,
-          status: booking.status
-        }))
+      // Create a new window for printing
+      const printWindow = window.open('', '_blank');
+      
+      const { checkIns, checkOuts } = getTodayActivity();
+      const occupancyRate = calculateOccupancyRate();
+      const totalRevenue = calculateTotalRevenue();
+      const confirmedBookings = bookingsData.filter(b => b.status === 'confirmed');
+      
+      // Generate PDF content based on report type
+      let reportContent = '';
+      
+      if (selectedReport === 'overview') {
+        reportContent = `
+          <div class="section">
+            <h2>Key Metrics</h2>
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <h3>Total Rooms</h3>
+                <p class="metric-value">${rooms.length}</p>
+                <p class="metric-label">${rooms.length - getOccupiedRooms()} Available</p>
+              </div>
+              <div class="metric-card">
+                <h3>Occupancy Rate</h3>
+                <p class="metric-value">${occupancyRate}%</p>
+                <p class="metric-label">${getOccupiedRooms()} Occupied</p>
+              </div>
+              <div class="metric-card">
+                <h3>Total Revenue</h3>
+                <p class="metric-value">PKR ${totalRevenue.toLocaleString()}</p>
+                <p class="metric-label">${confirmedBookings.length} Bookings</p>
+              </div>
+              <div class="metric-card">
+                <h3>Active Staff</h3>
+                <p class="metric-value">${getActiveStaffCount()}</p>
+                <p class="metric-label">${users.length} Total Staff</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="section">
+            <h2>Today's Activity</h2>
+            <div class="activity-grid">
+              <div class="activity-item">
+                <strong>Check-ins:</strong> ${checkIns}
+              </div>
+              <div class="activity-item">
+                <strong>Check-outs:</strong> ${checkOuts}
+              </div>
+              <div class="activity-item">
+                <strong>Current Guests:</strong> ${getCheckedInGuests()}
+              </div>
+            </div>
+          </div>
+          
+          <div class="section">
+            <h2>Recent Bookings</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Guest Name</th>
+                  <th>Room</th>
+                  <th>Check-in</th>
+                  <th>Check-out</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${bookingsData.slice(0, 10).map(booking => `
+                  <tr>
+                    <td>${booking.guestName || 'Guest'}</td>
+                    <td>${booking.roomName || `Room ${booking.roomId}`}</td>
+                    <td>${new Date(booking.checkIn).toLocaleDateString()}</td>
+                    <td>${new Date(booking.checkOut).toLocaleDateString()}</td>
+                    <td>PKR ${Number(booking.totalAmount || 0).toLocaleString()}</td>
+                    <td><span class="status-${booking.status}">${booking.status}</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } else if (selectedReport === 'occupancy') {
+        reportContent = `
+          <div class="section">
+            <h2>Occupancy Statistics</h2>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <strong>Total Rooms:</strong> ${rooms.length}
+              </div>
+              <div class="stat-item">
+                <strong>Available Rooms:</strong> ${rooms.length - getOccupiedRooms()}
+              </div>
+              <div class="stat-item">
+                <strong>Occupied Rooms:</strong> ${getOccupiedRooms()}
+              </div>
+              <div class="stat-item">
+                <strong>Occupancy Rate:</strong> ${occupancyRate}%
+              </div>
+            </div>
+          </div>
+          
+          <div class="section">
+            <h2>Room Status Details</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Room Number</th>
+                  <th>Room Type</th>
+                  <th>Status</th>
+                  <th>Guest</th>
+                  <th>Check-out Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rooms.map(room => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const booking = bookingsData.find(b => {
+                    const checkIn = new Date(b.checkIn);
+                    const checkOut = new Date(b.checkOut);
+                    checkIn.setHours(0, 0, 0, 0);
+                    checkOut.setHours(0, 0, 0, 0);
+                    return b.roomId === room.id && b.status === 'confirmed' && checkIn <= today && checkOut > today;
+                  });
+                  return `
+                    <tr>
+                      <td>${room.roomNumber || room.id}</td>
+                      <td>${room.type}</td>
+                      <td><span class="status-${booking ? 'occupied' : 'available'}">${booking ? 'Occupied' : 'Available'}</span></td>
+                      <td>${booking ? booking.guestName : '-'}</td>
+                      <td>${booking ? new Date(booking.checkOut).toLocaleDateString() : '-'}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } else if (selectedReport === 'revenue') {
+        const avgBookingValue = confirmedBookings.length > 0 ? Math.round(totalRevenue / confirmedBookings.length) : 0;
+        reportContent = `
+          <div class="section">
+            <h2>Revenue Summary</h2>
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <h3>Total Revenue</h3>
+                <p class="metric-value">PKR ${totalRevenue.toLocaleString()}</p>
+              </div>
+              <div class="metric-card">
+                <h3>Average Booking Value</h3>
+                <p class="metric-value">PKR ${avgBookingValue.toLocaleString()}</p>
+              </div>
+              <div class="metric-card">
+                <h3>Total Bookings</h3>
+                <p class="metric-value">${bookingsData.length}</p>
+              </div>
+              <div class="metric-card">
+                <h3>Confirmed Bookings</h3>
+                <p class="metric-value">${confirmedBookings.length}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="section">
+            <h2>Revenue Breakdown</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Guest Name</th>
+                  <th>Room</th>
+                  <th>Check-in</th>
+                  <th>Check-out</th>
+                  <th>Amount</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${confirmedBookings.map(booking => `
+                  <tr>
+                    <td>${booking.guestName || `Booking #${booking.id}`}</td>
+                    <td>${booking.roomName || `Room ${booking.roomId}`}</td>
+                    <td>${new Date(booking.checkIn).toLocaleDateString()}</td>
+                    <td>${new Date(booking.checkOut).toLocaleDateString()}</td>
+                    <td><strong>PKR ${Number(booking.totalAmount || 0).toLocaleString()}</strong></td>
+                    <td>${new Date(booking.createdAt || booking.checkIn).toLocaleDateString()}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } else if (selectedReport === 'guests') {
+        reportContent = `
+          <div class="section">
+            <h2>Guest Information</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Guest Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Room</th>
+                  <th>Check-in</th>
+                  <th>Check-out</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${bookingsData.map(booking => `
+                  <tr>
+                    <td>${booking.guestName || 'Guest'}</td>
+                    <td>${booking.guestEmail || '-'}</td>
+                    <td>${booking.guestPhone || '-'}</td>
+                    <td>${booking.roomName || `Room ${booking.roomId}`}</td>
+                    <td>${new Date(booking.checkIn).toLocaleDateString()}</td>
+                    <td>${new Date(booking.checkOut).toLocaleDateString()}</td>
+                    <td><span class="status-${booking.status}">${booking.status}</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } else if (selectedReport === 'performance') {
+        reportContent = `
+          <div class="section">
+            <h2>Staff Overview</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Staff Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${users.filter(user => user.role !== 'admin').map(staff => `
+                  <tr>
+                    <td>${staff.full_name}</td>
+                    <td>${staff.email}</td>
+                    <td>${staff.role}</td>
+                    <td><span class="status-${staff.status}">${staff.status}</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+      
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>${reportTypes.find(r => r.id === selectedReport)?.title} - ${hotelName}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: Arial, sans-serif;
+              padding: 40px;
+              background: white;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              padding-bottom: 20px;
+              border-bottom: 3px solid #2563eb;
+            }
+            .header h1 {
+              color: #1e40af;
+              font-size: 28px;
+              margin-bottom: 10px;
+            }
+            .header .hotel-name {
+              color: #6b7280;
+              font-size: 18px;
+              margin-bottom: 5px;
+            }
+            .header .meta {
+              color: #9ca3af;
+              font-size: 14px;
+              margin-top: 10px;
+            }
+            .section {
+              margin-bottom: 30px;
+              page-break-inside: avoid;
+            }
+            .section h2 {
+              color: #1f2937;
+              font-size: 20px;
+              margin-bottom: 15px;
+              padding-bottom: 8px;
+              border-bottom: 2px solid #e5e7eb;
+            }
+            .metrics-grid {
+              display: grid;
+              grid-template-columns: repeat(4, 1fr);
+              gap: 15px;
+              margin-bottom: 20px;
+            }
+            .metric-card {
+              background: #f9fafb;
+              padding: 15px;
+              border-radius: 8px;
+              border: 1px solid #e5e7eb;
+            }
+            .metric-card h3 {
+              color: #6b7280;
+              font-size: 13px;
+              margin-bottom: 8px;
+            }
+            .metric-value {
+              color: #1f2937;
+              font-size: 24px;
+              font-weight: bold;
+              margin-bottom: 5px;
+            }
+            .metric-label {
+              color: #9ca3af;
+              font-size: 12px;
+            }
+            .activity-grid, .stats-grid {
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 15px;
+              margin-bottom: 20px;
+            }
+            .activity-item, .stat-item {
+              background: #f9fafb;
+              padding: 12px;
+              border-radius: 6px;
+              border: 1px solid #e5e7eb;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 15px;
+              font-size: 13px;
+            }
+            th {
+              background: #f3f4f6;
+              padding: 12px;
+              text-align: left;
+              font-weight: 600;
+              color: #374151;
+              border-bottom: 2px solid #e5e7eb;
+            }
+            td {
+              padding: 10px 12px;
+              border-bottom: 1px solid #e5e7eb;
+              color: #4b5563;
+            }
+            tr:hover {
+              background: #f9fafb;
+            }
+            .status-confirmed, .status-active, .status-available {
+              background: #dbeafe;
+              color: #1e40af;
+              padding: 4px 8px;
+              border-radius: 4px;
+              font-size: 11px;
+              font-weight: 500;
+            }
+            .status-pending {
+              background: #fed7aa;
+              color: #c2410c;
+              padding: 4px 8px;
+              border-radius: 4px;
+              font-size: 11px;
+              font-weight: 500;
+            }
+            .status-cancelled, .status-inactive {
+              background: #fecaca;
+              color: #991b1b;
+              padding: 4px 8px;
+              border-radius: 4px;
+              font-size: 11px;
+              font-weight: 500;
+            }
+            .status-occupied {
+              background: #fecaca;
+              color: #991b1b;
+              padding: 4px 8px;
+              border-radius: 4px;
+              font-size: 11px;
+              font-weight: 500;
+            }
+            .footer {
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 2px solid #e5e7eb;
+              text-align: center;
+              color: #9ca3af;
+              font-size: 12px;
+            }
+            @media print {
+              body { padding: 20px; }
+              .section { page-break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${reportTypes.find(r => r.id === selectedReport)?.title}</h1>
+            <div class="hotel-name">${hotelName || 'Hotel Management System'}</div>
+            <div class="meta">
+              <strong>Date Range:</strong> ${dateRanges.find(r => r.value === dateRange)?.label} | 
+              <strong>Generated:</strong> ${new Date().toLocaleString()}
+            </div>
+          </div>
+          
+          ${reportContent}
+          
+          <div class="footer">
+            <p>This report was automatically generated by the Hotel Management System</p>
+            <p>© ${new Date().getFullYear()} ${hotelName || 'Hotel Management System'}. All rights reserved.</p>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      
+      // Wait for content to load then trigger print
+      printWindow.onload = function() {
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 250);
       };
-      
-      // For now, create a downloadable JSON file
-      const dataStr = JSON.stringify(exportData, null, 2);
-      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-      
-      const exportFileDefaultName = `${selectedReport}-report-${dateRange}-${new Date().toISOString().split('T')[0]}.json`;
-      
-      const linkElement = document.createElement('a');
-      linkElement.setAttribute('href', dataUri);
-      linkElement.setAttribute('download', exportFileDefaultName);
-      linkElement.click();
       
     } catch (error) {
       console.error('Export failed:', error);

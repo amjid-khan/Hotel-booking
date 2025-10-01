@@ -43,10 +43,11 @@ const SuperReports = () => {
   } = useContext(AuthContext);
 
   const [loading, setLoading] = useState(true);
+  const [exportLoading, setExportLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("overview"); // overview, hotels, bookings, users
+  const [activeTab, setActiveTab] = useState("overview");
 
   // Handle responsive behavior
   useEffect(() => {
@@ -184,6 +185,452 @@ const SuperReports = () => {
       booking.guestName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // PDF Export Function
+  const handleExportPDF = () => {
+    setExportLoading(true);
+    try {
+      const printWindow = window.open('', '_blank');
+      
+      let reportContent = '';
+      
+      if (activeTab === 'overview') {
+        reportContent = `
+          <div class="section">
+            <h2>System Overview</h2>
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <h3>Total Revenue</h3>
+                <p class="metric-value">PKR ${stats.totalRevenue.toLocaleString()}</p>
+                <p class="metric-label">${stats.confirmedBookings} confirmed bookings</p>
+              </div>
+              <div class="metric-card">
+                <h3>Active Hotels</h3>
+                <p class="metric-value">${stats.totalHotels}</p>
+                <p class="metric-label">Properties listed</p>
+              </div>
+              <div class="metric-card">
+                <h3>Total Users</h3>
+                <p class="metric-value">${stats.totalUsers}</p>
+                <p class="metric-label">Registered users</p>
+              </div>
+              <div class="metric-card">
+                <h3>Total Bookings</h3>
+                <p class="metric-value">${stats.totalBookings}</p>
+                <p class="metric-label">${stats.pendingBookings} pending</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h2>Booking Status Breakdown</h2>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <strong>Confirmed Bookings:</strong> ${stats.confirmedBookings} (${stats.totalBookings > 0 ? ((stats.confirmedBookings / stats.totalBookings) * 100).toFixed(1) : 0}%)
+                <br><small>Revenue: PKR ${stats.confirmedRevenue.toLocaleString()}</small>
+              </div>
+              <div class="stat-item">
+                <strong>Pending Bookings:</strong> ${stats.pendingBookings} (${stats.totalBookings > 0 ? ((stats.pendingBookings / stats.totalBookings) * 100).toFixed(1) : 0}%)
+              </div>
+              <div class="stat-item">
+                <strong>Cancelled Bookings:</strong> ${stats.cancelledBookings} (${stats.totalBookings > 0 ? ((stats.cancelledBookings / stats.totalBookings) * 100).toFixed(1) : 0}%)
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h2>Top 5 Hotels by Revenue</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Hotel Name</th>
+                  <th>Total Bookings</th>
+                  <th>Confirmed</th>
+                  <th>Revenue</th>
+                  <th>Avg Booking Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${stats.topHotels.map((hotel, idx) => `
+                  <tr>
+                    <td><strong>${idx + 1}</strong></td>
+                    <td>${hotel.name}</td>
+                    <td>${hotel.bookings}</td>
+                    <td>${hotel.confirmed}</td>
+                    <td><strong>PKR ${hotel.revenue.toLocaleString()}</strong></td>
+                    <td>PKR ${hotel.bookings > 0 ? (hotel.revenue / hotel.bookings).toLocaleString(undefined, { maximumFractionDigits: 0 }) : 0}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section">
+            <h2>Monthly Revenue Trend</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  <th>Revenue</th>
+                  <th>Percentage of Max</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${monthlyRevenue && monthlyRevenue.length > 0 ? monthlyRevenue.slice(-6).map(item => {
+                  const revenue = parseFloat(item.revenue || 0);
+                  const maxRevenue = Math.max(...monthlyRevenue.map(d => parseFloat(d.revenue || 0)));
+                  const percentage = maxRevenue > 0 ? (revenue / maxRevenue) * 100 : 0;
+                  return `
+                    <tr>
+                      <td>${item.month || 'N/A'}</td>
+                      <td><strong>PKR ${revenue.toLocaleString()}</strong></td>
+                      <td>${percentage.toFixed(1)}%</td>
+                    </tr>
+                  `;
+                }).join('') : '<tr><td colspan="3" style="text-align: center;">No revenue data available</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } else if (activeTab === 'hotels') {
+        reportContent = `
+          <div class="section">
+            <h2>Hotels Directory (${filteredHotels?.length || 0} hotels)</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Hotel Name</th>
+                  <th>Location</th>
+                  <th>Total Bookings</th>
+                  <th>Confirmed</th>
+                  <th>Revenue</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filteredHotels?.map(hotel => {
+                  const hotelData = stats.hotelStats[hotel.name] || { bookings: 0, revenue: 0, confirmed: 0 };
+                  return `
+                    <tr>
+                      <td><strong>${hotel.name}</strong></td>
+                      <td>${hotel.address || 'N/A'}</td>
+                      <td>${hotelData.bookings}</td>
+                      <td>${hotelData.confirmed}</td>
+                      <td><strong>PKR ${hotelData.revenue.toLocaleString()}</strong></td>
+                      <td><span class="status-active">Active</span></td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section">
+            <h2>Summary Statistics</h2>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <strong>Total Hotels:</strong> ${filteredHotels?.length || 0}
+              </div>
+              <div class="stat-item">
+                <strong>Combined Revenue:</strong> PKR ${Object.values(stats.hotelStats).reduce((sum, h) => sum + h.revenue, 0).toLocaleString()}
+              </div>
+              <div class="stat-item">
+                <strong>Total Bookings:</strong> ${Object.values(stats.hotelStats).reduce((sum, h) => sum + h.bookings, 0)}
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (activeTab === 'bookings') {
+        reportContent = `
+          <div class="section">
+            <h2>All Bookings (${filteredBookings?.length || 0} bookings)</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Guest Name</th>
+                  <th>Email</th>
+                  <th>Hotel</th>
+                  <th>Room</th>
+                  <th>Check-in</th>
+                  <th>Check-out</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filteredBookings?.slice(0, 100).map(booking => `
+                  <tr>
+                    <td><strong>${booking.guestName}</strong></td>
+                    <td>${booking.guestEmail || 'N/A'}</td>
+                    <td>${booking.hotelName}</td>
+                    <td>${booking.roomName}</td>
+                    <td>${new Date(booking.checkIn).toLocaleDateString()}</td>
+                    <td>${new Date(booking.checkOut).toLocaleDateString()}</td>
+                    <td><strong>PKR ${parseFloat(booking.totalAmount || 0).toLocaleString()}</strong></td>
+                    <td><span class="status-${booking.status}">${booking.status}</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section">
+            <h2>Booking Summary</h2>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <strong>Total Bookings:</strong> ${filteredBookings?.length || 0}
+              </div>
+              <div class="stat-item">
+                <strong>Combined Revenue:</strong> PKR ${filteredBookings?.reduce((sum, b) => sum + parseFloat(b.totalAmount || 0), 0).toLocaleString()}
+              </div>
+              <div class="stat-item">
+                <strong>Confirmed:</strong> ${filteredBookings?.filter(b => b.status === 'confirmed').length || 0}
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (activeTab === 'users') {
+        reportContent = `
+          <div class="section">
+            <h2>All Users (${filteredUsers?.length || 0} users)</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Hotel</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filteredUsers?.map(userData => {
+                  const userHotel = allHotels?.find(h => h.id === userData.hotelId);
+                  return `
+                    <tr>
+                      <td><strong>${userData.full_name}</strong></td>
+                      <td>${userData.email}</td>
+                      <td><span class="status-role">${userData.role}</span></td>
+                      <td>${userHotel?.name || 'N/A'}</td>
+                      <td><span class="status-active">Active</span></td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section">
+            <h2>User Statistics</h2>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <strong>Total Users:</strong> ${filteredUsers?.length || 0}
+              </div>
+              <div class="stat-item">
+                <strong>Admins:</strong> ${filteredUsers?.filter(u => u.role === 'admin').length || 0}
+              </div>
+              <div class="stat-item">
+                <strong>Regular Users:</strong> ${filteredUsers?.filter(u => u.role === 'user').length || 0}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>System Reports - ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: Arial, sans-serif;
+              padding: 40px;
+              background: white;
+              color: #1f2937;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              padding-bottom: 20px;
+              border-bottom: 3px solid #2563eb;
+            }
+            .header h1 {
+              color: #1e40af;
+              font-size: 28px;
+              margin-bottom: 10px;
+            }
+            .header .subtitle {
+              color: #6b7280;
+              font-size: 16px;
+              margin-bottom: 5px;
+            }
+            .header .meta {
+              color: #9ca3af;
+              font-size: 14px;
+              margin-top: 10px;
+            }
+            .section {
+              margin-bottom: 30px;
+              page-break-inside: avoid;
+            }
+            .section h2 {
+              color: #1f2937;
+              font-size: 20px;
+              margin-bottom: 15px;
+              padding-bottom: 8px;
+              border-bottom: 2px solid #e5e7eb;
+            }
+            .metrics-grid {
+              display: grid;
+              grid-template-columns: repeat(4, 1fr);
+              gap: 15px;
+              margin-bottom: 20px;
+            }
+            .metric-card {
+              background: #f9fafb;
+              padding: 15px;
+              border-radius: 8px;
+              border: 1px solid #e5e7eb;
+            }
+            .metric-card h3 {
+              color: #6b7280;
+              font-size: 13px;
+              margin-bottom: 8px;
+            }
+            .metric-value {
+              color: #1f2937;
+              font-size: 24px;
+              font-weight: bold;
+              margin-bottom: 5px;
+            }
+            .metric-label {
+              color: #9ca3af;
+              font-size: 12px;
+            }
+            .stats-grid {
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 15px;
+              margin-bottom: 20px;
+            }
+            .stat-item {
+              background: #f9fafb;
+              padding: 12px;
+              border-radius: 6px;
+              border: 1px solid #e5e7eb;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 15px;
+              font-size: 13px;
+            }
+            th {
+              background: #f3f4f6;
+              padding: 12px;
+              text-align: left;
+              font-weight: 600;
+              color: #374151;
+              border-bottom: 2px solid #e5e7eb;
+            }
+            td {
+              padding: 10px 12px;
+              border-bottom: 1px solid #e5e7eb;
+              color: #4b5563;
+            }
+            tr:hover {
+              background: #f9fafb;
+            }
+            .status-confirmed, .status-active {
+              background: #dcfce7;
+              color: #166534;
+              padding: 4px 8px;
+              border-radius: 4px;
+              font-size: 11px;
+              font-weight: 500;
+            }
+            .status-pending {
+              background: #fef3c7;
+              color: #92400e;
+              padding: 4px 8px;
+              border-radius: 4px;
+              font-size: 11px;
+              font-weight: 500;
+            }
+            .status-cancelled {
+              background: #fee2e2;
+              color: #991b1b;
+              padding: 4px 8px;
+              border-radius: 4px;
+              font-size: 11px;
+              font-weight: 500;
+            }
+            .status-role {
+              background: #dbeafe;
+              color: #1e40af;
+              padding: 4px 8px;
+              border-radius: 4px;
+              font-size: 11px;
+              font-weight: 500;
+              text-transform: capitalize;
+            }
+            .footer {
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 2px solid #e5e7eb;
+              text-align: center;
+              color: #9ca3af;
+              font-size: 12px;
+            }
+            @media print {
+              body { padding: 20px; }
+              .section { page-break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>System Reports - ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
+            <div class="subtitle">Hotel Management System - Super Admin Dashboard</div>
+            <div class="meta">
+              <strong>Generated:</strong> ${new Date().toLocaleString()} | 
+              <strong>Generated By:</strong> ${user?.full_name || 'Super Admin'}
+              ${stats.revenueGrowth !== 0 ? ` | <strong>MoM Growth:</strong> ${stats.revenueGrowth > 0 ? '+' : ''}${stats.revenueGrowth.toFixed(1)}%` : ''}
+            </div>
+          </div>
+          
+          ${reportContent}
+          
+          <div class="footer">
+            <p>This report was automatically generated by the Hotel Management System</p>
+            <p>© ${new Date().getFullYear()} Hotel Management System. All rights reserved.</p>
+            <p style="margin-top: 5px;">Confidential - For Internal Use Only</p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      
+      printWindow.onload = function() {
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 250);
+      };
+
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Export failed. Please try again.');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div
@@ -241,6 +688,14 @@ const SuperReports = () => {
                   </span>
                 </div>
               )}
+              <button
+                onClick={handleExportPDF}
+                disabled={exportLoading}
+                className="inline-flex items-center px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 rounded-lg transition-all duration-200"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                {exportLoading ? 'Exporting...' : 'Export PDF'}
+              </button>
               <button
                 onClick={fetchAllData}
                 className="inline-flex items-center px-4 py-2.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-200 border border-blue-200"
