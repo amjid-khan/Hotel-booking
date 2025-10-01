@@ -15,7 +15,7 @@ const Setting = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const BASE_URL = "http://localhost:5000/api/hotels";
+  const BASE_URL = `${import.meta.env.VITE_BASE_URL}/api/hotels`;
 
   useEffect(() => {
     if (selectedHotelId && hotels && hotels.length > 0) {
