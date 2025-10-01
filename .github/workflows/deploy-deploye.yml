@@ -1,0 +1,93 @@
+name: Deploy Hotel Booking Backend to EC2
+
+on:
+  push:
+    branches:
+      - main # main branch par push hone par deploy hoga
+      - master # agar master branch use karte ho
+
+jobs:
+  deploy:
+    name: Deploy to AWS EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+
+      - name: Install dependencies locally (for validation)
+        run: npm ci --ignore-scripts
+
+      - name: Deploy to EC2 Instance
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+          HOST: ${{ secrets.EC2_HOST }}
+          USERNAME: ${{ secrets.EC2_USERNAME }}
+          TARGET_DIR: ${{ secrets.EC2_TARGET_DIR }}
+        run: |
+          echo "🚀 Starting deployment to EC2..."
+
+          # SSH key setup
+          echo "$SSH_PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+
+          # SSH connection test
+          echo "Testing SSH connection..."
+          ssh -o StrictHostKeyChecking=no -i private_key.pem ${USERNAME}@${HOST} "echo '✅ SSH Connection Successful!'"
+
+          # Target directory create karo
+          echo "Creating target directory..."
+          ssh -o StrictHostKeyChecking=no -i private_key.pem ${USERNAME}@${HOST} "mkdir -p ${TARGET_DIR}"
+
+          # Files transfer using rsync
+          echo "📦 Transferring files to EC2..."
+          rsync -avz -e "ssh -i private_key.pem -o StrictHostKeyChecking=no" \
+            --exclude 'node_modules' \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude 'private_key.pem' \
+            --exclude '.env.example' \
+            --exclude '.env.local' \
+            --exclude 'uploads' \
+            --exclude '*.log' \
+            ./ ${USERNAME}@${HOST}:${TARGET_DIR}/
+
+          echo "✅ Files transferred successfully!"
+
+          # EC2 par deployment commands
+          echo "🔧 Installing dependencies and starting app..."
+          ssh -o StrictHostKeyChecking=no -i private_key.pem ${USERNAME}@${HOST} << 'ENDSSH'
+            cd /home/ubuntu/my-app
+            
+            # Production dependencies install
+            echo "Installing production dependencies..."
+            npm ci --production --ignore-scripts
+            
+            # PM2 se app check aur restart/start
+            if pm2 describe hotel-backend > /dev/null 2>&1; then
+              echo "♻️  Restarting existing application..."
+              pm2 restart hotel-backend --update-env
+            else
+              echo "🆕 Starting new application..."
+              pm2 start server.js --name hotel-backend -i 1
+            fi
+            
+            # PM2 config save
+            pm2 save
+            
+            # Status check
+            echo "📊 Application status:"
+            pm2 status
+            pm2 logs hotel-backend --lines 20 --nostream
+          ENDSSH
+
+          # Cleanup
+          rm -f private_key.pem
+
+          echo "✅ Deployment completed successfully!"
+          echo "🌐 Your app is running at: http://${HOST}"
