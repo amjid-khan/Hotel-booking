@@ -43,6 +43,17 @@ const AddRoom = () => {
 
   const rooms = Array.isArray(contextRooms) ? contextRooms : [];
 
+  // Helper function to get correct image URL
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return "/placeholder.png";
+    // If already a full URL, return as is
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    // Otherwise prepend BASE_URL
+    return `${BASE_URL}${imagePath}`;
+  };
+
   useEffect(() => {
     if (selectedHotelId) fetchRooms(selectedHotelId);
   }, [selectedHotelId, fetchRooms]);
@@ -140,7 +151,7 @@ const AddRoom = () => {
   };
 
   const handleView = (roomItem) => {
-    toast.info(`Viewing room ${roomItem.roomNumber}`); // Placeholder
+    toast.info(`Viewing room ${roomItem.roomNumber}`);
   };
 
   return (
@@ -228,7 +239,7 @@ const AddRoom = () => {
                           src={
                             image
                               ? URL.createObjectURL(image)
-                              : `${BASE_URL}${editRoom.image}`
+                              : getImageUrl(editRoom.image)
                           }
                           alt="preview"
                           className="w-full h-32 md:h-48 object-cover"
@@ -425,11 +436,7 @@ const AddRoom = () => {
                         <td className="py-4 px-6">
                           <div className="w-16 h-16 rounded-lg overflow-hidden shadow-sm">
                             <img
-                              src={
-                                roomItem.image
-                                  ? `${BASE_URL}${roomItem.image}`
-                                  : "/placeholder.png"
-                              }
+                              src={getImageUrl(roomItem.image)}
                               alt={`Room ${roomItem.roomNumber}`}
                               className="w-full h-full object-cover"
                             />
@@ -512,11 +519,7 @@ const AddRoom = () => {
                     <div className="flex items-start gap-3 md:gap-4">
                       <div className="w-16 md:w-20 h-16 md:h-20 rounded-lg overflow-hidden shadow-sm flex-shrink-0">
                         <img
-                          src={
-                            roomItem.image
-                              ? `${BASE_URL}${roomItem.image}`
-                              : "/placeholder.png"
-                          }
+                          src={getImageUrl(roomItem.image)}
                           alt={`Room ${roomItem.roomNumber}`}
                           className="w-full h-full object-cover"
                         />
