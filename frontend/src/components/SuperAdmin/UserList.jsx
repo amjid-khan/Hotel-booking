@@ -20,6 +20,19 @@ const UserList = () => {
     hotelId: ''
   });
 
+  const BASE_URL = import.meta.env.VITE_BASE_URL;
+
+  // Helper function to get correct image URL
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return null;
+    // If already a full URL, return as is
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    // Otherwise prepend BASE_URL
+    return `${BASE_URL}/uploads/${imagePath}`;
+  };
+
   // Handle responsive behavior
   useEffect(() => {
     const handleResize = () => {
@@ -42,14 +55,12 @@ const UserList = () => {
   const openModal = (user) => {
     setSelectedUser(user);
     setIsModalOpen(true);
-    // Add blur to body content
     document.body.style.overflow = 'hidden';
   };
 
   const closeModal = () => {
     setSelectedUser(null);
     setIsModalOpen(false);
-    // Remove blur from body content
     document.body.style.overflow = 'unset';
   };
 
@@ -64,7 +75,6 @@ const UserList = () => {
       hotelId: user.hotelId || ''
     });
     setIsEditModalOpen(true);
-    // Add blur to body content
     document.body.style.overflow = 'hidden';
   };
 
@@ -79,7 +89,6 @@ const UserList = () => {
       status: '',
       hotelId: ''
     });
-    // Remove blur from body content
     document.body.style.overflow = 'unset';
   };
 
@@ -108,7 +117,6 @@ const UserList = () => {
 
       await updateUserSuperAdmin(selectedUser.id, formData);
       
-      // Show success toast
       toast.success('User updated successfully!', {
         position: "top-right",
         autoClose: 3000,
@@ -118,7 +126,6 @@ const UserList = () => {
         draggable: true,
       });
       
-      // Show loader for 1.5 seconds
       setTimeout(() => {
         setLoading(false);
         closeEditModal();
@@ -139,31 +146,27 @@ const UserList = () => {
     }
   };
 
-const handleDeleteUser = async (userId) => {
-  setLoading(true);
+  const handleDeleteUser = async (userId) => {
+    setLoading(true);
 
-  try {
-    await deleteUserSuperAdmin(userId);
-    toast.success('User deleted successfully!', {
-      position: "top-right",
-      autoClose: 3000,
-    });
-  } catch (error) {
-    console.error('Error deleting user:', error);
-    toast.error('Failed to delete user. Please try again.', {
-      position: "top-right",
-      autoClose: 3000,
-    });
-  } finally {
-    setTimeout(() => {
-      setLoading(false);
-    }, 1500);
-  }
-};
-
-
-  
-
+    try {
+      await deleteUserSuperAdmin(userId);
+      toast.success('User deleted successfully!', {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error('Failed to delete user. Please try again.', {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } finally {
+      setTimeout(() => {
+        setLoading(false);
+      }, 1500);
+    }
+  };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -282,7 +285,7 @@ const handleDeleteUser = async (userId) => {
                               {user.profile_image ? (
                                 <img
                                   className="h-8 w-8 md:h-10 md:w-10 rounded-full object-cover border-2 border-gray-200"
-                                  src={`${import.meta.env.VITE_BASE_URL}/uploads/${user.profile_image}`}
+                                  src={getImageUrl(user.profile_image)}
                                   alt={user.full_name || user.name || 'User'}
                                 />
                               ) : (
@@ -360,7 +363,6 @@ const handleDeleteUser = async (userId) => {
       {isModalOpen && selectedUser && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-screen items-center justify-center p-4">
-            {/* Backdrop with blur effect */}
             <div 
               className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm transition-opacity" 
               onClick={closeModal}
@@ -371,12 +373,11 @@ const handleDeleteUser = async (userId) => {
               <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-6 text-white">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    {/* Professional User Avatar */}
                     <div className="flex-shrink-0">
                       {selectedUser.profile_image ? (
                         <img
                           className="h-20 w-20 rounded-full object-cover border-4 border-white shadow-lg"
-                          src={`${import.meta.env.VITE_BASE_URL}/uploads/${selectedUser.profile_image}`}
+                          src={getImageUrl(selectedUser.profile_image)}
                           alt={selectedUser.full_name || selectedUser.name || 'User'}
                         />
                       ) : (
@@ -508,7 +509,6 @@ const handleDeleteUser = async (userId) => {
       {isEditModalOpen && selectedUser && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-screen items-center justify-center p-4">
-            {/* Backdrop with blur effect */}
             <div 
               className="fixed inset-0 backdrop-blur-sm transition-opacity" 
               onClick={closeEditModal}
