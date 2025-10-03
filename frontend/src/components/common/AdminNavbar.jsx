@@ -414,7 +414,7 @@ const AdminNavbar = () => {
         </div>
         <button
           onClick={() => setMobileActive(true)}
-          className="bg-white border border-gray-300 p-2 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200"
+          className="bg-white border border-gray-300 p-2 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 hover:cursor-pointer"
         >
           <FaBars className="w-5 h-5 text-gray-600" />
         </button>
@@ -453,7 +453,7 @@ const AdminNavbar = () => {
         <div className="absolute top-4 right-4 md:hidden">
           <button
             onClick={() => setMobileActive(false)}
-            className="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+            className="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 hover:cursor-pointer"
           >
             <FaTimes className="w-4 h-4" />
           </button>
@@ -492,7 +492,7 @@ const AdminNavbar = () => {
                     perms?.hotel?.create) && (
                     <button
                       onClick={handleCreateHotel}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2 hover:cursor-pointer"
                     >
                       <HiPlus className="w-4 h-4" />
                       Create Hotel
@@ -504,7 +504,7 @@ const AdminNavbar = () => {
                     perms?.role?.create) && (
                     <button
                       onClick={handleCreateRole}
-                      className="w-full bg-green-600 hover:bg-green-700 text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+                      className="w-full bg-green-600 hover:bg-green-700 text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2 hover:cursor-pointer"
                     >
                       <FaUserTag className="w-4 h-4" />
                       Create Role
@@ -514,7 +514,7 @@ const AdminNavbar = () => {
                   {(perms?.role?.viewAny || user?.role === 'admin' || user?.role === 'superadmin') && (
                     <button
                       onClick={openViewRoles}
-                      className="w-full bg-gray-800 hover:bg-black text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+                      className="w-full bg-gray-800 hover:bg-black text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2 hover:cursor-pointer"
                     >
                       <FaShieldAlt className="w-4 h-4" />
                       View Roles
@@ -526,7 +526,7 @@ const AdminNavbar = () => {
                   <div className="relative" ref={dropdownRef}>
                     <button
                       onClick={() => setShowDropdown(!showDropdown)}
-                      className="w-full flex items-center justify-between px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 hover:border-gray-400 transition-colors duration-200"
+                      className="w-full flex items-center justify-between px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 hover:border-gray-400 transition-colors duration-200 hover:cursor-pointer"
                     >
                       <span className="truncate">
                         {(() => {
@@ -556,7 +556,7 @@ const AdminNavbar = () => {
                             <button
                               key={hotel.id}
                               onClick={() => handleSwitchHotel(hotel)}
-                              className={`w-full text-left px-3 py-2.5 text-sm hover:bg-gray-50 transition-colors duration-150 flex items-center justify-between ${
+                              className={`w-full text-left px-3 py-2.5 text-sm hover:bg-gray-50 transition-colors duration-150 flex items-center justify-between hover:cursor-pointer ${
                                 isSelected
                                   ? "bg-blue-50 text-blue-700 border-r-2 border-blue-600"
                                   : "text-gray-700"
@@ -617,7 +617,7 @@ const AdminNavbar = () => {
         <div className="p-4 border-t border-gray-200 flex-shrink-0">
           <button
             onClick={() => setShowLogoutConfirm(true)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-300 hover:border-red-400 rounded-lg text-sm font-medium transition-colors duration-200"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-300 hover:border-red-400 rounded-lg text-sm font-medium transition-colors duration-200 hover:cursor-pointer"
           >
             <FaSignOutAlt className="w-4 h-4" />
             Sign Out
@@ -643,7 +643,7 @@ const AdminNavbar = () => {
                 </div>
                 <button
                   onClick={() => setShowRoleModal(false)}
-                  className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
+                  className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors hover:cursor-pointer"
                 >
                   <FaTimes className="w-5 h-5" />
                 </button>
@@ -723,7 +723,7 @@ const AdminNavbar = () => {
                         <button
                           key={category}
                           onClick={() => setSelectedCategory(category)}
-                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:cursor-pointer ${
                             selectedCategory === category
                               ? "bg-blue-600 text-white"
                               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -771,7 +771,7 @@ const AdminNavbar = () => {
                                 </div>
                                 <button
                                   onClick={() => handleSelectAllInCategory(category)}
-                                  className={`text-sm font-medium px-3 py-1.5 rounded-md transition-colors ${
+                                  className={`text-sm font-medium px-3 py-1.5 rounded-md transition-colors hover:cursor-pointer ${
                                     allSelected
                                       ? "bg-red-100 text-red-700 hover:bg-red-200"
                                       : "bg-blue-100 text-blue-700 hover:bg-blue-200"
@@ -788,7 +788,7 @@ const AdminNavbar = () => {
                                 {filteredCategoryPerms.map((permission) => (
                                   <div
                                     key={permission.id}
-                                    className={`relative flex items-start p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${
+                                    className={`relative flex items-start p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md hover:cursor-pointer ${
                                       roleFormData.permissions.includes(permission.id)
                                         ? "border-blue-500 bg-blue-50"
                                         : "border-gray-200 hover:border-gray-300"
@@ -839,14 +839,14 @@ const AdminNavbar = () => {
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3">
               <button
                 onClick={() => setShowRoleModal(false)}
-                className="flex-1 bg-white hover:bg-gray-50 text-gray-700 py-2.5 px-4 rounded-lg text-sm font-medium border border-gray-300 hover:border-gray-400 transition-colors"
+                className="flex-1 bg-white hover:bg-gray-50 text-gray-700 py-2.5 px-4 rounded-lg text-sm font-medium border border-gray-300 hover:border-gray-400 transition-colors hover:cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmitRole}
                 disabled={isCreatingRole || !roleFormData.name.trim()}
-                className="flex-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                className="flex-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 hover:cursor-pointer"
               >
                 {isCreatingRole ? (
                   <>
@@ -884,7 +884,7 @@ const AdminNavbar = () => {
                 </div>
                 <button
                   onClick={closeViewRoles}
-                  className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
+                  className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors hover:cursor-pointer"
                 >
                   <FaTimes className="w-5 h-5" />
                 </button>
@@ -960,7 +960,7 @@ const AdminNavbar = () => {
                         <div className="flex gap-2">
                           <button 
                             onClick={() => startEditRole(r)}
-                            className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+                            className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 hover:cursor-pointer ${
                               editingRole?.id === r.id
                                 ? 'bg-blue-600 text-white shadow-md'
                                 : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 hover:border-blue-300'
@@ -971,7 +971,7 @@ const AdminNavbar = () => {
                           </button>
                           <button 
                             onClick={() => removeRole(r.id)}
-                            className="px-4 py-2.5 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 hover:border-red-300 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2"
+                            className="px-4 py-2.5 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 hover:border-red-300 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 hover:cursor-pointer"
                           >
                             <FaTimes className="w-4 h-4" />
                             Delete
@@ -1047,7 +1047,7 @@ const AdminNavbar = () => {
                               return (
                                 <div
                                   key={perm.id}
-                                  className={`flex items-center p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                                  className={`flex items-center p-3 rounded-lg border-2 cursor-pointer transition-all hover:cursor-pointer ${
                                     checked 
                                       ? 'border-blue-500 bg-blue-50' 
                                       : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
@@ -1096,13 +1096,13 @@ const AdminNavbar = () => {
                     <div className="flex gap-3 pt-4 border-t border-gray-200">
                       <button 
                         onClick={() => setEditingRole(null)}
-                        className="flex-1 bg-white hover:bg-gray-50 text-gray-700 py-2.5 px-4 rounded-lg text-sm font-medium border border-gray-300 hover:border-gray-400 transition-colors"
+                        className="flex-1 bg-white hover:bg-gray-50 text-gray-700 py-2.5 px-4 rounded-lg text-sm font-medium border border-gray-300 hover:border-gray-400 transition-colors hover:cursor-pointer"
                       >
                         Cancel
                       </button>
                       <button 
                         onClick={submitEditRole}
-                        className="flex-2 bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                        className="flex-2 bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 hover:cursor-pointer"
                       >
                         <FaCheck className="w-4 h-4" />
                         Save Changes ({roleEditForm.permissionIds.length} permissions)
@@ -1146,13 +1146,13 @@ const AdminNavbar = () => {
             <div className="px-6 py-4 bg-gray-50 rounded-b-lg flex gap-3">
               <button
                 onClick={handleLogout}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors duration-200"
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors duration-200 hover:cursor-pointer"
               >
                 Yes, Sign Out
               </button>
               <button
                 onClick={() => setShowLogoutConfirm(false)}
-                className="flex-1 bg-white hover:bg-gray-50 text-gray-700 py-2.5 px-4 rounded-lg text-sm font-medium border border-gray-300 hover:border-gray-400 transition-colors duration-200"
+                className="flex-1 bg-white hover:bg-gray-50 text-gray-700 py-2.5 px-4 rounded-lg text-sm font-medium border border-gray-300 hover:border-gray-400 transition-colors duration-200 hover:cursor-pointer"
               >
                 Cancel
               </button>

@@ -478,7 +478,7 @@ const MyBooking = () => {
                               perms?.booking?.delete) && (
                               <button
                                 onClick={() => handleCancel(booking.id)}
-                                className="px-3 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2"
+                                className="px-3 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2 cursor-pointer"
                                 title="Cancel Booking"
                               >
                                 <Trash2 className="w-4 h-4" />

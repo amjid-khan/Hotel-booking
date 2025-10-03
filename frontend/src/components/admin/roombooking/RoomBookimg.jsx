@@ -635,7 +635,7 @@ const isRoomAvailable = (room, checkInDate = null, checkOutDate = null) => {
                       {roomAvailable ? (
                         <button
                           onClick={() => handleBook(room)}
-                          className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold transition"
+                          className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold transition cursor-pointer"
                         >
                           Book This Room
                         </button>
@@ -726,7 +726,7 @@ const isRoomAvailable = (room, checkInDate = null, checkOutDate = null) => {
               
               <button
                 onClick={() => setShowSuccessModal(false)}
-                className="w-full mt-6 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition"
+                className="w-full mt-6 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition cursor-pointer"
               >
                 Close
               </button>
@@ -980,14 +980,14 @@ const isRoomAvailable = (room, checkInDate = null, checkOutDate = null) => {
                       <div className="flex flex-col sm:flex-row gap-4 pt-6">
                         <button
                           onClick={() => setShowBooking(false)}
-                          className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition"
+                          className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition cursor-pointer"
                         >
                           Cancel
                         </button>
                         <button
                           onClick={submitBooking}
                           disabled={!form.checkIn || !form.checkOut || !isRoomAvailable(selectedRoom, form.checkIn, form.checkOut)}
-                          className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-semibold transition flex items-center justify-center gap-2"
+                          className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-semibold transition flex items-center justify-center gap-2 cursor-pointer"
                         >
                           <CheckCircle className="w-5 h-5" />
                           Confirm Booking

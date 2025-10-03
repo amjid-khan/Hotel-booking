@@ -12,6 +12,7 @@ function LoginRegister() {
   const [formData, setFormData] = useState({ full_name: '', email: '', password: '', role: 'admin' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -21,7 +22,6 @@ function LoginRegister() {
   };
 
   const handleSubmit = async (e) => {
-  
     e.preventDefault();
     setError('');
 
@@ -134,11 +134,11 @@ function LoginRegister() {
             />
           </div>
 
-          <div className="flex flex-col">
+          <div className="flex flex-col relative">
             <label htmlFor="password" className="mb-1.5 font-medium">Password *</label>
             <input
               id="password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               name="password"
               value={formData.password}
               onChange={onChange}
@@ -146,6 +146,13 @@ function LoginRegister() {
               autoComplete={isRegister ? 'new-password' : 'current-password'}
               className="w-full p-3 rounded-lg border border-gray-300 text-base focus:outline-none focus:border-[#4e4376] focus:shadow-md"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(prev => !prev)}
+              className="absolute right-3 top-[38px] text-gray-500 hover:text-gray-700"
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
           </div>
 
           <button

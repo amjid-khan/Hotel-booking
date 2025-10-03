@@ -178,7 +178,7 @@ const AddRoom = () => {
               className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white 
                px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-medium 
                transition-colors duration-200 flex items-center 
-               justify-center gap-2 shadow-sm"
+               justify-center gap-2 shadow-sm cursor-pointer"
             >
               <FaPlus className="text-sm" />
               Add Room
@@ -336,7 +336,7 @@ const AddRoom = () => {
               </div>
 
               {/* Form Actions */}
-              <div className="flex flex-col sm:flex-row justify-end gap-3 md:gap-4 mt-6 md:mt-8 pt-4 md:pt-6 border-t border-gray-200">
+              <div className="flex flex-col sm:flex-row justify-end gap-3 md:gap-4 mt-6 md:mt-8 pt-4 md:pt-6 border-t border-gray-200 ">
                 <button
                   type="button"
                   onClick={resetForm}
@@ -347,7 +347,7 @@ const AddRoom = () => {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full sm:w-auto px-6 md:px-8 py-2.5 md:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm md:text-base"
+                  className="w-full sm:w-auto px-6 md:px-8 py-2.5 md:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm md:text-base cursor-pointer"
                 >
                   {submitting
                     ? editRoom
@@ -474,7 +474,7 @@ const AddRoom = () => {
                               perms?.room?.viewSelf) && (
                               <button
                                 onClick={() => handleView(roomItem)}
-                                className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                                className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer"
                                 title="View Details"
                               >
                                 <FaEye size={16} />
@@ -486,7 +486,7 @@ const AddRoom = () => {
                               perms?.room?.update) && (
                               <button
                                 onClick={() => handleEdit(roomItem)}
-                                className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                                className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors cursor-pointer"
                                 title="Edit Room"
                               >
                                 <FaEdit size={16} />
@@ -498,7 +498,7 @@ const AddRoom = () => {
                               perms?.room?.delete) && (
                               <button
                                 onClick={() => handleDelete(roomItem.id)}
-                                className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                                className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors cursor-pointer"
                                 title="Delete Room"
                               >
                                 <FaTrash size={16} />

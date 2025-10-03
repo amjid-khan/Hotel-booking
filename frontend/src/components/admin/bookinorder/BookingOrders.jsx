@@ -472,7 +472,7 @@ const stats = {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
             >
               <option value="all">All Status</option>
               <option value="confirmed">Confirmed</option>
@@ -492,7 +492,7 @@ const stats = {
 
             <button
               onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-              className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition"
+              className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition cursor-pointer"
             >
               <ArrowUpDown className="w-4 h-4" />
               {sortOrder === "asc" ? "Ascending" : "Descending"}
@@ -590,7 +590,7 @@ const stats = {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleCancel(booking.id)}
-                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors cursor-pointer"
                           title="Cancel Booking"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -643,7 +643,7 @@ const stats = {
                 </h2>
                 <button
                   onClick={closeViewModal}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                 >
                   <svg
                     className="w-5 h-5"

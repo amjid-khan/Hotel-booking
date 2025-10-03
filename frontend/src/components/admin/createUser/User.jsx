@@ -467,12 +467,12 @@ const User = () => {
                         <div className="flex items-center gap-2">
                           {(user?.role === "admin" || user?.role === "superadmin" || perms?.user?.updateAny) && (
                             <button onClick={() => handleEdit(u)} className="flex-1 sm:flex-none px-3 py-1.5 text-green-600 border border-green-600 rounded text-xs md:text-sm hover:bg-green-50 transition-colors" title="Edit User">
-                              <FaEdit className="inline mr-1" size={12} /> Edit
+                              <FaEdit className="inline mr-1 " size={12} /> Edit
                             </button>
                           )}
                           {(user?.role === "admin" || user?.role === "superadmin" || perms?.user?.deleteAny) && (
-                            <button onClick={() => confirmDelete(u.id)} className="flex-1 sm:flex-none px-3 py-1.5 text-red-600 border border-red-600 rounded text-xs md:text-sm hover:bg-red-50 transition-colors" title="Delete User">
-                              <FaTrash className="inline mr-1" size={12} /> Delete
+                            <button onClick={() => confirmDelete(u.id)} className="flex-1 sm:flex-none px-3 py-1.5 text-red-600 border border-red-600 rounded text-xs md:text-sm hover:bg-red-50 transition-colors " title="Delete User">
+                              <FaTrash className="inline mr-1 " size={12} /> Delete
                             </button>
                           )}
                         </div>
